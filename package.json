@@ -1,0 +1,22 @@
+{
+  "name": "raccoon-coin-pusher",
+  "version": "1.0.0",
+  "description": "A raccoon-themed 3D coin pusher arcade game built with Three.js and Rapier.",
+  "main": "index.js",
+  "scripts": {
+    "build": "sh build.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.14.0",
+    "cannon-es": "^0.20.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "playwright-core": "^1.48.0"
+  }
+}
