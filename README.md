@@ -2,6 +2,14 @@
 
 一个以浣熊为主题的 3D 推币机街机小游戏，使用 Three.js 与 Rapier 物理引擎制作。支持桌面浏览器和手机触屏，包含老虎机奖励、连胜 Fever、音效与本地存档。
 
+## 在线试玩
+
+[打开在线试玩](https://08102317cdw-art.github.io/raccoon-coin-pusher/)
+
+首次发布需在仓库 **Settings → Pages** 中选择 **Deploy from a branch**，分支设为 **main**、目录设为 **/(root)** 并保存；部署完成后上述链接生效。后续推送到 main 会自动更新网站。
+
+在线版使用固定版本的 CDN 依赖，需要联网；离线单文件版按下方说明构建。
+
 ## 运行
 
 需要 Node.js 18 或更高版本。
@@ -31,6 +39,7 @@ npm run build
 ## 项目结构
 
 ```text
+index.html     在线试玩入口（GitHub Pages）
 src/
   index.html   页面、HUD 与样式
   main.js      游戏场景、输入、物理与主循环

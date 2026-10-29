@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>浣熊推币机 · Raccoon Coin Pusher</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;color:#fff;touch-action:none}
+#app canvas{display:block;cursor:crosshair}
+#hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .6s}
+#hud.show{opacity:1}
+.panel{position:absolute;background:linear-gradient(180deg,rgba(60,20,90,.82),rgba(25,8,45,.82));border:2px solid rgba(255,201,60,.55);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.15);backdrop-filter:blur(6px)}
+#coinbox{left:16px;top:16px;padding:10px 18px 10px 12px;display:flex;align-items:center;gap:12px}
+#coinbox.bump .num{animation:bump .25s}
+@keyframes bump{50%{transform:scale(1.25);color:#fff6b0}}
+.coin-ico{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#f7c948 45%,#c9891a);box-shadow:inset 0 0 0 4px #b07510,inset 0 0 0 7px #ffe39a,0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-weight:900;color:#9a5c00;font-size:20px}
+.num{font:900 34px/1 "Arial Black",Arial,sans-serif;color:#ffe066;text-shadow:0 3px 0 #8a3b00,0 0 14px rgba(255,200,60,.6);display:inline-block;min-width:70px}
+.sub{font-size:13px;color:#d8c3ff;margin-top:3px}
+.sub b{color:#9effc8}
+#lvbox{left:16px;top:104px;padding:8px 16px;display:flex;align-items:center;gap:10px;min-width:260px}
+.lv{font:900 18px "Arial Black",Arial;color:#7cf3ff;text-shadow:0 2px 0 #064a5e;white-space:nowrap}
+.bar{flex:1;height:14px;border-radius:8px;background:rgba(0,0,0,.45);overflow:hidden;border:1px solid rgba(124,243,255,.4)}
+#expbar{height:100%;width:0;background:linear-gradient(90deg,#3dffb0,#7cf3ff);box-shadow:0 0 10px #7cf3ff;transition:width .3s}
+#colbox{right:16px;top:16px;padding:8px 12px;display:flex;gap:14px;align-items:center;font-weight:800;font-size:16px}
+#colbox span{display:flex;align-items:center;gap:4px}
+#btns{position:absolute;right:16px;top:72px;display:flex;gap:8px;pointer-events:auto}
+#btns button{width:42px;height:42px;border-radius:12px;border:2px solid rgba(255,201,60,.55);background:rgba(40,12,70,.85);color:#fff;font-size:19px;cursor:pointer;transition:transform .1s}
+#btns button:active{transform:scale(.9)}
+#btns button.off{opacity:.4;filter:grayscale(1)}
+#hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);font-size:14px;color:#e8dcff;background:rgba(20,6,40,.6);padding:8px 16px;border-radius:999px;white-space:nowrap}
+#dropbtn{display:none;position:absolute;right:22px;bottom:70px;width:96px;height:96px;border-radius:50%;border:4px solid #ffe066;background:radial-gradient(circle at 40% 35%,#ffb347,#ff6a00);color:#fff;font:900 22px "Arial Black","PingFang SC",sans-serif;text-shadow:0 2px 0 #8a3b00;box-shadow:0 6px 0 #8a3b00,0 10px 24px rgba(0,0,0,.5);pointer-events:auto}
+#dropbtn:active{transform:translateY(4px);box-shadow:0 2px 0 #8a3b00}
+@media (pointer:coarse){#dropbtn{display:block}#hint{font-size:12px;bottom:10px}}
+@media (max-width:700px){#hint{white-space:normal;width:94%;text-align:center;font-size:12px;border-radius:12px;bottom:8px}#dropbtn{bottom:84px}}
+@media (max-width:700px){.num{font-size:26px}.coin-ico{width:34px;height:34px}#colbox{font-size:14px;gap:8px}#btns{top:64px}#btns button{width:36px;height:36px;font-size:16px}#lvbox{top:90px;min-width:180px}}
+#floats{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.float{position:absolute;transform:translate(-50%,-50%);font:900 26px "Arial Black",Arial,sans-serif;color:#ffe066;text-shadow:0 3px 0 #8a3b00,0 0 12px rgba(255,210,80,.8);animation:floatUp 1.25s ease-out forwards;white-space:nowrap}
+.float.big{font-size:44px;color:#fff3a0}
+.float.fever{color:#ff8be0;text-shadow:0 3px 0 #6a0050,0 0 12px #ff4fd8}
+.float.lucky{color:#7dff9a;font-size:30px;text-shadow:0 3px 0 #0a4020,0 0 14px #22ff77}
+.float.lost{color:#aab;font-size:20px;text-shadow:0 2px 0 #223}
+.float.regen{color:#9effc8;font-size:18px}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}15%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-260%) scale(1)}}
+#banner{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(0);pointer-events:none;text-align:center;font:900 64px/1.1 "Arial Black","PingFang SC","Microsoft YaHei",sans-serif;color:#ffe14d;text-shadow:0 5px 0 #8a2b00,0 0 30px rgba(255,180,40,.9);opacity:0;white-space:nowrap}
+#banner small{display:block;font-size:22px;margin-top:10px;color:#fff;text-shadow:0 2px 0 #4a1060}
+#banner.show{animation:bannerIn .5s cubic-bezier(.2,1.6,.4,1) forwards}
+#banner.jp{font-size:92px;background:linear-gradient(180deg,#fffbe0,#ffd23a 50%,#ff8a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 5px 0 #8a2b00) drop-shadow(0 0 24px #ffb000)}
+#banner.jp small{color:#fff;-webkit-text-fill-color:#fff}
+#banner.fever{color:#ff7ae0;text-shadow:0 5px 0 #6a0050,0 0 30px #ff4fd8}
+#banner.lv{color:#7cf3ff;text-shadow:0 5px 0 #064a5e,0 0 30px #3fe6ff}
+#banner.prize{font-size:48px}
+@keyframes bannerIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(-8deg)}100%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}}
+@media (max-width:700px){#banner{font-size:40px}#banner.jp{font-size:54px}#banner small{font-size:16px}#banner.prize{font-size:32px}}
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen}
+#flash.go{animation:flash .6s ease-out}
+@keyframes flash{0%{opacity:.75}100%{opacity:0}}
+#bubble{position:fixed;transform:translate(-50%,-100%) scale(0);background:#fff;color:#3a1a00;font-weight:800;font-size:15px;padding:7px 12px;border-radius:14px;pointer-events:none;white-space:nowrap;transition:transform .2s cubic-bezier(.2,1.6,.4,1);box-shadow:0 4px 12px rgba(0,0,0,.35)}
+#bubble::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top-color:#fff}
+#bubble.show{transform:translate(-50%,-100%) scale(1)}
+#start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(70,20,110,.7),rgba(10,3,20,.92));z-index:10;cursor:pointer;transition:opacity .6s}
+#start.hide{opacity:0;pointer-events:none}
+#start h1{font:900 clamp(44px,9vw,96px)/1 "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;background:linear-gradient(180deg,#fffbe0,#ffd23a 50%,#ff8a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 0 #8a2b00) drop-shadow(0 0 30px rgba(255,170,0,.6));animation:pulse 2s ease-in-out infinite}
+#start h2{font:900 clamp(16px,3vw,26px) "Arial Black",Arial;color:#7cf3ff;letter-spacing:6px;margin:14px 0 30px;text-shadow:0 0 14px #3fe6ff}
+#start .go{font:900 26px "PingFang SC","Microsoft YaHei",sans-serif;padding:16px 48px;border-radius:999px;background:linear-gradient(180deg,#ffb347,#ff6a00);box-shadow:0 6px 0 #8a3b00,0 0 30px rgba(255,140,0,.6);animation:bob 1.2s ease-in-out infinite}
+#start ul{margin-top:34px;list-style:none;color:#e8dcff;font-size:15px;line-height:1.9;text-align:left;background:rgba(0,0,0,.3);padding:14px 22px;border-radius:14px}
+@keyframes pulse{50%{transform:scale(1.04)}}
+@keyframes bob{50%{transform:translateY(-6px)}}
+#help{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,3,20,.75);z-index:9}
+#help.show{display:flex}
+#help .card{background:linear-gradient(180deg,#3a1460,#1b0833);border:2px solid #ffc93c;border-radius:20px;padding:22px 26px;max-width:520px;width:92%;line-height:1.75;font-size:15px}
+#help h3{color:#ffe066;margin-bottom:8px;font-size:20px}
+#help td{padding:2px 10px 2px 0;vertical-align:top}
+#help td:first-child{white-space:nowrap;color:#ffd34d;font-weight:800}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/":"https://cdn.jsdelivr.net/npm/three@0.170.0/","@dimforge/rapier3d-compat":"https://esm.sh/@dimforge/rapier3d-compat@0.14.0?target=es2022"}}</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="floats"></div>
+<div id="flash"></div>
+<div id="bubble"></div>
+<div id="banner"></div>
+<div id="hud">
+  <div class="panel" id="coinbox"><div class="coin-ico">🦝</div><div><div class="num" id="coins">0</div><div class="sub">累计赢得 <b id="won">0</b></div></div></div>
+  <div class="panel" id="lvbox"><div class="lv">Lv.<span id="lv">1</span></div><div class="bar"><div id="expbar"></div></div></div>
+  <div class="panel" id="colbox"><span>🏅<b id="c-big">0</b></span><span>💎<b id="c-gem">0</b></span><span>🦝<b id="c-plush">0</b></span></div>
+  <div id="btns"><button id="btn-sound" title="音效">🔊</button><button id="btn-music" title="音乐">🎵</button><button id="btn-help" title="玩法">❓</button><button id="btn-reset" title="重置">🔄</button></div>
+  <div id="hint">移动瞄准 · 点击/长按（或空格）投币 · 让硬币穿过绿色 <b style="color:#7dff9a">LUCKY</b> 门启动老虎机</div>
+  <button id="dropbtn">投币</button>
+</div>
+<div id="start">
+  <h1>浣熊推币机</h1>
+  <h2>RACCOON COIN PUSHER</h2>
+  <div class="go">点击开始</div>
+  <ul>
+    <li>🎯 移动鼠标 / 手指，控制顶部投币器位置</li>
+    <li>🪙 点击或长按投币，推板把硬币推下前沿即为赢得</li>
+    <li>🍀 硬币穿过移动的 LUCKY 门 → 老虎机抽奖</li>
+    <li>🦝 三个浣熊 = JACKPOT 金币雨！</li>
+  </ul>
+</div>
+<div id="help"><div class="card">
+  <h3>玩法说明</h3>
+  <p>投币器把硬币投到上层推板上；上层硬币被挡板刮落到下层，再被推板推向前沿。从<b>前沿</b>掉进出币口的硬币归你，从<b>两侧</b>漏掉的就没了。</p>
+  <table style="margin-top:10px">
+    <tr><td>🦝🦝🦝</td><td>JACKPOT：40 枚金币雨 + 浣熊玩偶 + 宝石</td></tr>
+    <tr><td>777</td><td>20 枚金币雨</td></tr>
+    <tr><td>$$$</td><td>10 枚金币</td></tr>
+    <tr><td>⭐⭐⭐</td><td>护墙升起 30 秒，两侧不漏币</td></tr>
+    <tr><td>🔔🔔🔔</td><td>掉落大金币 / 宝石奖品</td></tr>
+    <tr><td>🍒🍒🍒</td><td>超级推板 18 秒，推程加长</td></tr>
+    <tr><td>FEVER</td><td>4 秒内连续赢 9 枚触发，出币翻倍</td></tr>
+  </table>
+  <p style="margin-top:10px;color:#cbb">升级会奖励硬币和奖品；硬币不足 10 枚时浣熊会慢慢补给。进度自动保存。</p>
+</div></div>
+<script type="module">import "./src/main.js";</script>
+</body>
+</html>
