@@ -7,33 +7,65 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;color:#fff;touch-action:none}
-#app canvas{display:block;cursor:crosshair}
-#hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .6s}
+/* The game has its own viewport. HUD panels never sit on top of the cabinet. */
+:root{--rail-width:272px;--top-reserve:144px;--bottom-reserve:100px}
+#app{position:fixed;left:0;top:0;right:var(--rail-width);bottom:0;overflow:hidden;background:#10071e}
+#app canvas{display:block;cursor:crosshair;outline:none}#app canvas:focus-visible{outline:2px solid #725781;outline-offset:-2px}
+#hud{position:fixed;inset:0 0 0 auto;width:var(--rail-width);z-index:3;display:flex;flex-direction:column;gap:24px;padding:24px 20px;overflow-y:auto;touch-action:pan-y;pointer-events:auto;opacity:0;transition:opacity .4s;background:linear-gradient(180deg,#20122e,#140b21);border-left:1px solid #594366}
 #hud.show{opacity:1}
-.panel{position:absolute;background:linear-gradient(180deg,rgba(60,20,90,.82),rgba(25,8,45,.82));border:2px solid rgba(255,201,60,.55);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.15);backdrop-filter:blur(6px)}
-#coinbox{left:16px;top:16px;padding:10px 18px 10px 12px;display:flex;align-items:center;gap:12px}
-#coinbox.bump .num{animation:bump .25s}
-@keyframes bump{50%{transform:scale(1.25);color:#fff6b0}}
-.coin-ico{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#f7c948 45%,#c9891a);box-shadow:inset 0 0 0 4px #b07510,inset 0 0 0 7px #ffe39a,0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-weight:900;color:#9a5c00;font-size:20px}
-.num{font:900 34px/1 "Arial Black",Arial,sans-serif;color:#ffe066;text-shadow:0 3px 0 #8a3b00,0 0 14px rgba(255,200,60,.6);display:inline-block;min-width:70px}
-.sub{font-size:13px;color:#d8c3ff;margin-top:3px}
-.sub b{color:#9effc8}
-#lvbox{left:16px;top:104px;padding:8px 16px;display:flex;align-items:center;gap:10px;min-width:260px}
-.lv{font:900 18px "Arial Black",Arial;color:#7cf3ff;text-shadow:0 2px 0 #064a5e;white-space:nowrap}
-.bar{flex:1;height:14px;border-radius:8px;background:rgba(0,0,0,.45);overflow:hidden;border:1px solid rgba(124,243,255,.4)}
-#expbar{height:100%;width:0;background:linear-gradient(90deg,#3dffb0,#7cf3ff);box-shadow:0 0 10px #7cf3ff;transition:width .3s}
-#colbox{right:16px;top:16px;padding:8px 12px;display:flex;gap:14px;align-items:center;font-weight:800;font-size:16px}
-#colbox span{display:flex;align-items:center;gap:4px}
-#btns{position:absolute;right:16px;top:72px;display:flex;gap:8px;pointer-events:auto}
-#btns button{width:42px;height:42px;border-radius:12px;border:2px solid rgba(255,201,60,.55);background:rgba(40,12,70,.85);color:#fff;font-size:19px;cursor:pointer;transition:transform .1s}
-#btns button:active{transform:scale(.9)}
-#btns button.off{opacity:.4;filter:grayscale(1)}
-#hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);font-size:14px;color:#e8dcff;background:rgba(20,6,40,.6);padding:8px 16px;border-radius:999px;white-space:nowrap}
-#dropbtn{display:none;position:absolute;right:22px;bottom:70px;width:96px;height:96px;border-radius:50%;border:4px solid #ffe066;background:radial-gradient(circle at 40% 35%,#ffb347,#ff6a00);color:#fff;font:900 22px "Arial Black","PingFang SC",sans-serif;text-shadow:0 2px 0 #8a3b00;box-shadow:0 6px 0 #8a3b00,0 10px 24px rgba(0,0,0,.5);pointer-events:auto}
-#dropbtn:active{transform:translateY(4px);box-shadow:0 2px 0 #8a3b00}
-@media (pointer:coarse){#dropbtn{display:block}#hint{font-size:12px;bottom:10px}}
-@media (max-width:700px){#hint{white-space:normal;width:94%;text-align:center;font-size:12px;border-radius:12px;bottom:8px}#dropbtn{bottom:84px}}
-@media (max-width:700px){.num{font-size:26px}.coin-ico{width:34px;height:34px}#colbox{font-size:14px;gap:8px}#btns{top:64px}#btns button{width:36px;height:36px;font-size:16px}#lvbox{top:90px;min-width:180px}}
+#hud-top,#hud-bottom{flex-shrink:0}
+#hud-bottom{margin-top:auto;display:grid;grid-template-columns:1fr;gap:12px}
+.hud-brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;color:#fff1cc;font-size:18px;font-weight:800}
+.hud-brand small{font-size:14px;font-weight:400;color:#cdbbdc}
+.panel{position:relative;background:#2b1b3b;border:1px solid #725781;border-radius:12px;padding:16px;box-shadow:none}
+#runbox{width:100%;padding:12px 14px 14px}
+.runline{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:#eadff3;min-height:44px}
+.round-tag{white-space:nowrap;color:#ffe3a0}
+#detail-toggle{display:flex;align-items:center;gap:6px;justify-content:flex-end;min-width:76px;min-height:44px;border:0;background:transparent;color:#ffb9e7;cursor:pointer;font-size:16px;border-radius:8px;padding:0 0 0 8px}
+#detail-toggle:hover{background:#4b2e59}#detail-toggle .disclosure{display:block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #d6c3e3;transition:transform .15s}#detail-toggle[aria-expanded="true"] .disclosure{transform:rotate(180deg)}
+#base-mult{font:800 18px Arial,sans-serif;white-space:nowrap}
+.scoreline{display:flex;align-items:baseline;gap:8px;margin:3px 0 12px;font-variant-numeric:tabular-nums}.scoreline strong{font:800 36px/1 Arial,sans-serif;color:#ffebac}.scoreline span{font-size:14px;color:#e3d6ef}
+.score-track{height:6px;border-radius:6px;background:#59406e;overflow:hidden}#scorebar{height:100%;width:0;background:linear-gradient(90deg,#efb751,#ffe59d);transition:width .2s}
+#round-status{display:block;margin-top:10px;font-size:14px;line-height:20px;color:#e5d8ed}
+#score-formula{font-size:14px;line-height:1.6;color:#f2dfbd;margin-top:10px;padding-top:10px;border-top:1px solid #715782}
+#resources{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+#coinbox,#colbox{min-width:0;padding:14px 12px;display:block}
+.stat-label{display:block;color:#d9c7e5;font-size:14px;line-height:20px;margin-bottom:6px}.num,#cash{font:800 30px/1.15 Arial,sans-serif;color:#ffe3a0;text-shadow:none;font-variant-numeric:tabular-nums;display:block;min-width:0}
+#coinbox.bump .num{animation:bump .25s}@keyframes bump{50%{transform:scale(1.1);color:#fff6d3}}
+#total-score{grid-column:1/3;display:flex;justify-content:space-between;gap:8px;margin-top:14px;color:#cdbbdc;font-size:14px;line-height:22px}#won{color:#f2e4fe;font-weight:700;font-variant-numeric:tabular-nums}
+#colbox small{display:none}
+#btns{position:static;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;pointer-events:auto}
+#btns button{display:flex;align-items:center;justify-content:center;min-width:44px;width:100%;height:44px;border-radius:8px;border:1px solid #896a99;background:#2b1b3b;color:#fff;font-size:19px;cursor:pointer}
+#btns button:hover{background:#463052}#btns button:active{transform:translateY(1px)}#btns button.off{opacity:.6;filter:grayscale(1)}
+#round-action{position:static;transform:none;width:100%;min-height:48px;padding:12px 10px;pointer-events:auto;border:1px solid #ffd57f;border-radius:8px;background:#ffda83;color:#2b173e;font-size:16px;font-weight:800;line-height:1.4;cursor:pointer}
+#round-action:disabled{background:#31203f;color:#eadff3;border-color:#80658f;opacity:1;cursor:default}
+#hint{position:static;transform:none;background:none;padding:0;white-space:normal;color:#d1bedf;font-size:14px;line-height:1.6;text-align:left}
+#save-status{display:block;color:#bfe7ce;margin-top:4px}
+.mobile-instruction{display:none}
+#dropbtn{display:none;position:static;width:100%;min-height:48px;border:1px solid #ffda83;border-radius:8px;background:#ffda83;color:#2b173e;font-size:18px;font-weight:800;pointer-events:auto;box-shadow:none;text-shadow:none}
+@media(pointer:coarse) and (min-width:761px){#dropbtn{display:block}}
+@media(max-width:760px){
+  #app{right:0;top:var(--top-reserve);bottom:var(--bottom-reserve)}
+  #hud{inset:0;width:auto;display:block;padding:0;background:none;border:0;overflow:visible;pointer-events:none}
+  #hud-top,#hud-bottom{position:absolute;left:0;right:0;padding:8px 12px;pointer-events:auto;background:#1b1029}
+  #hud-top{top:0;border-bottom:1px solid #594366}#hud-bottom{bottom:0;border-top:1px solid #594366;display:grid;grid-template-columns:1fr 116px;gap:8px}
+  .hud-brand{display:none}.panel{border-radius:8px}#runbox{padding:0 12px 10px;background:#2b1b3b}
+  .runline{min-height:40px}.scoreline{margin:0 0 8px;gap:6px;display:inline-flex;align-items:baseline;position:absolute;left:102px;top:11px}.scoreline strong{font-size:24px}.scoreline span{font-size:14px}
+  .round-tag{font-size:14px}#detail-toggle{min-height:44px;min-width:78px}#base-mult{font-size:16px}
+  #round-status{display:inline-block;margin:6px 0 0;color:#d7c4e4;font-size:14px;line-height:20px}
+  #score-formula{margin-top:8px;padding-top:8px;font-size:14px}
+  #resources{display:flex;gap:16px;align-items:center;margin-top:6px;min-height:24px}
+  #coinbox,#colbox{display:flex;align-items:center;gap:6px;padding:0;background:none;border:0;border-radius:0}
+  .stat-label{display:inline;margin:0;font-size:14px}.num,#cash{font-size:18px;line-height:24px;display:inline}
+  #total-score{display:flex;align-items:center;gap:6px;margin:0 0 0 auto;font-size:14px;line-height:24px;white-space:nowrap}
+  #btns{display:grid;gap:4px;grid-template-columns:repeat(4,44px);grid-column:1;grid-row:1}#btns button{width:44px;min-width:44px;height:44px;font-size:18px}
+  #dropbtn{display:block;grid-column:2;grid-row:1;min-height:44px;font-size:18px}
+  #round-action{grid-column:1/3;grid-row:2;min-height:44px;padding:10px;font-size:16px}
+  #hint{grid-column:1/3;text-align:center;font-size:14px;line-height:20px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+  .desktop-instruction{display:none}.mobile-instruction{display:inline}#save-status{display:inline;margin:0;font-size:14px}
+}
+@media(max-width:359px){#hud-top,#hud-bottom{padding:8px}#hud-bottom{grid-template-columns:1fr 100px}#btns{grid-template-columns:repeat(4,44px);gap:2px}.scoreline{left:94px}.scoreline strong{font-size:22px}#resources{gap:10px}.stat-label,#total-score{font-size:14px}#hint{gap:4px}}
+@media(max-height:580px) and (min-width:761px){#hud{padding:16px;gap:12px;overflow:hidden}#hud-top{overflow-y:auto;min-height:0;flex-shrink:1;touch-action:pan-y;padding-right:4px}#hud-bottom{margin-top:0}.hud-brand{display:none}#runbox{padding:8px 12px 12px}.scoreline strong{font-size:30px}#resources{margin-top:12px}.panel{padding:12px}#hud-bottom{gap:8px}}
 #floats{position:fixed;inset:0;pointer-events:none;overflow:hidden}
 .float{position:absolute;transform:translate(-50%,-50%);font:900 26px "Arial Black",Arial,sans-serif;color:#ffe066;text-shadow:0 3px 0 #8a3b00,0 0 12px rgba(255,210,80,.8);animation:floatUp 1.25s ease-out forwards;white-space:nowrap}
 .float.big{font-size:44px;color:#fff3a0}
@@ -72,21 +104,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:
 #help h3{color:#ffe066;margin-bottom:8px;font-size:20px}
 #help td{padding:2px 10px 2px 0;vertical-align:top}
 #help td:first-child{white-space:nowrap;color:#ffd34d;font-weight:800}
-/* Roguelike HUD and station: fixed dark arcade theme matches the 3D cabinet. */
 [hidden]{display:none!important}
-button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}button:focus-visible{outline:3px solid #7cf3ff;outline-offset:4px}
-#coinbox{min-width:190px}.sub{font-size:14px}
-#runbox{left:50%;top:16px;transform:translateX(-50%);width:440px;padding:12px 18px;border-radius:12px;border-width:1px;background:rgba(25,8,45,.93)}
-.runline{display:flex;align-items:center;gap:14px;font-size:14px;color:#e3d6f7}.round-tag{color:#ffe49b}.runline strong{margin-left:auto;color:#ffafe5;font-size:18px}
-.scoreline{display:flex;align-items:baseline;gap:8px;margin:3px 0 7px}.scoreline strong{font:900 30px Arial,sans-serif;color:#fff3bd}.scoreline span{font-size:14px;color:#e3d6f7}
-.score-track{height:7px;border-radius:8px;background:#51366b;overflow:hidden}#scorebar{height:100%;width:0;background:linear-gradient(90deg,#efae37,#ffe7a1);transition:width .2s}
-#score-formula{font-size:14px;color:#e3d6f7;margin-top:7px}
-#colbox{min-width:155px;display:block;padding:12px 16px;border-radius:12px}#colbox span{font-size:16px}#colbox b{font-size:24px;color:#ffe49b;margin-left:auto}#colbox small{display:block;font-size:14px;font-weight:400;color:#e3d6f7;margin-top:4px}
-#btns{top:112px}#btns button{width:44px;height:44px}
-#round-action{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);pointer-events:auto;border:1px solid #ffc957;border-radius:12px;background:#382052;color:#ffefc1;font-weight:700;padding:12px 24px;min-height:48px;font-size:16px}
-#round-action:not(:disabled){background:#ffcf66;color:#29113f;box-shadow:0 0 28px #ffcf6633}
-#round-action:disabled{background:#21102f;color:#e3d6f7;border-color:#8a719e;opacity:.85}
-#hint{font-size:14px}#start .go{border:0;color:#33150a;text-shadow:none;font-size:22px;min-height:56px;animation:none}#start ul{font-size:16px;line-height:2}
+button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}button:focus-visible{outline:3px solid #7cf3ff;outline-offset:3px}
+#start .go{border:0;color:#33150a;text-shadow:none;font-size:22px;min-height:56px;animation:none}#start ul{font-size:16px;line-height:2}
 #help .card{max-height:90dvh;overflow-y:auto;touch-action:pan-y;font-size:16px}#help p.rules-note{margin-top:12px;color:#e3d6f7;font-size:14px}
 #run-modal{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(9,3,19,.86);backdrop-filter:blur(10px);overflow-y:auto;touch-action:pan-y}
 .run-card{width:min(900px,100%);max-height:calc(100dvh - 48px);overflow-y:auto;touch-action:pan-y;padding:28px;background:linear-gradient(145deg,#322044,#1b102b);border:1px solid #856747;border-radius:12px;box-shadow:0 24px 80px #0007}
@@ -99,21 +119,14 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
 .shop-tools{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px}.shop-tools span{font-size:14px;color:#dfcde9}.shop-tools button:disabled{opacity:1;color:#baa6c7;border-color:#695377}
 .build-summary{background:#1b102b;border-radius:8px;padding:12px 16px;margin-top:16px}.build-summary span{font-size:14px;color:#dfcde9}.build-summary p{font-size:14px;line-height:1.6;color:#ffe6a0;margin-top:4px}
 .result-footer{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:20px}.result-footer p{font-size:14px;color:#e3d6f7;line-height:1.6;max-width:440px}.primary-action{border:0;border-radius:8px;background:#ffdc8b;color:#29143d;font-size:16px;font-weight:800;padding:14px 24px;min-height:48px;white-space:nowrap}
-@media(max-width:1000px) and (min-width:701px){#runbox{width:340px}#coinbox{min-width:160px;padding:10px}.num{font-size:28px}#colbox{min-width:130px;padding:10px}.sub{font-size:14px}.coin-ico{display:none}}
 @media(max-width:700px){
-  #coinbox{left:12px;top:12px;min-width:0;padding:8px 12px;height:66px;gap:8px;border-radius:12px}.coin-ico{width:32px;height:32px;font-size:16px}.num{font-size:26px;min-width:30px}.sub{font-size:14px}
-  #colbox{right:12px;top:12px;padding:8px 12px;min-width:112px;height:66px}#colbox b{font-size:22px}#colbox small{font-size:14px}
-  #runbox{left:12px;right:12px;top:88px;transform:none;width:auto;padding:10px 14px}.runline{gap:8px;font-size:14px}.scoreline strong{font-size:26px}.scoreline{margin:0 0 5px}#score-formula{font-size:14px;margin-top:5px}
-  #btns{left:12px;right:auto;top:auto;bottom:162px;gap:6px}#btns button{width:44px;height:44px;font-size:18px;border-radius:10px}
-  #round-action{left:12px;bottom:92px;transform:none;width:calc(100% - 138px);padding:10px;font-size:14px;min-height:48px}
-  #dropbtn{right:16px;bottom:82px;width:94px;height:94px;font-size:20px}#hint{bottom:10px;font-size:14px;width:calc(100% - 24px);line-height:1.5;padding:8px}
   #start h1{font-size:44px}#start h2{font-size:16px;letter-spacing:3px;margin:12px 0 24px}#start .go{font-size:20px;padding:14px 28px}#start ul{font-size:16px;margin:24px 16px 0;padding:12px 16px;line-height:2}
   #run-modal{padding:12px;align-items:flex-start}.run-card{padding:20px 16px;max-height:calc(100dvh - 24px)}.result-header h2{font-size:26px}.result-summary{display:block;padding:12px 0;margin-bottom:12px}.result-summary strong{font-size:34px}.result-summary p{margin-top:4px}#result-rewards{margin-top:8px;max-width:none}
   .shop-heading{align-items:center;gap:8px;margin-bottom:12px}.shop-heading h3{font-size:16px}.shop-heading strong{font-size:20px}
   #shop-cards{grid-template-columns:1fr;gap:12px}.upgrade-card{padding:14px;display:grid;grid-template-columns:40px 1fr;column-gap:12px}.upgrade-icon{grid-row:1/4;font-size:28px}.upgrade-card h4{margin:0;font-size:18px}.upgrade-level{margin:4px 0}.upgrade-card p{min-height:0;margin:0;font-size:16px}.buy-button{grid-column:1/3;width:100%;margin-top:12px}
   .shop-tools{align-items:flex-start;gap:8px;flex-wrap:wrap}.shop-tools span{line-height:1.5}.shop-tools button{width:100%}.result-footer{display:block;margin-top:16px}.result-footer .primary-action{margin-top:12px;width:100%}.build-summary{padding:10px 12px;margin-top:12px}
 }
-@media(max-height:600px) and (min-width:701px){#runbox{padding:8px 14px}.run-card{padding:20px}.result-header h2{font-size:26px}.result-summary{padding:10px 0;margin-bottom:10px}.upgrade-icon{display:none}.upgrade-card{padding:14px}.build-summary{margin-top:10px}.result-footer{margin-top:12px}#round-action{bottom:48px}}
+@media(max-height:600px) and (min-width:701px){.run-card{padding:20px}.result-header h2{font-size:26px}.result-summary{padding:10px 0;margin-bottom:10px}.upgrade-icon{display:none}.upgrade-card{padding:14px}.build-summary{margin-top:10px}.result-footer{margin-top:12px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/":"https://cdn.jsdelivr.net/npm/three@0.170.0/","@dimforge/rapier3d-compat":"https://esm.sh/@dimforge/rapier3d-compat@0.14.0?target=es2022"}}</script>
@@ -124,20 +137,29 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
 <div id="flash"></div>
 <div id="bubble"></div>
 <div id="banner"></div>
-<div id="hud">
-  <div class="panel" id="coinbox"><div class="coin-ico">🦝</div><div><div class="num" id="coins">0</div><div class="sub">本关可投 · 总分 <b id="won">0</b></div></div></div>
-  <section class="panel" id="runbox" aria-label="关卡进度">
-    <div class="runline"><span class="round-tag">关卡 <b id="round-number">1 / 8</b></span><span id="round-status">限量投币挑战</span><strong id="base-mult">×1.00</strong></div>
-    <div class="scoreline"><strong id="round-score">0</strong><span>/ <b id="round-target">300</b> 分</span></div>
-    <div class="score-track" role="progressbar" aria-label="目标分完成度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="scorebar"></div></div>
-    <div id="score-formula">基础分 × 构筑倍率 × 连击 × FEVER</div>
-  </section>
-  <div class="panel" id="colbox"><span>贝壳 <b id="cash">0</b></span><small>通关后购买升级</small></div>
-  <div id="btns"><button id="btn-sound" title="音效">🔊</button><button id="btn-music" title="音乐">🎵</button><button id="btn-help" title="玩法">❓</button><button id="btn-reset" title="重置">🔄</button></div>
-  <button id="round-action" hidden disabled>达到目标分后可结算</button>
-  <div id="hint">移动瞄准 · 点击/长按/空格投币 · <span id="save-status">进度自动保存</span></div>
-  <button id="dropbtn" aria-label="投一枚硬币">投币</button>
-</div>
+<aside id="hud" aria-label="游戏状态与操作">
+  <div id="hud-top">
+    <div class="hud-brand"><span>浣熊推币机</span><small>挑战模式</small></div>
+    <section class="panel" id="runbox" aria-label="关卡进度">
+      <div class="runline"><span class="round-tag">关卡 <b id="round-number">1 / 8</b></span><button id="detail-toggle" aria-expanded="false" aria-controls="score-formula" title="展开计分详情"><strong id="base-mult">×1.00</strong><span class="disclosure" aria-hidden="true"></span></button></div>
+      <div class="scoreline"><strong id="round-score">0</strong><span>/ <b id="round-target">300</b> 分</span></div>
+      <div class="score-track" role="progressbar" aria-label="目标分完成度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="scorebar"></div></div>
+      <span id="round-status">限量投币挑战</span>
+      <div id="score-formula" hidden>基础分 × 构筑倍率 × 连击 × FEVER</div>
+    </section>
+    <div id="resources">
+      <div class="panel" id="coinbox"><span class="stat-label">可投</span><strong class="num" id="coins">0</strong></div>
+      <div class="panel" id="colbox"><span class="stat-label">贝壳</span><strong id="cash">0</strong></div>
+      <div id="total-score"><span>总分</span><b id="won">0</b></div>
+    </div>
+  </div>
+  <div id="hud-bottom">
+    <div id="btns"><button id="btn-sound" title="音效" aria-label="切换音效">🔊</button><button id="btn-music" title="音乐" aria-label="切换音乐">🎵</button><button id="btn-help" title="玩法" aria-label="玩法说明">❓</button><button id="btn-reset" title="重置" aria-label="重置本局">🔄</button></div>
+    <button id="dropbtn" aria-label="投一枚硬币">投币</button>
+    <button id="round-action" hidden disabled>达到目标分后可结算</button>
+    <div id="hint"><span class="desktop-instruction">移动瞄准 · 点击 / 长按 / 空格投币</span><span class="mobile-instruction">拖动瞄准 · 长按投币</span><span id="save-status">进度自动保存</span></div>
+  </div>
+</aside>
 <div id="start">
   <h1>浣熊推币机</h1>
   <h2>RACCOON COIN PUSHER</h2>
@@ -180,6 +202,6 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
     <footer class="result-footer"><p id="next-preview"></p><button id="next-round" class="primary-action">下一关 →</button></footer>
   </section>
 </div>
-<script type="module">import "./src/main.js?v=2.0.0";</script>
+<script type="module">import "./src/main.js?v=2.0.1";</script>
 </body>
 </html>
