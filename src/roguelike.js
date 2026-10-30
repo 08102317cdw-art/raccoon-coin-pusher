@@ -35,11 +35,21 @@ export class Run {
   award(kind, combo = 0, fever = false) {
     if (!this.active || !(kind in BASE_POINTS)) return null;
     const base = BASE_POINTS[kind] + (kind === 'coin' ? this.level('value') * 2 : 0);
+    return this.awardBase(base, combo, fever);
+  }
+  awardBase(base, combo = 0, fever = false, environment = 1) {
+    if (!this.active || !Number.isFinite(base) || base < 0 || !Number.isFinite(environment)) return null;
+    base = Math.min(1e6, Math.round(base));
     const chain = 1 + Math.min(5, Math.max(0, combo)) * 0.1;
-    const factor = this.multiplier * chain * (fever ? 2 : 1);
+    const factor = this.multiplier * chain * (fever ? 2 : 1) * Math.max(.1, Math.min(4, environment));
     const points = Math.round(base * factor);
-    this.score += points; this.total += points;
+    this.score = Math.min(1e9, this.score + points); this.total = Math.min(1e9, this.total + points);
     return { base, factor, points };
+  }
+  penalize(amount) {
+    if (!this.active || !Number.isFinite(amount) || amount <= 0) return 0;
+    const lost = Math.min(this.score, Math.round(amount));
+    this.score -= lost; this.total = Math.max(0, this.total - lost); return lost;
   }
   tick(dt, pending = false) {
     if (this.phase !== 'settling') return false;
