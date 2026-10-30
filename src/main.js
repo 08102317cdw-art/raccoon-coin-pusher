@@ -10,6 +10,7 @@ import { Sfx } from './audio.js';
 import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js';
 import { buildRaccoon } from './mascot.js';
 import { Slot } from './slot.js';
+import { Run, UPGRADES, TARGETS } from './roguelike.js';
 
 // ================== 常量 ==================
 const HALF_W = 5, FRONT_Z = 4, BACK_Z = -10, WALL_Z = -6.2;
@@ -18,7 +19,7 @@ const COIN_R = 0.58, COIN_H = 0.15;
 const GAP_Z = -0.6;                // 侧墙在此结束，之后两侧为漏币口
 const DROP_Y = 3.3, DROP_Z = -4.75, GATE_Y = 2.35;
 const TRAY_Y = -2.8, MAX_COINS = 420;
-const SAVE_KEY = 'raccoon-pusher-save-v1';
+const SAVE_KEY = 'raccoon-pusher-run-v2'; // v1 arcade save is intentionally untouched
 const isTouch = matchMedia('(pointer: coarse)').matches;
 
 // ================== 渲染器 / 场景 ==================
@@ -187,7 +188,7 @@ function makeSpecialMesh(kind) {
 const VALUES = { coin: 1, big: 10, gem: 20, plush: 30 };
 
 function spawn(kind, x, y, z, q, vel) {
-  if (kind === 'coin' && coinMesh.count >= MAX_COINS) return null;
+  if (coins.length >= MAX_COINS) return null;
   const bd = RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setLinearDamping(0.05).setAngularDamping(0.3).setCcdEnabled(!!vel);
   if (q) bd.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
   if (vel) bd.setLinvel(vel.x, vel.y, vel.z);
@@ -209,7 +210,7 @@ const V = (x, y, z) => ({ x, y, z });
 function syncCoins() {
   let n = 0;
   for (const c of coins) {
-    const p = c.p, q = c.body.rotation();
+    const p = c.p = c.body.translation(), q = c.body.rotation();
     if (c.kind === 'coin') {
       tmpV.set(p.x, p.y, p.z); tmpQ.set(q.x, q.y, q.z, q.w); tmpS.setScalar(c.scale);
       tmpM.compose(tmpV, tmpQ, tmpS); coinMesh.setMatrixAt(n++, tmpM);
@@ -345,23 +346,34 @@ function updateConfetti(dt) {
 
 // ================== 游戏状态 ==================
 const sfx = slotSfx;
-const state = { coins: 60, won: 0, level: 1, exp: 0, col: { big: 0, gem: 0, plush: 0 }, jackpots: 0 };
-let wallT = 0, pushT = 0, feverT = 0, partyT = 0, shake = 0, regenT = 0, started = false;
-const stats = { lost: 0 }; const winTimes = []; let combo = 0, lastWin = 0, showerQueue = [];
-const expNeed = () => 30 + state.level * 15;
+let run = new Run();
+const state = { coins: 50, won: 0, col: { big: 0, gem: 0, plush: 0 }, jackpots: 0 };
+let wallT = 0, pushT = 0, feverT = 0, partyT = 0, shake = 0, started = false;
+let resultPhase = '', resetting = false; 
+const stats = { lost: 0 }; const winTimes = []; let combo = 0, lastWin = -100, showerQueue = [];
+const inputOpen = () => started && run.phase === 'playing' && !$('help').classList.contains('show') && !document.hidden;
 
 // ---------- HUD ----------
 const $ = id => document.getElementById(id);
-const hud = { coins: $('coins'), won: $('won'), lv: $('lv'), bar: $('expbar'), big: $('c-big'), gem: $('c-gem'), plush: $('c-plush') };
-let shownCoins = state.coins;
+const hud = { coins: $('coins'), won: $('won') };
 function updateHud(dt) {
-  shownCoins += (state.coins - shownCoins) * Math.min(1, dt * 10);
-  if (Math.abs(state.coins - shownCoins) < 0.5) shownCoins = state.coins;
-  hud.coins.textContent = Math.round(shownCoins);
-  hud.won.textContent = state.won;
-  hud.lv.textContent = state.level;
-  hud.bar.style.width = (state.exp / expNeed() * 100) + '%';
-  hud.big.textContent = state.col.big; hud.gem.textContent = state.col.gem; hud.plush.textContent = state.col.plush;
+  state.coins = run.shots;
+  hud.coins.textContent = run.shots;
+  hud.won.textContent = run.total.toLocaleString();
+  $('round-number').textContent = `${run.round} / 8`;
+  $('round-score').textContent = run.score.toLocaleString();
+  $('round-target').textContent = run.target.toLocaleString();
+  $('scorebar').style.width = `${Math.min(100, run.score / run.target * 100)}%`;
+  $('scorebar').parentElement.setAttribute('aria-valuenow', Math.min(100, Math.round(run.score / run.target * 100)));
+  $('base-mult').textContent = `×${run.multiplier.toFixed(2)}`;
+  $('cash').textContent = run.cash;
+  $('round-status').textContent = run.phase === 'settling' ? `落币结算 ${Math.ceil(run.settle)}s` : run.reached ? '目标达成' : '限量投币挑战';
+  const action = $('round-action');
+  action.hidden = !run.active || !started;
+  action.disabled = !run.reached;
+  action.textContent = run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
+  $('dropbtn').disabled = !inputOpen() || run.shots <= 0;
+  renderResult();
 }
 function bumpCoinHud() { const el = $('coinbox'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
 const projV = new THREE.Vector3();
@@ -379,7 +391,7 @@ function banner(text, cls = '', dur = 1800) {
 function flash(color = '#fff') { const el = $('flash'); el.style.background = color; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
 const lines = {
   win: ['好耶！', '叮叮叮~', '再来再来！', '发财啦！'], big: ['大奖！！', '浣熊暴富！', '哇哦哦哦！'], miss: ['可惜~', '差一点！', '下次一定！'],
-  idle: ['投币投币~', '瞄准幸运门！', '推它推它！', '金币快掉了！'], reach: ['听牌了！！', '来啊来啊！', '心跳加速…'], poor: ['没币了…浣熊借你几枚！'],
+  idle: ['投币投币~', '瞄准幸运门！', '推它推它！', '金币快掉了！'], reach: ['听牌了！！', '来啊来啊！', '心跳加速…'], poor: ['投币用尽，等硬币落下吧！'],
 };
 let bubbleT = 0, idleTalk = 6;
 function say(kind) {
@@ -388,34 +400,27 @@ function say(kind) {
 }
 
 // ---------- 结算 ----------
-function addExp(n) {
-  state.exp += n;
-  while (state.exp >= expNeed()) {
-    state.exp -= expNeed(); state.level++;
-    const bonus = 3 + state.level; state.coins += bonus;
-    sfx.levelUp(); banner(`LEVEL UP!<small>Lv.${state.level} · 奖励 ${bonus} 枚${state.level % 2 === 0 ? ' + 奖品' : ''}</small>`, 'lv');
-    if (state.level % 2 === 0) dropPrize(state.level % 6 === 0 ? 'plush' : state.level % 4 === 0 ? 'gem' : 'big');
-    mascot.react('happy', 1.5);
-  }
-}
 function onWin(c) {
-  const p = c.body.translation(), val = VALUES[c.kind] * (feverT > 0 ? 2 : 1);
-  state.coins += val; state.won += val;
-  const now = performance.now() / 1000;
+  if (!started || !run.active) return;
+  const p = c.body.translation(), val = VALUES[c.kind];
+  state.won += val;
+  const now = time;
   combo = now - lastWin < 0.7 ? combo + 1 : 0; lastWin = now;
   winTimes.push(now); while (winTimes.length && now - winTimes[0] > 4) winTimes.shift();
+  const scored = run.award(c.kind, combo, feverT > 0);
+  $('score-formula').textContent = `${scored.base} 基础分 × ${scored.factor.toFixed(2)} = +${scored.points}`;
   if (winTimes.length >= 9 && feverT <= 0) startFever();
   sfx.win(combo, p.x / 6);
   burst(p.x, 0.1, FRONT_Z + 0.2, c.kind === 'coin' ? 10 : 50, c.kind === 'gem' ? '#4fe8ff' : '#ffd34d', c.kind === 'coin' ? 2.5 : 5, 3);
-  floatText('+' + val, p.x, 0.4, FRONT_Z + 0.3, c.kind === 'coin' ? (feverT > 0 ? 'fever' : '') : 'big');
+  floatText('+' + scored.points + ' 分', p.x, 0.4, FRONT_Z + 0.3, c.kind === 'coin' ? (feverT > 0 ? 'fever' : '') : 'big');
   bumpCoinHud();
   if (c.kind !== 'coin') {
     state.col[c.kind]++; sfx.prize(); mascot.react('happy', 2); say('big'); shake = 0.25;
-    banner({ big: '🏅 大金币 +10', gem: '💎 宝石 +20', plush: '🦝 浣熊玩偶 +30' }[c.kind], 'prize', 1500);
+    banner({ big: '🏅 大金币', gem: '💎 宝石', plush: '🦝 浣熊玩偶' }[c.kind] + `<small>+${scored.points} 分</small>`, 'prize', 1500);
   } else if (Math.random() < 0.05) { mascot.react('happy', 0.8); say('win'); }
 }
 function startFever() {
-  feverT = 12; sfx.fast = 1.35; banner('FEVER!!<small>12 秒内出币翻倍</small>', 'fever'); flash('#ff4fd8'); mascot.react('excited', 2);
+  feverT = 12 + run.level('fever') * 3; sfx.fast = 1.35; banner(`FEVER!!<small>${feverT} 秒内得分翻倍</small>`, 'fever'); flash('#ff4fd8'); mascot.react('excited', 2);
 }
 function dropPrize(kind) {
   const x = (Math.random() - 0.5) * 6;
@@ -426,13 +431,14 @@ function shower(n, kind = 'coin', delay = 0.05) {
   for (let i = 0; i < n; i++) showerQueue.push({ t: i * delay, kind });
 }
 function onSlot(o) {
+  if (!run.active) return;
   switch (o.id) {
     case 'reach': mascot.react('excited', 2.5); say('reach'); break;
     case 'miss': if (Math.random() < 0.4) say('miss'); break;
     case 'jackpot':
       state.jackpots++; sfx.fanfare(true); partyT = 6; shake = 0.8; flash('#ffe14d'); confettiBurst(360);
       banner('JACKPOT!!!<small>浣熊大爆发 · 金币雨 ×40</small>', 'jp', 3500); mascot.react('jackpot', 5); say('big');
-      shower(40, 'coin', 0.06); setTimeout(() => dropPrize('plush'), 800); setTimeout(() => dropPrize('gem'), 1400); break;
+      shower(40, 'coin', 0.06); showerQueue.push({ t: 0.8, kind: 'plush', prize: true }, { t: 1.4, kind: 'gem', prize: true }); showerQueue.sort((a,b) => a.t-b.t); break;
     case 'seven':
       sfx.fanfare(true); partyT = 3; shake = 0.4; flash('#ff6a7a'); confettiBurst(160);
       banner('777 金币雨！<small>×20</small>', 'jp', 2500); mascot.react('jackpot', 3); shower(20); break;
@@ -446,9 +452,8 @@ function onSlot(o) {
 // ---------- 投币 ----------
 let aimX = 0, holding = false, dropCd = 0;
 function dropCoin() {
-  if (!started) return;
-  if (state.coins <= 0) { if (Math.random() < 0.3) say('poor'); return; }
-  state.coins--; addExp(1);
+  if (!inputOpen() || coins.length >= MAX_COINS || !run.spendShot()) return;
+  state.coins = run.shots;
   const x = dropper.position.x + (Math.random() - 0.5) * 0.04;
   const c = spawn('coin', x, DROP_Y - 0.3, DROP_Z + (Math.random() - 0.5) * 0.06, randQ(0.1), V(0, -3, 0));
   if (c) c.fromDrop = true;
@@ -458,17 +463,43 @@ function dropCoin() {
 
 // ================== 存档 ==================
 function save() {
-  const bodies = coins.filter(c => c.state === 'field').map(c => { const p = c.body.translation(), q = c.body.rotation(); return [c.kind, +p.x.toFixed(3), +p.y.toFixed(3), +p.z.toFixed(3), +q.x.toFixed(4), +q.y.toFixed(4), +q.z.toFixed(4), +q.w.toFixed(4)]; });
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, bodies, phase: pushPhase })); } catch (e) { }
+  if (resetting) return;
+  if (!started && !loaded) return;
+  const bodies = coins.filter(c => c.state === 'field').slice(0, MAX_COINS).map(c => {
+    const p = c.body.translation(), q = c.body.rotation(), v = c.body.linvel(), a = c.body.angvel();
+    return { kind:c.kind, p, q, v, a, fromDrop:c.fromDrop, gated:c.gated, prevY:c.prevY };
+  });
+  const slotState = {};
+  for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (slot[key] !== undefined) slotState[key] = slot[key];
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:2, run:run.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue, slotState, combo, lastWin, winTimes, lost:stats.lost })); }
+  catch (e) { $('save-status').textContent = '无法保存：请检查浏览器存储空间'; }
 }
 function load() {
   try {
-    const d = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!d || !d.bodies) return false;
-    Object.assign(state, { coins: d.coins, won: d.won, level: d.level, exp: d.exp, col: d.col, jackpots: d.jackpots || 0 });
-    pushPhase = d.phase || pushPhase; pusherBody.setTranslation(V(0, PUSH_H / 2, PUSH_BACK - PUSH_D / 2 + ((-0.5 - PUSH_BACK) / 2) * (1 + Math.sin(pushPhase))), true);
-    d.bodies.forEach(b => spawn(b[0], b[1], b[2], b[3], new THREE.Quaternion(b[4], b[5], b[6], b[7])));
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (!d || d.version !== 2 || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
+    const restored = new Run(d.run);
+    if (d.bodies.some(b => !SHAPES[b.kind] || !['x','y','z'].every(k => Number.isFinite(b.p?.[k])) || !['x','y','z','w'].every(k => Number.isFinite(b.q?.[k])))) return false;
+    run = restored;
+    state.coins = run.shots; state.won = d.state?.won || 0; state.col = d.state?.col || {big:0,gem:0,plush:0}; state.jackpots = d.state?.jackpots || 0;
+    pushPhase = Number.isFinite(d.pushPhase) ? d.pushPhase : pushPhase;
+    pushMax = Number.isFinite(d.pushMax) ? d.pushMax : -0.5;
+    const front = (PUSH_BACK + pushMax)/2 + (pushMax - PUSH_BACK)/2 * Math.sin(pushPhase);
+    pusherBody.setTranslation(V(0, PUSH_H / 2, front - PUSH_D / 2), true);
+    for (const b of d.bodies) {
+      const c = spawn(b.kind, b.p.x,b.p.y,b.p.z,b.q,b.v);
+      if (c) { c.fromDrop=!!b.fromDrop; c.gated=!!b.gated; c.prevY=Number.isFinite(b.prevY)?b.prevY:b.p.y; if(b.a) c.body.setAngvel(b.a,true); }
+    }
+    for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (d.slotState?.[key] !== undefined) slot[key]=d.slotState[key];
+    wallT=Math.max(0,d.wallT||0); pushT=Math.max(0,d.pushT||0); feverT=Math.max(0,d.feverT||0); partyT=Math.max(0,d.partyT||0);
+    showerQueue=Array.isArray(d.showerQueue)?d.showerQueue.filter(s=>SHAPES[s.kind]&&Number.isFinite(s.t)).slice(0,100):[];
+    restoredTime=Number.isFinite(d.time)?d.time:0; combo=d.combo||0; lastWin=Number.isFinite(d.lastWin)?d.lastWin:-100; winTimes.push(...(d.winTimes||[])); stats.lost=d.lost||0;
+    sfx.fast=feverT>0?1.35:1;
     return true;
-  } catch (e) { return false; }
+  } catch (e) {
+    for (let i=coins.length-1;i>=0;i--) removeCoin(i);
+    run = new Run(); return false;
+  }
 }
 function initialFill() {
   for (let layer = 0; layer < 2; layer++) {
@@ -485,12 +516,78 @@ function initialFill() {
   }
   spawn('big', 1.2, 0.5, 2.3, randQ(0.02)); spawn('gem', -2.0, 0.8, 1.2, randQ(0.02));
 }
+let restoredTime = 0;
 const loaded = load();
 if (!loaded) initialFill();
 // 预热：让堆叠稳定
-for (let i = 0; i < (loaded ? 30 : 150); i++) physicsStep();
+if (!loaded) for (let i = 0; i < 150; i++) physicsStep();
 // 预热期间可能掉落的币不计入
-for (let i = coins.length - 1; i >= 0; i--) if (coins[i].body.translation().y < -0.5) removeCoin(i);
+if (!loaded) for (let i = coins.length - 1; i >= 0; i--) if (coins[i].body.translation().y < -0.5) removeCoin(i);
+
+// ================== 关卡结算 / 商店 ==================
+function buildSummary() {
+  return Object.entries(run.levels).filter(([,n])=>n>0).map(([id,n])=>`${UPGRADES[id].name} Lv.${n}`).join(' · ') || '尚无永久升级';
+}
+function renderResult(force = false) {
+  const phase = run.phase;
+  if (run.active || !started) { $('run-modal').hidden=true; resultPhase=''; return; }
+  $('run-modal').hidden=false;
+  if (resultPhase===phase && !force) return;
+  resultPhase=phase; holding=false;
+  const shop=phase==='shop', won=phase!=='gameover', r=run.receipt;
+  $('result-kicker').textContent = phase==='victory' ? '八关制霸 · RUN COMPLETE' : `第 ${run.round} 关 · ${won?'挑战完成':'本局结束'}`;
+  $('result-title').textContent = shop ? '浣熊补给站' : won ? '恭喜通关！' : '差一点，再来一局';
+  $('result-score').textContent = run.score.toLocaleString();
+  $('result-target').textContent = `目标 ${run.target.toLocaleString()} · 本局累计 ${run.total.toLocaleString()} 分`;
+  $('result-rewards').textContent = won && r ? `通关 +${r.base}　节币 +${r.thrift}　超额 +${r.over}　＝ 贝壳 +${r.reward}` : '投币额度已用尽。落币结算后仍未达到目标。';
+  $('shop-section').hidden=!shop;
+  $('shop-wallet').textContent=run.cash;
+  $('build-list').textContent=buildSummary();
+  $('next-round').textContent=shop?`进入第 ${run.round+1} 关 →`:'再开一局 →';
+  $('next-preview').textContent=shop?`下关目标 ${TARGETS[run.round].toLocaleString()} 分 · ${50+run.level('reserve')*8+run.pendingShots} 次投币 · 台面保留`:'重开将重置本局构筑与贝壳；旧版存档不受影响';
+  $('reroll-shop').disabled=run.cash<3||run.rerolls>=1;
+  $('reroll-shop').textContent=run.rerolls?'本次已刷新':'刷新货架 · 3 贝壳';
+  const cards=$('shop-cards'); cards.replaceChildren();
+  if(shop) for(const id of run.offers) {
+    const u=UPGRADES[id], bought=run.bought.includes(id), price=run.price(id), card=document.createElement('article');
+    card.className=`upgrade-card ${u.color}${bought?' purchased':''}`;
+    const icon=document.createElement('div'); icon.className='upgrade-icon'; icon.textContent=u.icon;
+    const title=document.createElement('h4'); title.textContent=u.name;
+    const level=document.createElement('div'); level.className='upgrade-level'; level.textContent=id==='supply'?'一次性 · 下一关生效':`Lv.${run.level(id)} / ${u.max} · 整局生效`;
+    const desc=document.createElement('p'); desc.textContent=u.desc;
+    const button=document.createElement('button'); button.className='buy-button'; button.disabled=bought||run.cash<price;
+    button.textContent=bought?'✓ 已购买':run.cash<price?`贝壳不足 · 需要 ${price}`:`购买 · ${price} 贝壳`;
+    button.onclick=()=>{ if(run.buy(id)){sfx.gate();save();renderResult(true);updateHud(0);} };
+    card.append(icon,title,level,desc,button); cards.append(card);
+  }
+  if(force) return;
+  requestAnimationFrame(()=>$('next-round').focus({preventScroll:true}));
+}
+function finishRound() {
+  if(!run.active||!run.reached) return;
+  run.finish(); holding=false; sfx.levelUp(); confettiBurst(140); save(); renderResult(true); updateHud(0);
+}
+$('round-action').onclick=finishRound;
+$('reroll-shop').onclick=()=>{if(run.reroll()){sfx.tick();save();renderResult(true);}};
+$('next-round').onclick=()=>{
+  if(run.phase==='shop') {
+    if(!run.next()) return;
+    // Preserve the physical field and outstanding slot rewards; buffs restart each stage.
+    wallT=run.level('guard')*6; pushT=0; feverT=0; partyT=0; combo=0; lastWin=-100; winTimes.length=0; sfx.fast=1;
+    holding=false; resultPhase=''; $('score-formula').textContent='基础分 × 构筑倍率 × 连击 × FEVER';
+    $('run-modal').hidden=true; state.coins=run.shots; sfx.levelUp(); cv.focus({preventScroll:true});
+    banner(`第 ${run.round} 关<small>目标 ${run.target.toLocaleString()} 分 · ${run.shots} 次投币</small>`,'lv',2000);
+    save(); updateHud(0);
+  } else { resetting=true; localStorage.removeItem(SAVE_KEY); location.reload(); }
+};
+// Focus stays inside the active dialog; Space on buttons never spends a coin.
+$('run-modal').addEventListener('keydown',e=>{
+  if(e.key!=='Tab') return;
+  const nodes=[...$('run-modal').querySelectorAll('button:not(:disabled)')].filter(el=>el.getClientRects().length);
+  const first=nodes[0],last=nodes.at(-1);
+  if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();}
+  else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();}
+});
 
 // ================== 输入 ==================
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -DROP_Z), hit = new THREE.Vector3();
@@ -499,12 +596,16 @@ function aimFrom(cx, cy) {
   if (ray.ray.intersectPlane(aimPlane, hit)) aimX = THREE.MathUtils.clamp(hit.x, -4.3, 4.3);
 }
 const cv = renderer.domElement;
+cv.tabIndex=0; cv.setAttribute('aria-label','推币机投币区域：空格投币，左右方向键瞄准');
 cv.addEventListener('pointermove', e => aimFrom(e.clientX, e.clientY));
 cv.addEventListener('pointerdown', e => { aimFrom(e.clientX, e.clientY); holding = true; dropCd = 0; cv.setPointerCapture(e.pointerId); });
 addEventListener('pointerup', () => holding = false);
 addEventListener('pointercancel', () => holding = false);
+addEventListener('blur', () => holding = false);
+document.addEventListener('visibilitychange', () => { holding=false; clock.getDelta(); });
 addEventListener('keydown', e => {
-  if (e.code === 'Space') { holding = true; e.preventDefault(); }
+  if (e.key === 'Escape' && $('help').classList.contains('show')) { $('help').classList.remove('show'); holding=false; cv.focus({preventScroll:true}); }
+  if (e.code === 'Space' && (e.target === document.body || e.target === cv || e.target === dropBtn)) { holding = inputOpen(); e.preventDefault(); }
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') aimX = Math.max(-4.3, aimX - 0.4);
   if (e.code === 'ArrowRight' || e.code === 'KeyD') aimX = Math.min(4.3, aimX + 0.4);
 });
@@ -515,12 +616,14 @@ dropBtn.addEventListener('pointerup', () => holding = false);
 dropBtn.addEventListener('pointerleave', () => holding = false);
 $('btn-sound').onclick = e => { sfx.setEnabled(!sfx.enabled); e.currentTarget.classList.toggle('off', !sfx.enabled); };
 $('btn-music').onclick = e => { sfx.setMusic(!sfx.musicOn); e.currentTarget.classList.toggle('off', !sfx.musicOn); };
-$('btn-help').onclick = () => $('help').classList.toggle('show');
-$('help').onclick = () => $('help').classList.remove('show');
-$('btn-reset').onclick = () => { if (confirm('重置存档并重新开始？')) { localStorage.removeItem(SAVE_KEY); location.reload(); } };
-$('start').onclick = () => {
-  sfx.init(); started = true; $('start').classList.add('hide'); $('hud').classList.add('show');
+$('btn-help').onclick = () => { holding=false; $('help').classList.toggle('show'); };
+$('help').onclick = () => { $('help').classList.remove('show'); cv.focus({preventScroll:true}); };
+$('btn-reset').onclick = () => { if (confirm('重置存档并重新开始？')) { resetting=true; localStorage.removeItem(SAVE_KEY); location.reload(); } };
+$('start-button').onclick = () => {
+  sfx.init(); started = true; $('start').classList.add('hide'); $('start').inert=true; $('hud').classList.add('show'); cv.focus({preventScroll:true});
   mascot.react('happy', 1.5); say('idle'); sfx.levelUp();
+  if (loaded) $('save-status').textContent = '已恢复本局进度';
+  renderResult(); save();
 };
 
 function resize() {
@@ -529,6 +632,7 @@ function resize() {
   const needH = THREE.MathUtils.radToDeg(2 * Math.atan(0.5 / aspect));
   camera.fov = Math.max(46, Math.min(80, needH));
   camera.updateProjectionMatrix();
+  camera.position.copy(CAM_POS); camera.lookAt(CAM_TARGET);
   renderer.setSize(w, h); composer.setSize(w, h); bloom.setSize(w, h);
 }
 addEventListener('resize', resize); resize();
@@ -537,7 +641,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) save(
 setInterval(save, 5000);
 
 // ================== 主循环 ==================
-const clock = new THREE.Clock(); let time = 0;
+const clock = new THREE.Clock(); let time = restoredTime;
 let paused = false;
 function frame() {
   requestAnimationFrame(frame);
@@ -546,6 +650,7 @@ function frame() {
   composer.render();
 }
 function update(dt) {
+  if (!started || !run.active || $('help').classList.contains('show') || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
 
   // 投币器跟随
@@ -555,7 +660,9 @@ function update(dt) {
   if (holding && dropCd <= 0) { dropCoin(); dropCd = feverT > 0 ? 0.14 : 0.2; }
   // 幸运门
   gate.position.x = Math.sin(time * 1.05) * 3.3 + Math.sin(time * 2.3) * 0.5;
-  const aligned = Math.abs(dropper.position.x - gate.position.x) < GATE_HW - 0.25;
+  const gateHalfWidth = GATE_HW + run.level('lucky') * 0.1;
+  gate.scale.x = gateHalfWidth / GATE_HW;
+  const aligned = Math.abs(dropper.position.x - gate.position.x) < gateHalfWidth - 0.25;
   laserMat.color.set(aligned ? '#3dff8a' : '#ff3d6e');
   gateMat.emissiveIntensity = 1.6 + Math.sin(time * 6) * 0.6 + (gate.userData.hitT > 0 ? 4 : 0);
   gate.userData.hitT = (gate.userData.hitT || 0) - dt;
@@ -563,7 +670,7 @@ function update(dt) {
   // 奖励计时
   wallT = Math.max(0, wallT - dt); pushT = Math.max(0, pushT - dt); partyT = Math.max(0, partyT - dt);
   if (feverT > 0) { feverT -= dt; if (feverT <= 0) sfx.fast = 1; }
-  pushMaxTarget = pushT > 0 ? 0.6 : -0.5; pushSpeed = pushT > 0 ? 1.9 : 1.55;
+  pushMaxTarget = (pushT > 0 ? 0.6 : -0.5) + run.level('push') * 0.12; pushSpeed = pushT > 0 ? 1.9 : 1.55;
   guards.forEach((g, i) => {
     const target = wallT > 0 ? 0.7 : -1.0; g.y += (target - g.y) * Math.min(1, dt * 5);
     g.mesh.position.y = g.y; { const ty = wallT > 0 ? 0.7 : -20, cur = g.body.translation(); if (Math.abs(cur.y - ty) > 0.01) g.body.setTranslation({ x: cur.x, y: ty, z: cur.z }, true); }
@@ -578,13 +685,14 @@ function update(dt) {
   if (showerQueue.length) {
     showerQueue.forEach(s => s.t -= dt);
     while (showerQueue.length && showerQueue[0].t <= 0) {
-      const s = showerQueue.shift(), x = (Math.random() - 0.5) * 8.2, z = 0.2 + Math.random() * 3;
+      const s = showerQueue.shift();
+      if (s.prize) { dropPrize(s.kind); continue; }
+      const x = (Math.random() - 0.5) * 8.2, z = 0.2 + Math.random() * 3;
       const c = spawn(s.kind, x, 6 + Math.random(), z, randQ(0.6), V(0, -4, 0));
       if (c) burst(x, 6, z, 4, '#ffe680', 1, 0.5);
     }
   }
-  // 补给
-  if (state.coins < 10 && started) { regenT += dt; if (regenT > 5) { regenT = 0; state.coins++; floatText('+1 补给', -4, 4, 0, 'regen'); } }
+  // No regenerating or returned ammo: the limited shot budget is a run rule.
 
   // 物理
   stepWorld(dt);
@@ -600,7 +708,7 @@ function update(dt) {
     }
     if (c.fromDrop && !c.gated && c.prevY > GATE_Y && p.y <= GATE_Y) {
       c.gated = true;
-      if (Math.abs(p.x - gate.position.x) < GATE_HW - 0.12) {
+      if (Math.abs(p.x - gate.position.x) < gateHalfWidth - 0.12) {
         gate.userData.hitT = 0.4; sfx.gate(); burst(p.x, GATE_Y, DROP_Z, 24, '#5bff95', 3, 2);
         if (slot.add()) floatText('LUCKY!', p.x, GATE_Y + 0.6, DROP_Z, 'lucky'); else floatText('保留已满', p.x, GATE_Y + 0.6, DROP_Z, 'lucky');
       }
@@ -627,7 +735,7 @@ function update(dt) {
   idleTalk -= dt; if (idleTalk < 0) { idleTalk = 10 + Math.random() * 10; if (bubbleT <= 0 && started) say('idle'); }
   {
     const [bx, by] = toScreen(mascot.root.position.x + 0.2, mascot.root.position.y + 3.0, mascot.root.position.z);
-    const b = $('bubble'); b.style.left = bx + 'px'; b.style.top = by + 'px';
+    const b = $('bubble'); b.style.left = Math.max(b.offsetWidth/2+12,Math.min(innerWidth-b.offsetWidth/2-12,bx)) + 'px'; b.style.top = by + 'px';
   }
 
   slot.update(dt);
@@ -642,7 +750,8 @@ function update(dt) {
   camera.position.set(CAM_POS.x + Math.sin(time * 0.3) * 0.25 + aimX * 0.06 + sx, CAM_POS.y + Math.sin(time * 0.4) * 0.1 + sy, CAM_POS.z);
   camera.lookAt(CAM_TARGET.x + aimX * 0.03, CAM_TARGET.y, CAM_TARGET.z);
 
+  if (run.tick(dt, slot.spinning || slot.queue > 0 || showerQueue.length > 0 || slot.msgT > 0)) { holding=false; save(); }
   updateHud(dt);
 }
 frame();
-window.__game = { pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start').click() };
+window.__game = { pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };

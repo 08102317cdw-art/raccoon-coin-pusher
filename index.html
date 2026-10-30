@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>浣熊推币机 · Raccoon Coin Pusher</title>
+<title>浣熊推币机 · Roguelike Run · Raccoon Coin Pusher</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;color:#fff;touch-action:none}
@@ -72,6 +72,49 @@ html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:
 #help h3{color:#ffe066;margin-bottom:8px;font-size:20px}
 #help td{padding:2px 10px 2px 0;vertical-align:top}
 #help td:first-child{white-space:nowrap;color:#ffd34d;font-weight:800}
+/* Roguelike HUD and station: fixed dark arcade theme matches the 3D cabinet. */
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}button:focus-visible{outline:3px solid #7cf3ff;outline-offset:4px}
+#coinbox{min-width:190px}.sub{font-size:14px}
+#runbox{left:50%;top:16px;transform:translateX(-50%);width:440px;padding:12px 18px;border-radius:12px;border-width:1px;background:rgba(25,8,45,.93)}
+.runline{display:flex;align-items:center;gap:14px;font-size:14px;color:#e3d6f7}.round-tag{color:#ffe49b}.runline strong{margin-left:auto;color:#ffafe5;font-size:18px}
+.scoreline{display:flex;align-items:baseline;gap:8px;margin:3px 0 7px}.scoreline strong{font:900 30px Arial,sans-serif;color:#fff3bd}.scoreline span{font-size:14px;color:#e3d6f7}
+.score-track{height:7px;border-radius:8px;background:#51366b;overflow:hidden}#scorebar{height:100%;width:0;background:linear-gradient(90deg,#efae37,#ffe7a1);transition:width .2s}
+#score-formula{font-size:14px;color:#e3d6f7;margin-top:7px}
+#colbox{min-width:155px;display:block;padding:12px 16px;border-radius:12px}#colbox span{font-size:16px}#colbox b{font-size:24px;color:#ffe49b;margin-left:auto}#colbox small{display:block;font-size:14px;font-weight:400;color:#e3d6f7;margin-top:4px}
+#btns{top:112px}#btns button{width:44px;height:44px}
+#round-action{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);pointer-events:auto;border:1px solid #ffc957;border-radius:12px;background:#382052;color:#ffefc1;font-weight:700;padding:12px 24px;min-height:48px;font-size:16px}
+#round-action:not(:disabled){background:#ffcf66;color:#29113f;box-shadow:0 0 28px #ffcf6633}
+#round-action:disabled{background:#21102f;color:#e3d6f7;border-color:#8a719e;opacity:.85}
+#hint{font-size:14px}#start .go{border:0;color:#33150a;text-shadow:none;font-size:22px;min-height:56px;animation:none}#start ul{font-size:16px;line-height:2}
+#help .card{max-height:90dvh;overflow-y:auto;touch-action:pan-y;font-size:16px}#help p.rules-note{margin-top:12px;color:#e3d6f7;font-size:14px}
+#run-modal{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(9,3,19,.86);backdrop-filter:blur(10px);overflow-y:auto;touch-action:pan-y}
+.run-card{width:min(900px,100%);max-height:calc(100dvh - 48px);overflow-y:auto;touch-action:pan-y;padding:28px;background:linear-gradient(145deg,#322044,#1b102b);border:1px solid #856747;border-radius:12px;box-shadow:0 24px 80px #0007}
+.result-header p{font-size:14px;color:#ffdc96;letter-spacing:2px;margin-bottom:4px}.result-header h2{font-size:32px;line-height:1.3}
+.result-summary{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 0;margin-bottom:16px;border-bottom:1px solid #6a507d}.result-summary strong{font:800 42px Arial,sans-serif;color:#ffe6a0}.result-summary p{font-size:14px;color:#e3d6f7;margin-top:6px;line-height:1.6}#result-rewards{max-width:310px;color:#ffe6a0}
+.shop-heading{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:14px}.shop-heading h3{font-size:18px}.shop-heading>div{font-size:14px;color:#e3d6f7}.shop-heading strong{font-size:24px;color:#ffe6a0;margin-left:6px}
+#shop-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.upgrade-card{border:1px solid #826895;border-radius:12px;padding:18px;background:#382448;display:flex;flex-direction:column}.upgrade-icon{font-size:30px;font-weight:800;color:#ffe6a0;line-height:40px}.upgrade-card.cyan .upgrade-icon{color:#9ef2ff}.upgrade-card.pink .upgrade-icon{color:#ffb3df}.upgrade-card h4{font-size:20px;line-height:1.4;margin-top:6px}.upgrade-level{font-size:14px;color:#dcccdf;margin:6px 0}.upgrade-card p{font-size:16px;line-height:1.5;min-height:48px;margin-bottom:18px;color:#f0e7f7}.upgrade-card.purchased{border-color:#9bd7b4}
+.buy-button,.shop-tools button{border:1px solid #b59d79;background:#241430;color:#ffecbe;border-radius:8px;min-height:44px;padding:10px 12px;font-size:14px;font-weight:700}.buy-button{margin-top:auto}.buy-button:not(:disabled):hover{background:#ffe3a0;color:#241430}.buy-button:disabled{opacity:1;color:#d5c3df;background:#2d1c39;border-color:#695377}.purchased .buy-button{color:#acdfbf}
+.shop-tools{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px}.shop-tools span{font-size:14px;color:#dfcde9}.shop-tools button:disabled{opacity:1;color:#baa6c7;border-color:#695377}
+.build-summary{background:#1b102b;border-radius:8px;padding:12px 16px;margin-top:16px}.build-summary span{font-size:14px;color:#dfcde9}.build-summary p{font-size:14px;line-height:1.6;color:#ffe6a0;margin-top:4px}
+.result-footer{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:20px}.result-footer p{font-size:14px;color:#e3d6f7;line-height:1.6;max-width:440px}.primary-action{border:0;border-radius:8px;background:#ffdc8b;color:#29143d;font-size:16px;font-weight:800;padding:14px 24px;min-height:48px;white-space:nowrap}
+@media(max-width:1000px) and (min-width:701px){#runbox{width:340px}#coinbox{min-width:160px;padding:10px}.num{font-size:28px}#colbox{min-width:130px;padding:10px}.sub{font-size:14px}.coin-ico{display:none}}
+@media(max-width:700px){
+  #coinbox{left:12px;top:12px;min-width:0;padding:8px 12px;height:66px;gap:8px;border-radius:12px}.coin-ico{width:32px;height:32px;font-size:16px}.num{font-size:26px;min-width:30px}.sub{font-size:14px}
+  #colbox{right:12px;top:12px;padding:8px 12px;min-width:112px;height:66px}#colbox b{font-size:22px}#colbox small{font-size:14px}
+  #runbox{left:12px;right:12px;top:88px;transform:none;width:auto;padding:10px 14px}.runline{gap:8px;font-size:14px}.scoreline strong{font-size:26px}.scoreline{margin:0 0 5px}#score-formula{font-size:14px;margin-top:5px}
+  #btns{left:12px;right:auto;top:auto;bottom:162px;gap:6px}#btns button{width:44px;height:44px;font-size:18px;border-radius:10px}
+  #round-action{left:12px;bottom:92px;transform:none;width:calc(100% - 138px);padding:10px;font-size:14px;min-height:48px}
+  #dropbtn{right:16px;bottom:82px;width:94px;height:94px;font-size:20px}#hint{bottom:10px;font-size:14px;width:calc(100% - 24px);line-height:1.5;padding:8px}
+  #start h1{font-size:44px}#start h2{font-size:16px;letter-spacing:3px;margin:12px 0 24px}#start .go{font-size:20px;padding:14px 28px}#start ul{font-size:16px;margin:24px 16px 0;padding:12px 16px;line-height:2}
+  #run-modal{padding:12px;align-items:flex-start}.run-card{padding:20px 16px;max-height:calc(100dvh - 24px)}.result-header h2{font-size:26px}.result-summary{display:block;padding:12px 0;margin-bottom:12px}.result-summary strong{font-size:34px}.result-summary p{margin-top:4px}#result-rewards{margin-top:8px;max-width:none}
+  .shop-heading{align-items:center;gap:8px;margin-bottom:12px}.shop-heading h3{font-size:16px}.shop-heading strong{font-size:20px}
+  #shop-cards{grid-template-columns:1fr;gap:12px}.upgrade-card{padding:14px;display:grid;grid-template-columns:40px 1fr;column-gap:12px}.upgrade-icon{grid-row:1/4;font-size:28px}.upgrade-card h4{margin:0;font-size:18px}.upgrade-level{margin:4px 0}.upgrade-card p{min-height:0;margin:0;font-size:16px}.buy-button{grid-column:1/3;width:100%;margin-top:12px}
+  .shop-tools{align-items:flex-start;gap:8px;flex-wrap:wrap}.shop-tools span{line-height:1.5}.shop-tools button{width:100%}.result-footer{display:block;margin-top:16px}.result-footer .primary-action{margin-top:12px;width:100%}.build-summary{padding:10px 12px;margin-top:12px}
+}
+@media(max-height:600px) and (min-width:701px){#runbox{padding:8px 14px}.run-card{padding:20px}.result-header h2{font-size:26px}.result-summary{padding:10px 0;margin-bottom:10px}.upgrade-icon{display:none}.upgrade-card{padding:14px}.build-summary{margin-top:10px}.result-footer{margin-top:12px}#round-action{bottom:48px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/":"https://cdn.jsdelivr.net/npm/three@0.170.0/","@dimforge/rapier3d-compat":"https://esm.sh/@dimforge/rapier3d-compat@0.14.0?target=es2022"}}</script>
 </head>
@@ -82,22 +125,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:
 <div id="bubble"></div>
 <div id="banner"></div>
 <div id="hud">
-  <div class="panel" id="coinbox"><div class="coin-ico">🦝</div><div><div class="num" id="coins">0</div><div class="sub">累计赢得 <b id="won">0</b></div></div></div>
-  <div class="panel" id="lvbox"><div class="lv">Lv.<span id="lv">1</span></div><div class="bar"><div id="expbar"></div></div></div>
-  <div class="panel" id="colbox"><span>🏅<b id="c-big">0</b></span><span>💎<b id="c-gem">0</b></span><span>🦝<b id="c-plush">0</b></span></div>
+  <div class="panel" id="coinbox"><div class="coin-ico">🦝</div><div><div class="num" id="coins">0</div><div class="sub">本关可投 · 总分 <b id="won">0</b></div></div></div>
+  <section class="panel" id="runbox" aria-label="关卡进度">
+    <div class="runline"><span class="round-tag">关卡 <b id="round-number">1 / 8</b></span><span id="round-status">限量投币挑战</span><strong id="base-mult">×1.00</strong></div>
+    <div class="scoreline"><strong id="round-score">0</strong><span>/ <b id="round-target">300</b> 分</span></div>
+    <div class="score-track" role="progressbar" aria-label="目标分完成度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="scorebar"></div></div>
+    <div id="score-formula">基础分 × 构筑倍率 × 连击 × FEVER</div>
+  </section>
+  <div class="panel" id="colbox"><span>贝壳 <b id="cash">0</b></span><small>通关后购买升级</small></div>
   <div id="btns"><button id="btn-sound" title="音效">🔊</button><button id="btn-music" title="音乐">🎵</button><button id="btn-help" title="玩法">❓</button><button id="btn-reset" title="重置">🔄</button></div>
-  <div id="hint">移动瞄准 · 点击/长按（或空格）投币 · 让硬币穿过绿色 <b style="color:#7dff9a">LUCKY</b> 门启动老虎机</div>
-  <button id="dropbtn">投币</button>
+  <button id="round-action" hidden disabled>达到目标分后可结算</button>
+  <div id="hint">移动瞄准 · 点击/长按/空格投币 · <span id="save-status">进度自动保存</span></div>
+  <button id="dropbtn" aria-label="投一枚硬币">投币</button>
 </div>
 <div id="start">
   <h1>浣熊推币机</h1>
   <h2>RACCOON COIN PUSHER</h2>
-  <div class="go">点击开始</div>
+  <button class="go" id="start-button">开始 / 继续本局</button>
   <ul>
-    <li>🎯 移动鼠标 / 手指，控制顶部投币器位置</li>
-    <li>🪙 点击或长按投币，推板把硬币推下前沿即为赢得</li>
-    <li>🍀 硬币穿过移动的 LUCKY 门 → 老虎机抽奖</li>
-    <li>🦝 三个浣熊 = JACKPOT 金币雨！</li>
+    <li>01　有限投币，冲刺每关目标分</li>
+    <li>02　金币基础分 × 构筑倍率 × 连击加成</li>
+    <li>03　通关赚贝壳，在商店挑选升级</li>
+    <li>04　保留台面和构筑，挑战全部 8 关</li>
   </ul>
 </div>
 <div id="help"><div class="card">
@@ -110,10 +159,27 @@ html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:
     <tr><td>⭐⭐⭐</td><td>护墙升起 30 秒，两侧不漏币</td></tr>
     <tr><td>🔔🔔🔔</td><td>掉落大金币 / 宝石奖品</td></tr>
     <tr><td>🍒🍒🍒</td><td>超级推板 18 秒，推程加长</td></tr>
-    <tr><td>FEVER</td><td>4 秒内连续赢 9 枚触发，出币翻倍</td></tr>
+    <tr><td>FEVER</td><td>4 秒内连续赢 9 枚触发，得分翻倍</td></tr>
   </table>
-  <p style="margin-top:10px;color:#cbb">升级会奖励硬币和奖品；硬币不足 10 枚时浣熊会慢慢补给。进度自动保存。</p>
+  <p class="rules-note">普通币 / 大金币 / 宝石 / 玩偶分别为 10 / 100 / 200 / 300 基础分。普通币可被“金币抛光”强化。</p>
+  <p class="rules-note">得分 = 基础分 × 构筑倍率 × 连击倍率 × FEVER。0.7 秒内连续进币，连击每次 +0.1，最高 ×1.5；FEVER ×2。</p>
+  <p class="rules-note">每关初始 50 次投币，赢币只加分、不返还投币次数，无免费补给。用完后等候落币；达标可提前结算。商店与说明界面暂停游戏。</p>
+  <p class="rules-note">通关贝壳 = 8 + 关卡 ×2；每剩 5 次投币额外 +1（最多 +6），超额得分最多 +4。商店每次可刷新一次。</p>
+  <p class="rules-note">每关保留台面和未完成抽奖，清除临时增益，再应用开局护墙。新模式单独存档，旧版存档保留。</p>
 </div></div>
+<div id="run-modal" hidden>
+  <section class="run-card" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-describedby="result-target">
+    <header class="result-header"><p id="result-kicker">挑战完成</p><h2 id="result-title">浣熊补给站</h2></header>
+    <div class="result-summary"><div><strong id="result-score">0</strong><p id="result-target"></p></div><p id="result-rewards"></p></div>
+    <section id="shop-section">
+      <div class="shop-heading"><h3>选择你的下一步构筑</h3><div>可用贝壳 <strong id="shop-wallet">0</strong></div></div>
+      <div id="shop-cards"></div>
+      <div class="shop-tools"><span>每件商品每次货架限购一件</span><button id="reroll-shop">刷新货架 · 3 贝壳</button></div>
+    </section>
+    <div class="build-summary"><span>当前构筑</span><p id="build-list"></p></div>
+    <footer class="result-footer"><p id="next-preview"></p><button id="next-round" class="primary-action">下一关 →</button></footer>
+  </section>
+</div>
 <script type="module">import "./src/main.js";</script>
 </body>
 </html>
