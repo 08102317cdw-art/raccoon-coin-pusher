@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>浣熊推币机 · Roguelike Run · Raccoon Coin Pusher</title>
+<title>大肥鱼推币机 · Dafeiyu Coin Pusher</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;color:#fff;touch-action:none}
@@ -128,6 +128,37 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
 }
 @media(max-height:600px) and (min-width:701px){.run-card{padding:20px}.result-header h2{font-size:26px}.result-summary{padding:10px 0;margin-bottom:10px}.upgrade-icon{display:none}.upgrade-card{padding:14px}.build-summary{margin-top:10px}.result-footer{margin-top:12px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* Dafeiyu ocean edition. Decorative art never changes the reserved play viewport. */
+html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
+#hud{background:linear-gradient(180deg,#10273c,#0a1829);border-color:#3d5f79}
+.panel,.upgrade-card{background:#163147;border-color:#51728c}.hud-brand{color:#e4f4ff;font-size:17px}.hud-brand small{color:#b9d2e4}
+#detail-toggle{color:#a3e6ff}#detail-toggle:hover{background:#26495f}
+.score-track{background:#3b586f}#scorebar{background:linear-gradient(90deg,#5acde6,#d4f3f7)}
+#round-status,.stat-label,#total-score,#hint,.upgrade-level{color:#c2d8e8}#won{color:#edf8ff}
+#btns button{background:#163147;border-color:#66869f}#btns button:hover{background:#28536e}
+#score-formula{border-color:#51728c;color:#d8edf6}
+#round-action,#dropbtn{color:#10263c;background:#ffe3a1;border-color:#ffe3a1}#round-action:disabled{background:#183148;border-color:#66869f;color:#c2d8e8}
+#hud-character{display:flex;flex:1;min-height:0;max-height:260px;flex-direction:column;align-items:center;justify-content:center;gap:8px;pointer-events:none;overflow:hidden}
+#hud-character img{display:block;max-height:190px;height:calc(100% - 24px);max-width:100%;object-fit:contain;filter:drop-shadow(0 8px 20px #05101c)}
+#hud-character figcaption{font-size:14px;color:#b9d5e7;letter-spacing:2px;white-space:nowrap}
+#start{background:radial-gradient(ellipse at 50% 40%,rgba(16,65,98,.85),rgba(3,12,24,.96));padding:24px 16px;overflow-y:auto;touch-action:pan-y}
+#start .start-character{height:150px;width:160px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 8px 24px #1c7fa866)}
+#start h1{font-size:clamp(38px,7vw,78px);background:linear-gradient(180deg,#f4fcff,#b4e8f7 55%,#52b4db);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 4px 0 #123e60);animation:none}
+#start h2{font-size:clamp(14px,2vw,22px);letter-spacing:4px;margin:12px 0 24px;color:#a8deee}
+#start .go{background:#ffe3a1;color:#122d45;box-shadow:0 4px 0 #a8884f;min-height:56px;border-radius:12px}
+#start ul{margin-top:24px;background:#0b1b2b99;border:1px solid #385c73;border-radius:12px;color:#d6e9f5}
+.fan-label{font-size:14px;color:#b7cfdf;margin-top:16px;text-align:center}
+#help .card{background:linear-gradient(180deg,#153a55,#0c2034);border-color:#6ba9c4;border-radius:12px}
+#help a{color:#a2e5ff;text-decoration:underline;touch-action:manipulation}#help details{margin-top:16px;border-top:1px solid #51728c;padding-top:12px}#help summary{cursor:pointer;color:#c6edff;min-height:44px;display:flex;align-items:center}
+#help details p{font-size:14px;color:#c8dfe9;line-height:1.7;margin-top:8px;user-select:text}
+#run-modal{background:#030b16db}.run-card{background:linear-gradient(135deg,#19364c,#0b1c30);border-color:#54768e}
+.upgrade-card h4{color:#f1f8fd}.upgrade-card p{color:#d5e6f1}.buy-button,.shop-tools button{background:#10253b;border-color:#6b8ca2;color:#ffe3a1}
+.build-summary{background:#081b2c}.buy-button:disabled{color:#b9cddb;background:#20384b;border-color:#4e6b82}.shop-tools button:disabled{color:#b9cddb;border-color:#4e6b82}.result-summary{border-color:#51728c}
+@media(max-width:760px){#hud{background:none;border:0}#hud-top,#hud-bottom{background:#0c2033;border-color:#3d5f79}#runbox{background:#163147}#hud-character{display:none}#start .start-character{height:122px;margin-bottom:16px}#start ul{font-size:14px;padding:12px 14px}#start h2{letter-spacing:2px}#start .go{font-size:20px;padding:14px 30px}}
+@media(max-height:760px) and (min-width:761px){#hud-character{display:none}#start .start-character{height:105px}#start ul{margin-top:16px}}
+@media(max-height:580px){#start .start-character{display:none}#start h1{font-size:36px}#start h2{margin:8px 0 16px}#start ul{margin-top:16px;font-size:14px}.fan-label{margin-top:8px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/":"https://cdn.jsdelivr.net/npm/three@0.170.0/","@dimforge/rapier3d-compat":"https://esm.sh/@dimforge/rapier3d-compat@0.14.0?target=es2022"}}</script>
 </head>
@@ -139,7 +170,7 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
 <div id="banner"></div>
 <aside id="hud" aria-label="游戏状态与操作">
   <div id="hud-top">
-    <div class="hud-brand"><span>浣熊推币机</span><small>挑战模式</small></div>
+    <div class="hud-brand"><span>大肥鱼推币机</span><small>挑战模式</small></div>
     <section class="panel" id="runbox" aria-label="关卡进度">
       <div class="runline"><span class="round-tag">关卡 <b id="round-number">1 / 8</b></span><button id="detail-toggle" aria-expanded="false" aria-controls="score-formula" title="展开计分详情"><strong id="base-mult">×1.00</strong><span class="disclosure" aria-hidden="true"></span></button></div>
       <div class="scoreline"><strong id="round-score">0</strong><span>/ <b id="round-target">300</b> 分</span></div>
@@ -153,6 +184,7 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
       <div id="total-score"><span>总分</span><b id="won">0</b></div>
     </div>
   </div>
+  <figure id="hud-character" aria-label="大肥鱼角色装饰"><img data-character="idle" alt="蓝发鲸尾女仆大肥鱼" draggable="false"><figcaption>今天也要满载而归</figcaption></figure>
   <div id="hud-bottom">
     <div id="btns"><button id="btn-sound" title="音效" aria-label="切换音效">🔊</button><button id="btn-music" title="音乐" aria-label="切换音乐">🎵</button><button id="btn-help" title="玩法" aria-label="玩法说明">❓</button><button id="btn-reset" title="重置" aria-label="重置本局">🔄</button></div>
     <button id="dropbtn" aria-label="投一枚硬币">投币</button>
@@ -161,8 +193,9 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
   </div>
 </aside>
 <div id="start">
-  <h1>浣熊推币机</h1>
-  <h2>RACCOON COIN PUSHER</h2>
+  <img class="start-character" data-character="happy" alt="大肥鱼举手欢迎你" draggable="false">
+  <h1>大肥鱼推币机</h1>
+  <h2>DAFEIYU COIN PUSHER</h2>
   <button class="go" id="start-button">开始 / 继续本局</button>
   <ul>
     <li>01　有限投币，冲刺每关目标分</li>
@@ -170,12 +203,13 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
     <li>03　通关赚贝壳，在商店挑选升级</li>
     <li>04　保留台面和构筑，挑战全部 8 关</li>
   </ul>
+  <p class="fan-label">非官方同人 · 角色素材署名见玩法说明</p>
 </div>
 <div id="help"><div class="card">
   <h3>玩法说明</h3>
   <p>投币器把硬币投到上层推板上；上层硬币被挡板刮落到下层，再被推板推向前沿。从<b>前沿</b>掉进出币口的硬币归你，从<b>两侧</b>漏掉的就没了。</p>
   <table style="margin-top:10px">
-    <tr><td>🦝🦝🦝</td><td>JACKPOT：40 枚金币雨 + 浣熊玩偶 + 宝石</td></tr>
+    <tr><td>🐋🐋🐋</td><td>JACKPOT：40 枚金币雨 + 大肥鱼立牌 + 宝石</td></tr>
     <tr><td>777</td><td>20 枚金币雨</td></tr>
     <tr><td>$$$</td><td>10 枚金币</td></tr>
     <tr><td>⭐⭐⭐</td><td>护墙升起 30 秒，两侧不漏币</td></tr>
@@ -188,10 +222,15 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
   <p class="rules-note">每关初始 50 次投币，赢币只加分、不返还投币次数，无免费补给。用完后等候落币；达标可提前结算。商店与说明界面暂停游戏。</p>
   <p class="rules-note">通关贝壳 = 8 + 关卡 ×2；每剩 5 次投币额外 +1（最多 +6），超额得分最多 +4。商店每次可刷新一次。</p>
   <p class="rules-note">每关保留台面和未完成抽奖，清除临时增益，再应用开局护墙。新模式单独存档，旧版存档保留。</p>
+  <details id="art-credits"><summary>角色素材与同人声明</summary>
+    <p>本游戏是非官方同人作品，与 DeepSeek 无关联、无官方背书。角色原型「溟月」：上善无形；深蓝女仆鲸鱼娘设定：ZipZipPipe；本作使用的 Q 版立绘：CrossPet（AI 辅助绘制）。本作仅作缩放压缩、裁切与游戏整合。</p>
+    <p>角色美术及其改编部分按 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> 分享：署名、非商业、相同方式共享。代码单独采用 MIT；代码许可不覆盖角色美术、既有角色权利或商标。</p>
+    <p><a href="https://github.com/lokicorvus/crosspet/tree/5c64326b6e7fc175eda0360c0bb5c4732541d138/characters/deepseek" target="_blank" rel="noopener noreferrer">立绘来源</a> · <a href="https://space.bilibili.com/4456176" target="_blank" rel="noopener noreferrer">上善无形</a> · <a href="https://space.bilibili.com/4168597" target="_blank" rel="noopener noreferrer">ZipZipPipe</a></p>
+  </details>
 </div></div>
 <div id="run-modal" hidden>
   <section class="run-card" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-describedby="result-target">
-    <header class="result-header"><p id="result-kicker">挑战完成</p><h2 id="result-title">浣熊补给站</h2></header>
+    <header class="result-header"><p id="result-kicker">挑战完成</p><h2 id="result-title">大肥鱼补给站</h2></header>
     <div class="result-summary"><div><strong id="result-score">0</strong><p id="result-target"></p></div><p id="result-rewards"></p></div>
     <section id="shop-section">
       <div class="shop-heading"><h3>选择你的下一步构筑</h3><div>可用贝壳 <strong id="shop-wallet">0</strong></div></div>
@@ -202,6 +241,6 @@ button{font:inherit;cursor:pointer}button:disabled{cursor:default;opacity:.55}bu
     <footer class="result-footer"><p id="next-preview"></p><button id="next-round" class="primary-action">下一关 →</button></footer>
   </section>
 </div>
-<script type="module">import "./src/main.js?v=2.0.1";</script>
+<script type="module">import "./src/main.js?v=2.1.0";</script>
 </body>
 </html>
