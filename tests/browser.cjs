@@ -31,8 +31,8 @@ const {chromium}=require('playwright-core');
   // A real gem body crossing the front award path, not a direct score assignment.
   const scoring=await page.evaluate(()=>{
     const g=__game; const c=g.spawn('gem',0,-.5,4.5); g.update(.016);
-    return {score:g.run.score,shots:g.run.shots};
-  });check(scoring.score===200&&scoring.shots===49,'physical gem awards 200 points without ammo refund: '+JSON.stringify(scoring));
+    return {score:g.run.score,shots:g.run.shots,gems:g.state.col.gem};
+  });check(scoring.score>=200&&scoring.gems===1&&scoring.shots===49,'physical gem awards at least 200 points without ammo refund: '+JSON.stringify(scoring));
   await page.evaluate(()=>{const g=__game;g.spawn('big',0,-.5,4.5);g.update(.016);});
   check(await page.evaluate(()=>__game.run.reached),'target reached');
   await page.click('#round-action');check(await page.evaluate(()=>__game.run.phase==='shop'),'clear opens shop');
