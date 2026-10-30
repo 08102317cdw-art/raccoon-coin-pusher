@@ -7,10 +7,10 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Sfx } from './audio.js';
-import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js';
-import { buildDafeiyu } from './mascot.js';
-import { loadCharacterArt, characterSources } from './character-art.js';
-import { Slot } from './slot.js';
+import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=2.1.1';
+import { buildDafeiyu } from './mascot.js?v=2.1.1';
+import { loadCharacterArt, characterSources } from './character-art.js?v=2.1.1';
+import { Slot } from './slot.js?v=2.1.1';
 import { Run, UPGRADES, TARGETS } from './roguelike.js';
 
 await loadCharacterArt();
