@@ -7,15 +7,18 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Sfx } from './audio.js';
-import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=2.1.1';
+import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=2.4.0';
 import { buildDafeiyu } from './mascot.js?v=2.1.1';
 import { loadCharacterArt, characterSources } from './character-art.js?v=2.1.1';
-import { Slot } from './slot.js?v=2.1.1';
+import { Slot } from './slot.js?v=2.4.0';
 import { Run, UPGRADES, TARGETS, BASE_POINTS } from './roguelike.js?v=2.2.0';
 import { TOKENS, TokenSystem, cleanMeta, isBad } from './tokens.js?v=2.2.0';
 import { makeTokenMesh } from './token-mesh.js?v=2.2.0';
 import { createTokenUI } from './token-ui.js?v=2.3.0';
 import { upgradeArt, arcadeToast } from './token-art.js?v=2.3.0';
+import { createMobileCabinet } from './mobile-cabinet.js?v=2.4.0';
+import { dressCabinet } from './cabinet-details.js?v=2.4.0';
+import { createSeasideRoom } from './seaside-room.js?v=2.4.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -41,7 +44,8 @@ app.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#071321');
-scene.fog = new THREE.Fog('#071321', 28, 60);
+scene.fog = new THREE.Fog('#366c7a', 28, 60);
+const seasideRoom=createSeasideRoom(scene);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.65;
@@ -128,23 +132,26 @@ const guards = [-1, 1].map(s => {
 });
 
 // ---------- 后墙 + 老虎机屏幕 ----------
+const backboardGroup=new THREE.Group();scene.add(backboardGroup);
 staticBox(HALF_W, 3.2, 0.15, 0, PUSH_H + 0.035 + 3.2, WALL_Z - 0.15, 0.1);
-const wt = wallTexture(); wt.repeat.set(3, 2.4);
-meshBox(HALF_W * 2 + 0.3, 7.6, 0.3, new THREE.MeshStandardMaterial({ map: wt, roughness: 0.6, metalness: 0.2 }), 0, PUSH_H + 0.035 + 3.8, WALL_Z - 0.15);
+const wt = wallTexture();
+meshBox(HALF_W * 2 + 0.3, 7.6, 0.3, new THREE.MeshStandardMaterial({ map: wt, roughness: 0.6, metalness: 0.2 }), 0, PUSH_H + 0.035 + 3.8, WALL_Z - 0.15,0,backboardGroup);
 const slotSfx = new Sfx();
 const slot = new Slot(slotSfx, o => onSlot(o));
 const SCREEN_W = 6.4, SCREEN_H = 3.6, SCREEN_Y = 5.55;
 const screen = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN_W, SCREEN_H), new THREE.MeshBasicMaterial({ map: slot.texture, toneMapped: false }));
-screen.position.set(0, SCREEN_Y, WALL_Z + 0.02); scene.add(screen);
+screen.position.set(0, SCREEN_Y, WALL_Z + 0.02); backboardGroup.add(screen);
 screen.material.color.setScalar(0.92);
 const frameMat = new THREE.MeshStandardMaterial({ color: '#ffc93c', metalness: 0.9, roughness: 0.25 });
-meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y + SCREEN_H / 2 + 0.12, WALL_Z + 0.05, 0.1);
-meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y - SCREEN_H / 2 - 0.12, WALL_Z + 0.05, 0.1);
-meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, -SCREEN_W / 2 - 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1);
-meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, SCREEN_W / 2 + 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1);
+meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y + SCREEN_H / 2 + 0.12, WALL_Z + 0.05, 0.1,backboardGroup);
+meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y - SCREEN_H / 2 - 0.12, WALL_Z + 0.05, 0.1,backboardGroup);
+meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, -SCREEN_W / 2 - 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1,backboardGroup);
+meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, SCREEN_W / 2 + 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1,backboardGroup);
 // 顶部招牌
 const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.5), new THREE.MeshBasicMaterial({ map: textTexture('大肥鱼推币机', 1024, 170, { color: '#fff0a8', strokeColor: '#15547d', stroke: 22, font: '900 105px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif' }), transparent: true, toneMapped: false }));
-sign.position.set(0, SCREEN_Y + SCREEN_H / 2 + 1.05, WALL_Z + 0.1); scene.add(sign);
+sign.position.set(0, SCREEN_Y + SCREEN_H / 2 + 1.05, WALL_Z + 0.1); backboardGroup.add(sign);
+
+dressCabinet(scene,backboardGroup,HALF_W,WALL_Z);
 
 // ---------- 推板 ----------
 const pusherBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, PUSH_H / 2, PUSH_BACK - PUSH_D / 2));
@@ -360,13 +367,13 @@ function updateConfetti(dt) {
 const sfx = slotSfx;
 let run = new Run();
 let tokens = new TokenSystem();
-let tokenUI, tokenAcc=0, tokenNotifyAt=-10;
+let tokenUI, mobileCabinet, tokenAcc=0, tokenNotifyAt=-10;
 const tokenRemovals=new Set();
 const state = { coins: 50, won: 0, col: { big: 0, gem: 0, plush: 0 }, jackpots: 0 };
 let wallT = 0, pushT = 0, feverT = 0, partyT = 0, shake = 0, started = false;
 let resultPhase = '', resetting = false; 
 const stats = { lost: 0 }; const winTimes = []; let combo = 0, lastWin = -100, showerQueue = [];
-const inputOpen = () => started && run.phase === 'playing' && !$('help').classList.contains('show') && !tokenUI?.isOpen() && !document.hidden;
+const inputOpen = () => started && run.phase === 'playing' && !$('help').classList.contains('show') && !tokenUI?.isOpen() && !mobileCabinet?.isMenuOpen() && !document.hidden;
 
 // ---------- HUD ----------
 const $ = id => document.getElementById(id);
@@ -388,7 +395,7 @@ function updateHud(dt) {
   action.disabled = !run.reached;
   action.textContent = run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
   $('dropbtn').disabled = !inputOpen() || run.shots <= 0;
-  tokenUI?.refresh(); tokenUI?.shop();
+  tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update(slot);
   renderResult();
 }
 function bumpCoinHud() { const el = $('coinbox'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
@@ -676,21 +683,25 @@ $('start-button').onclick = () => {
 // Fit the complete playable cabinet to the actual canvas, not the browser window.
 // This also keeps aiming and projected reward text correct after HUD reflow.
 let resizeFrame = 0;
+mobileCabinet=createMobileCabinet(slot.canvas,()=>queueResize());
 function resize() {
   resizeFrame = 0;
-  const narrow = matchMedia('(max-width:760px)').matches;
-  if(narrow) {
-    document.documentElement.style.setProperty('--top-reserve', Math.ceil($('hud-top').getBoundingClientRect().height)+'px');
-    document.documentElement.style.setProperty('--bottom-reserve', Math.ceil($('hud-bottom').getBoundingClientRect().height)+'px');
-  }
+  const narrow=mobileCabinet.mobile;
+  backboardGroup.visible=!narrow;
+  mascot.root.position.set(narrow?-6.0:-HALF_W-1.55,narrow?2.75:2.73,narrow?-2.6:-1.2);mascot.root.scale.setScalar(narrow?.85:1.25);
+  CAM_TARGET.set(0,narrow?.3:2.0,narrow?-1.05:-1.2);
+  // The rear slot is a live cabinet-mounted canvas on phones, not a faraway mesh.
+  leds.instanceMatrix.needsUpdate=true;ledPos.forEach((p,i)=>{if(narrow&&p[3]===2)tmpM.makeScale(0,0,0);else tmpM.makeTranslation(p[0],p[1],p[2]);leds.setMatrixAt(i,tmpM);});
   const r=app.getBoundingClientRect(), w=Math.max(1,r.width), h=Math.max(1,r.height);
-  camera.aspect=w/h; camera.fov=46;
+  camera.aspect=w/h; camera.fov=narrow?49:46;
   const tan=Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
   const up=new THREE.Vector3(0,CAM_DIR.z,-CAM_DIR.y);
-  let distance=20;
+  let distance=narrow?10:20;
   // Separate real cabinet regions avoid fitting imaginary upper-front corners,
   // which would unnecessarily shrink the playfield, especially on phones.
-  const regions=[
+  const regions=narrow?[
+    [[-5.65,5.65],[-.25,2.65],[-6.3,4.3]],
+  ]:[
     [[-5.3,5.3],[1.2,9.5],[-6.6,-5.9]], // backboard, sign and slot screen
     [[-7.3,7.3],[-2.8,2.9],[-10,4.6]],  // cabinet rails
     [[-6.3,6.3],[-3.3,-0.1],[4.0,7.1]], // payout tray (not decorative plinth)
@@ -703,13 +714,13 @@ function resize() {
   }
   CAM_POS.copy(CAM_TARGET).addScaledVector(CAM_DIR,distance+0.35);
   camera.updateProjectionMatrix(); camera.position.copy(CAM_POS); camera.lookAt(CAM_TARGET); camera.updateMatrixWorld();
-  renderer.setSize(w,h); composer.setSize(w,h); bloom.setSize(w,h);
+  renderer.setSize(w,h); composer.setSize(w,h); bloom.setSize(w,h);seasideRoom.resize(w,h,narrow);
   const bannerEl=$('banner');bannerEl.style.left=(r.left+w/2)+'px';bannerEl.style.top=(r.top+h*.4)+'px';bannerEl.style.maxWidth=(w-24)+'px';
   $('floats').style.clipPath=`inset(${r.top}px ${innerWidth-r.right}px ${innerHeight-r.bottom}px ${r.left}px)`;
 }
 function queueResize(){if(!resizeFrame) resizeFrame=requestAnimationFrame(resize);}
 addEventListener('resize',queueResize);
-const hudObserver=new ResizeObserver(queueResize);hudObserver.observe($('hud-top'));hudObserver.observe($('hud-bottom'));
+const hudObserver=new ResizeObserver(queueResize);hudObserver.observe($('hud-top'));hudObserver.observe($('hud-bottom'));hudObserver.observe(app);
 $('detail-toggle').onclick=()=>{
   const button=$('detail-toggle'), open=button.getAttribute('aria-expanded')!=='true';
   button.setAttribute('aria-expanded',String(open));button.title=open?'收起计分详情':'展开计分详情';$('score-formula').hidden=!open;holding=false;resize();
@@ -729,7 +740,7 @@ function frame() {
   composer.render();
 }
 function update(dt) {
-  if (!started || !run.active || $('help').classList.contains('show') || tokenUI?.isOpen() || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
+  if (!started || !run.active || $('help').classList.contains('show') || tokenUI?.isOpen() || mobileCabinet?.isMenuOpen() || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
 
   // 投币器跟随
@@ -836,4 +847,4 @@ function update(dt) {
 }
 frame();
 tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>{holding=false;},sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),landmarks:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]].map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
+window.__game = { get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,slotViewport:(mobileCabinet.mobile?slot.canvas.getBoundingClientRect().toJSON():null),environment:'whale-bay-pavilion',landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
