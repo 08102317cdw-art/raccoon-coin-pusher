@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { drawSymbol, SYMBOLS } from './textures.js?v=2.1.1';
+import { drawSymbol, SYMBOLS } from './textures.js?v=2.4.0';
+
+import { makeSlotBackdrop } from './cabinet-art.js?v=2.4.0';
 
 // 结果表：权重 / 名称
 export const OUTCOMES = [
@@ -17,7 +19,7 @@ export class Slot {
     this.sfx = sfx; this.onResult = onResult;
     this.W = 1024; this.H = 576;
     this.canvas = document.createElement('canvas'); this.canvas.width = this.W; this.canvas.height = this.H;
-    this.g = this.canvas.getContext('2d');
+    this.g = this.canvas.getContext('2d'); this.backdrop=makeSlotBackdrop(this.W,this.H);
     this.texture = new THREE.CanvasTexture(this.canvas); this.texture.colorSpace = THREE.SRGBColorSpace;
     this.reels = [0, 1, 2].map(() => {
       const strip = []; for (let k = 0; k < 3; k++) for (let s = 0; s < SYMBOLS.length; s++) strip.push(s);
@@ -83,25 +85,15 @@ export class Slot {
   }
   draw() {
     const g = this.g, W = this.W, H = this.H;
-    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#123c5d'); bg.addColorStop(1, '#071828');
-    g.fillStyle = bg; g.fillRect(0, 0, W, H);
-    // 光线
-    g.save(); g.translate(W / 2, H * 0.55); g.rotate(this.t * 0.3);
-    for (let i = 0; i < 12; i++) { g.rotate(Math.PI / 6); g.fillStyle = i % 2 ? 'rgba(255,180,255,0.05)' : 'rgba(120,220,255,0.05)'; g.beginPath(); g.moveTo(0, 0); g.lineTo(900, -120); g.lineTo(900, 120); g.fill(); }
-    g.restore();
-    // 标题
-    g.font = '900 64px "Arial Black", Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.lineWidth = 12; g.strokeStyle = '#5a1a00'; g.strokeText('LUCKY SLOT', W / 2, 58);
-    const tg = g.createLinearGradient(0, 30, 0, 90); tg.addColorStop(0, '#fff7b0'); tg.addColorStop(1, '#ff9d00');
-    g.fillStyle = tg; g.fillText('LUCKY SLOT', W / 2, 58);
+    g.drawImage(this.backdrop,0,0);g.textAlign='center';g.textBaseline='middle';
     // 转轮
-    const rw = 250, rh = 300, gap = 24, x0 = W / 2 - (rw * 3 + gap * 2) / 2, y0 = 110, cell = 130;
+    const rw = 262, rh = 300, gap = 23, x0 = W / 2 - (rw * 3 + gap * 2) / 2, y0 = 110, cell = 130;
     const winGlow = this.msgT > 0 && this.win ? (Math.sin(this.flash * 20) > 0) : false;
     this.reels.forEach((r, i) => {
       const x = x0 + i * (rw + gap);
       g.save();
-      g.fillStyle = '#ffd34d'; roundRect(g, x - 10, y0 - 10, rw + 20, rh + 20, 26); g.fill();
-      const inner = g.createLinearGradient(0, y0, 0, y0 + rh); inner.addColorStop(0, '#bdbdbd'); inner.addColorStop(0.2, '#ffffff'); inner.addColorStop(0.8, '#ffffff'); inner.addColorStop(1, '#bdbdbd');
+      const brass=g.createLinearGradient(0,y0-10,0,y0+rh+10);brass.addColorStop(0,'#fff0bc');brass.addColorStop(.14,'#b8964d');brass.addColorStop(.48,'#f2d494');brass.addColorStop(1,'#9a7941');g.fillStyle = brass; roundRect(g, x - 10, y0 - 10, rw + 20, rh + 20, 26); g.fill();
+      const inner = g.createLinearGradient(0, y0, 0, y0 + rh); inner.addColorStop(0, '#9faeab'); inner.addColorStop(0.22, '#fff8df'); inner.addColorStop(0.78, '#fff8df'); inner.addColorStop(1, '#98aaa7');
       g.fillStyle = inner; roundRect(g, x, y0, rw, rh, 18); g.fill(); g.clip();
       const L = r.strip.length, base = Math.floor(r.pos), frac = r.pos - base, blur = r.state === 'spin' && r.speed > 15;
       for (let k = -2; k <= 2; k++) {
@@ -116,15 +108,15 @@ export class Slot {
       g.restore();
     });
     // 中奖线
-    g.strokeStyle = this.reach ? '#ff2d55' : 'rgba(255,60,90,0.8)'; g.lineWidth = 6;
+    g.strokeStyle = this.reach ? '#ffc77b' : '#d79270b0'; g.lineWidth = this.reach?5:2;
     g.beginPath(); g.moveTo(x0 - 24, y0 + rh / 2); g.lineTo(x0 + rw * 3 + gap * 2 + 24, y0 + rh / 2); g.stroke();
     // 保留灯
     for (let i = 0; i < 5; i++) {
       const cx = W / 2 - 120 + i * 60, cy = 452, on = i < this.queue;
-      g.fillStyle = on ? '#3dffb0' : '#3a2a50'; g.beginPath(); g.arc(cx, cy, 17, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#081f2d';g.beginPath();g.arc(cx,cy,19,0,Math.PI*2);g.fill();g.strokeStyle='#bfa66c';g.lineWidth=2;g.stroke();g.fillStyle = on ? '#b6ecd1' : '#315461'; g.beginPath(); g.arc(cx, cy, 17, 0, Math.PI * 2); g.fill();
       if (on) { g.fillStyle = 'rgba(160,255,220,0.8)'; g.beginPath(); g.arc(cx - 5, cy - 5, 6, 0, Math.PI * 2); g.fill(); }
     }
-    g.font = 'bold 26px "Noto Sans SC", sans-serif'; g.fillStyle = '#d8c3ff'; g.fillText('保留', W / 2 - 200, 453);
+    g.font = 'bold 26px "Noto Sans SC", sans-serif'; g.fillStyle = '#bed2b6'; g.fillText('好运', W / 2 - 200, 453);
     // 状态
     g.font = 'bold 30px "Arial Black", "Noto Sans SC", sans-serif';
     this.status.forEach((s, i) => { g.fillStyle = s.color; g.fillText(s.text, W / 2 + (i - (this.status.length - 1) / 2) * 300, 515); });
