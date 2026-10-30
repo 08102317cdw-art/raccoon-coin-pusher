@@ -26,7 +26,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 const app = document.getElementById('app');
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.6 : 2));
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(app.clientWidth, app.clientHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.92;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 app.appendChild(renderer.domElement);
@@ -38,12 +38,13 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.65;
 
-const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(46, app.clientWidth / app.clientHeight, 0.1, 150);
 const CAM_POS = new THREE.Vector3(0, 12.6, 15.4), CAM_TARGET = new THREE.Vector3(0, 2.0, -1.2);
+const CAM_DIR = CAM_POS.clone().sub(CAM_TARGET).normalize();
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.42, 0.38, 0.92);
+const bloom = new UnrealBloomPass(new THREE.Vector2(app.clientWidth, app.clientHeight), 0.42, 0.38, 0.92);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -369,7 +370,7 @@ function updateHud(dt) {
   $('cash').textContent = run.cash;
   $('round-status').textContent = run.phase === 'settling' ? `落币结算 ${Math.ceil(run.settle)}s` : run.reached ? '目标达成' : '限量投币挑战';
   const action = $('round-action');
-  action.hidden = !run.active || !started;
+  action.hidden = !run.active || !started || (!run.reached && run.phase !== 'settling');
   action.disabled = !run.reached;
   action.textContent = run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
   $('dropbtn').disabled = !inputOpen() || run.shots <= 0;
@@ -377,7 +378,7 @@ function updateHud(dt) {
 }
 function bumpCoinHud() { const el = $('coinbox'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
 const projV = new THREE.Vector3();
-function toScreen(x, y, z) { projV.set(x, y, z).project(camera); return [(projV.x + 1) / 2 * innerWidth, (1 - projV.y) / 2 * innerHeight]; }
+function toScreen(x, y, z) { const r=app.getBoundingClientRect(); projV.set(x, y, z).project(camera); return [r.left+(projV.x + 1) / 2 * r.width, r.top+(1 - projV.y) / 2 * r.height]; }
 function floatText(text, x, y, z, cls = '') {
   const [sx, sy] = toScreen(x, y, z), el = document.createElement('div');
   el.className = 'float ' + cls; el.textContent = text; el.style.left = sx + 'px'; el.style.top = sy + 'px';
@@ -592,7 +593,8 @@ $('run-modal').addEventListener('keydown',e=>{
 // ================== 输入 ==================
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -DROP_Z), hit = new THREE.Vector3();
 function aimFrom(cx, cy) {
-  ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  const r=cv.getBoundingClientRect();
+  ndc.set((cx-r.left) / r.width * 2 - 1, -(cy-r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera);
   if (ray.ray.intersectPlane(aimPlane, hit)) aimX = THREE.MathUtils.clamp(hit.x, -4.3, 4.3);
 }
 const cv = renderer.domElement;
@@ -626,16 +628,48 @@ $('start-button').onclick = () => {
   renderResult(); save();
 };
 
+// Fit the complete playable cabinet to the actual canvas, not the browser window.
+// This also keeps aiming and projected reward text correct after HUD reflow.
+let resizeFrame = 0;
 function resize() {
-  const w = innerWidth, h = innerHeight, aspect = w / h;
-  camera.aspect = aspect;
-  const needH = THREE.MathUtils.radToDeg(2 * Math.atan(0.5 / aspect));
-  camera.fov = Math.max(46, Math.min(80, needH));
-  camera.updateProjectionMatrix();
-  camera.position.copy(CAM_POS); camera.lookAt(CAM_TARGET);
-  renderer.setSize(w, h); composer.setSize(w, h); bloom.setSize(w, h);
+  resizeFrame = 0;
+  const narrow = matchMedia('(max-width:760px)').matches;
+  if(narrow) {
+    document.documentElement.style.setProperty('--top-reserve', Math.ceil($('hud-top').getBoundingClientRect().height)+'px');
+    document.documentElement.style.setProperty('--bottom-reserve', Math.ceil($('hud-bottom').getBoundingClientRect().height)+'px');
+  }
+  const r=app.getBoundingClientRect(), w=Math.max(1,r.width), h=Math.max(1,r.height);
+  camera.aspect=w/h; camera.fov=46;
+  const tan=Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+  const up=new THREE.Vector3(0,CAM_DIR.z,-CAM_DIR.y);
+  let distance=20;
+  // Separate real cabinet regions avoid fitting imaginary upper-front corners,
+  // which would unnecessarily shrink the playfield, especially on phones.
+  const regions=[
+    [[-5.3,5.3],[1.2,9.5],[-6.6,-5.9]], // backboard, sign and slot screen
+    [[-7.3,7.3],[-2.8,2.9],[-10,4.6]],  // cabinet rails
+    [[-6.3,6.3],[-3.3,-0.1],[4.0,7.1]], // payout tray (not decorative plinth)
+    [[-7.7,-5.1],[2.5,5.8],[-2.2,0.3]], // raccoon mascot
+  ];
+  for(const [xs,ys,zs] of regions) for(const x of xs) for(const y of ys) for(const z of zs) {
+    const relative=new THREE.Vector3(x,y,z).sub(CAM_TARGET);
+    const near=relative.dot(CAM_DIR);
+    distance=Math.max(distance,near+Math.abs(relative.dot(up))/tan*1.055,near+Math.abs(x)/(tan*camera.aspect)*1.055);
+  }
+  CAM_POS.copy(CAM_TARGET).addScaledVector(CAM_DIR,distance+0.35);
+  camera.updateProjectionMatrix(); camera.position.copy(CAM_POS); camera.lookAt(CAM_TARGET); camera.updateMatrixWorld();
+  renderer.setSize(w,h); composer.setSize(w,h); bloom.setSize(w,h);
+  const bannerEl=$('banner');bannerEl.style.left=(r.left+w/2)+'px';bannerEl.style.top=(r.top+h*.4)+'px';bannerEl.style.maxWidth=(w-24)+'px';
+  $('floats').style.clipPath=`inset(${r.top}px ${innerWidth-r.right}px ${innerHeight-r.bottom}px ${r.left}px)`;
 }
-addEventListener('resize', resize); resize();
+function queueResize(){if(!resizeFrame) resizeFrame=requestAnimationFrame(resize);}
+addEventListener('resize',queueResize);
+const hudObserver=new ResizeObserver(queueResize);hudObserver.observe($('hud-top'));hudObserver.observe($('hud-bottom'));
+$('detail-toggle').onclick=()=>{
+  const button=$('detail-toggle'), open=button.getAttribute('aria-expanded')!=='true';
+  button.setAttribute('aria-expanded',String(open));button.title=open?'收起计分详情':'展开计分详情';$('score-formula').hidden=!open;holding=false;resize();
+};
+resize();
 addEventListener('beforeunload', save);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 setInterval(save, 5000);
@@ -735,7 +769,7 @@ function update(dt) {
   idleTalk -= dt; if (idleTalk < 0) { idleTalk = 10 + Math.random() * 10; if (bubbleT <= 0 && started) say('idle'); }
   {
     const [bx, by] = toScreen(mascot.root.position.x + 0.2, mascot.root.position.y + 3.0, mascot.root.position.z);
-    const b = $('bubble'); b.style.left = Math.max(b.offsetWidth/2+12,Math.min(innerWidth-b.offsetWidth/2-12,bx)) + 'px'; b.style.top = by + 'px';
+    const b = $('bubble'), r=app.getBoundingClientRect(); b.style.left = Math.max(r.left+b.offsetWidth/2+8,Math.min(r.right-b.offsetWidth/2-8,bx)) + 'px'; b.style.top = Math.max(r.top+44,by) + 'px';
   }
 
   slot.update(dt);
@@ -754,4 +788,4 @@ function update(dt) {
   updateHud(dt);
 }
 frame();
-window.__game = { pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
+window.__game = { pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),landmarks:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]].map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
