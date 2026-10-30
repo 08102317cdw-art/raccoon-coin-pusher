@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { drawSymbol, SYMBOLS } from './textures.js';
+import { drawSymbol, SYMBOLS } from './textures.js?v=2.1.1';
 
 // 结果表：权重 / 名称
 export const OUTCOMES = [

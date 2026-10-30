@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { characterImages } from './character-art.js';
+import { characterImages } from './character-art.js?v=2.1.1';
 
 // Licensed, illustrated acrylic standee — not an unofficial approximation of the art.
 // Textures are shared between the cabinet mascot and collectible mini-standees.

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { characterImages } from './character-art.js';
+import { characterImages } from './character-art.js?v=2.1.1';
 
 const mk = (w, h = w) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
 const tex = (c, srgb = true) => { const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
