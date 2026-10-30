@@ -1,35 +1,23 @@
 import * as THREE from 'three';
+import { characterImages } from './character-art.js';
 
 const mk = (w, h = w) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
 const tex = (c, srgb = true) => { const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
 
-export function drawRaccoonFace(g, cx, cy, s, cols) {
-  const { fur = '#8d8f9c', dark = '#2b2d38', white = '#f4f1ea', eye = '#111', nose = '#1a1a1a' } = cols || {};
-  g.save(); g.translate(cx, cy); g.scale(s, s);
-  // 耳朵
-  for (const sx of [-1, 1]) {
-    g.fillStyle = dark; g.beginPath(); g.ellipse(sx * 0.62, -0.62, 0.3, 0.34, sx * 0.5, 0, Math.PI * 2); g.fill();
-    g.fillStyle = fur; g.beginPath(); g.ellipse(sx * 0.62, -0.6, 0.18, 0.22, sx * 0.5, 0, Math.PI * 2); g.fill();
-  }
-  // 头
-  g.fillStyle = fur; g.beginPath(); g.ellipse(0, 0, 0.95, 0.8, 0, 0, Math.PI * 2); g.fill();
-  // 白色脸颊
-  g.fillStyle = white; g.beginPath(); g.ellipse(0, 0.25, 0.75, 0.52, 0, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.ellipse(-0.35, -0.42, 0.22, 0.12, 0.3, 0, Math.PI * 2); g.ellipse(0.35, -0.42, 0.22, 0.12, -0.3, 0, Math.PI * 2); g.fill();
-  // 眼罩
-  g.fillStyle = dark;
-  for (const sx of [-1, 1]) { g.beginPath(); g.ellipse(sx * 0.38, -0.08, 0.36, 0.22, sx * -0.35, 0, Math.PI * 2); g.fill(); }
-  g.beginPath(); g.ellipse(0, -0.02, 0.2, 0.12, 0, 0, Math.PI * 2); g.fill();
-  // 眼睛
-  for (const sx of [-1, 1]) {
-    g.fillStyle = eye; g.beginPath(); g.arc(sx * 0.38, -0.08, 0.12, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(sx * 0.38 + 0.04, -0.12, 0.045, 0, Math.PI * 2); g.fill();
-  }
-  // 鼻子嘴巴
-  g.fillStyle = nose; g.beginPath(); g.ellipse(0, 0.2, 0.12, 0.08, 0, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = nose; g.lineWidth = 0.05; g.lineCap = 'round';
-  g.beginPath(); g.moveTo(0, 0.26); g.lineTo(0, 0.36); g.arc(-0.1, 0.36, 0.1, 0, Math.PI, false); g.moveTo(0, 0.36); g.arc(0.1, 0.36, 0.1, Math.PI, 0, true); g.stroke();
+// Original, simple whale emblem used on gold coins and the felt; character art is separate.
+export function drawWhale(g, cx, cy, size, color = '#6e4d12', belly = '#ffe6a0') {
+  g.save(); g.translate(cx,cy); g.scale(size,size);
+  g.fillStyle = color; g.beginPath(); g.ellipse(-.12,.08,.76,.5,0,0,Math.PI*2); g.fill();
+  g.beginPath(); g.moveTo(.4,.2); g.bezierCurveTo(.85,.05,.63,-.5,1,-.49); g.bezierCurveTo(1.12,-.2,.85,.17,.55,.35); g.fill();
+  g.fillStyle = belly; g.beginPath(); g.ellipse(-.25,.24,.5,.19,.1,0,Math.PI); g.fill();
+  g.fillStyle = belly; g.beginPath(); g.arc(-.47,-.03,.055,0,Math.PI*2); g.fill();
+  g.strokeStyle = color; g.lineWidth=.07; g.lineCap='round'; g.beginPath();g.moveTo(-.3,-.51);g.quadraticCurveTo(-.35,-.78,-.55,-.67);g.moveTo(-.3,-.51);g.quadraticCurveTo(-.18,-.83,.02,-.67);g.stroke();
   g.restore();
+}
+export function drawCharacterFace(g, cx, cy, size) {
+  const im = characterImages.idle;
+  // Crop only the face for a readable jackpot symbol at reel-cell size.
+  g.drawImage(im, im.width*.05, 0, im.width*.81, im.height*.64, cx-size*.52,cy-size*.5,size*1.04,size);
 }
 
 export function coinTextures() {
@@ -43,13 +31,13 @@ export function coinTextures() {
   // 齿纹圈点
   g.fillStyle = '#d99a22';
   for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2; g.beginPath(); g.arc(S / 2 + Math.cos(a) * (S / 2 - 58), S / 2 + Math.sin(a) * (S / 2 - 58), 5, 0, Math.PI * 2); g.fill(); }
-  drawRaccoonFace(g, S / 2, S / 2 + 6, 128, { fur: '#e0a52b', dark: '#9c6510', white: '#ffe7a0', eye: '#7a4c06', nose: '#7a4c06' });
+  drawWhale(g, S / 2, S / 2 + 6, 158, '#9c6510', '#ffe7a0');
   // bump 贴图
   const [b, bg] = mk(S);
   bg.fillStyle = '#808080'; bg.fillRect(0, 0, S, S);
   bg.strokeStyle = '#ffffff'; bg.lineWidth = 26; bg.beginPath(); bg.arc(S / 2, S / 2, S / 2 - 18, 0, Math.PI * 2); bg.stroke();
   bg.fillStyle = '#5a5a5a'; for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2; bg.beginPath(); bg.arc(S / 2 + Math.cos(a) * (S / 2 - 58), S / 2 + Math.sin(a) * (S / 2 - 58), 5, 0, Math.PI * 2); bg.fill(); }
-  drawRaccoonFace(bg, S / 2, S / 2 + 6, 128, { fur: '#c8c8c8', dark: '#9a9a9a', white: '#e8e8e8', eye: '#555', nose: '#555' });
+  drawWhale(bg, S / 2, S / 2 + 6, 158, '#eeeeee', '#777777');
   // 侧边齿纹
   const [sc, sg] = mk(256, 16);
   for (let x = 0; x < 256; x += 4) { sg.fillStyle = (x / 4) % 2 ? '#f2bf40' : '#a8700f'; sg.fillRect(x, 0, 4, 16); }
@@ -64,8 +52,7 @@ export function floorTexture() {
   g.globalAlpha = 0.18; g.fillStyle = '#7ff3ff';
   for (let i = 0; i < 26; i++) {
     const x = (i * 197) % S, y = (i * 331) % S, r = 26;
-    g.beginPath(); g.ellipse(x, y, r, r * 0.85, 0, 0, Math.PI * 2); g.fill();
-    for (let k = 0; k < 4; k++) { const a = -Math.PI * 0.85 + k * 0.56; g.beginPath(); g.arc(x + Math.cos(a) * r * 1.5, y + Math.sin(a) * r * 1.5, r * 0.38, 0, Math.PI * 2); g.fill(); }
+    drawWhale(g, x, y, r*1.5, '#7ff3ff', '#123a4a');
   }
   g.globalAlpha = 0.25; g.strokeStyle = '#ffd36b'; g.lineWidth = 14;
   for (let y = 120; y < S; y += 260) for (let x = S * 0.2; x < S; x += S * 0.3) { g.beginPath(); g.moveTo(x - 40, y); g.lineTo(x, y + 40); g.lineTo(x + 40, y); g.stroke(); }
@@ -73,7 +60,7 @@ export function floorTexture() {
   return tex(c);
 }
 
-export function stripeTexture(a = '#ff8a1f', b = '#ffc23d', label = '') {
+export function stripeTexture(a = '#3476a5', b = '#d2edf3', label = '') {
   const [c, g] = mk(1024, 128);
   g.fillStyle = a; g.fillRect(0, 0, 1024, 128);
   g.fillStyle = b; for (let x = -128; x < 1024; x += 96) { g.beginPath(); g.moveTo(x, 128); g.lineTo(x + 48, 128); g.lineTo(x + 176, 0); g.lineTo(x + 128, 0); g.fill(); }
@@ -95,9 +82,9 @@ export function plateTexture() {
 
 export function wallTexture() {
   const S = 512, [c, g] = mk(S);
-  const grd = g.createLinearGradient(0, 0, 0, S); grd.addColorStop(0, '#2a1446'); grd.addColorStop(1, '#3d1b5c');
+  const grd = g.createLinearGradient(0, 0, 0, S); grd.addColorStop(0, '#132e50'); grd.addColorStop(1, '#244c70');
   g.fillStyle = grd; g.fillRect(0, 0, S, S);
-  g.fillStyle = 'rgba(255,200,255,0.07)';
+  g.fillStyle = 'rgba(160,230,255,0.07)';
   for (let y = 0; y < S; y += 64) for (let x = (y / 64 % 2) * 32; x < S; x += 64) { g.beginPath(); g.moveTo(x, y + 32); g.lineTo(x + 32, y); g.lineTo(x + 64, y + 32); g.lineTo(x + 32, y + 64); g.fill(); }
   const t = tex(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
 }
@@ -129,7 +116,7 @@ export const SYMBOLS = ['raccoon', 'seven', 'coin', 'star', 'bell', 'cherry'];
 export function drawSymbol(g, id, cx, cy, s) {
   g.save(); g.translate(cx, cy);
   switch (SYMBOLS[id]) {
-    case 'raccoon': drawRaccoonFace(g, 0, 4, s * 0.42); break;
+    case 'raccoon': drawCharacterFace(g, 0, 0, s * .95); break; // stable symbol ID preserves saves
     case 'seven': {
       g.font = `900 ${s * 0.95}px "Arial Black", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.lineWidth = s * 0.12; g.strokeStyle = '#5a0010'; g.lineJoin = 'round'; g.strokeText('7', 0, s * 0.04);

@@ -83,7 +83,7 @@ export class Slot {
   }
   draw() {
     const g = this.g, W = this.W, H = this.H;
-    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a0d5e'); bg.addColorStop(1, '#14052a');
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#123c5d'); bg.addColorStop(1, '#071828');
     g.fillStyle = bg; g.fillRect(0, 0, W, H);
     // 光线
     g.save(); g.translate(W / 2, H * 0.55); g.rotate(this.t * 0.3);
