@@ -11,7 +11,10 @@ import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, g
 import { buildDafeiyu } from './mascot.js?v=2.1.1';
 import { loadCharacterArt, characterSources } from './character-art.js?v=2.1.1';
 import { Slot } from './slot.js?v=2.1.1';
-import { Run, UPGRADES, TARGETS } from './roguelike.js';
+import { Run, UPGRADES, TARGETS, BASE_POINTS } from './roguelike.js?v=2.2.0';
+import { TOKENS, TokenSystem, cleanMeta, isBad } from './tokens.js?v=2.2.0';
+import { makeTokenMesh } from './token-mesh.js?v=2.2.0';
+import { createTokenUI } from './token-ui.js?v=2.2.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -179,6 +182,7 @@ const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpV = new THRE
 const bigMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 2, metalness: 1, roughness: 0.2, color: '#ffd77a', emissive: '#6a3a00', emissiveIntensity: 0.5 });
 const gemMat = new THREE.MeshPhysicalMaterial({ color: '#36e0ff', metalness: 0.1, roughness: 0.04, clearcoat: 1, iridescence: 1, iridescenceIOR: 1.6, emissive: '#0a5a8a', emissiveIntensity: 0.6, flatShading: true });
 function makeSpecialMesh(kind) {
+  if (TOKENS[kind]) return makeTokenMesh(kind);
   if (kind === 'big') { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 48), [coinSideMat, bigMat, bigMat]); m.castShadow = true; return m; }
   if (kind === 'gem') {
     const g = new THREE.Group();
@@ -193,15 +197,15 @@ function makeSpecialMesh(kind) {
 const VALUES = { coin: 1, big: 10, gem: 20, plush: 30 };
 
 function spawn(kind, x, y, z, q, vel) {
-  if (coins.length >= MAX_COINS) return null;
+  if (coins.length >= MAX_COINS || (!SHAPES[kind] && !TOKENS[kind])) return null;
   const bd = RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setLinearDamping(0.05).setAngularDamping(0.3).setCcdEnabled(!!vel);
   if (q) bd.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
   if (vel) bd.setLinvel(vel.x, vel.y, vel.z);
   const body = world.createRigidBody(bd);
-  world.createCollider(SHAPES[kind]().setFriction(F_COIN).setRestitution(0.08), body);
+  world.createCollider((SHAPES[kind] || SHAPES.coin)().setFriction(F_COIN).setRestitution(0.08), body);
   const c = { p: { x, y, z }, body, kind, state: 'field', t: 0, scale: 1, prevY: y, gated: false, fromDrop: false, pv: { x: 0, y: vel ? vel.y : 0, z: 0 } };
   if (kind !== 'coin') { c.mesh = makeSpecialMesh(kind); scene.add(c.mesh); }
-  coins.push(c);
+  tokens.meta(c); coins.push(c);
   return c;
 }
 function removeCoin(i) {
@@ -218,12 +222,14 @@ function syncCoins() {
     const p = c.p = c.body.translation(), q = c.body.rotation();
     if (c.kind === 'coin') {
       tmpV.set(p.x, p.y, p.z); tmpQ.set(q.x, q.y, q.z, q.w); tmpS.setScalar(c.scale);
-      tmpM.compose(tmpV, tmpQ, tmpS); coinMesh.setMatrixAt(n++, tmpM);
+      tmpM.compose(tmpV, tmpQ, tmpS); coinMesh.setMatrixAt(n, tmpM); coinMesh.setColorAt(n++, new THREE.Color(c.token?.charged ? '#a5ecff' : c.token?.multiplied ? '#ffb9df' : '#ffffff'));
     } else {
       c.mesh.position.set(p.x, p.y, p.z); c.mesh.quaternion.set(q.x, q.y, q.z, q.w); c.mesh.scale.setScalar(c.scale);
+      if(c.mesh.userData.chargeRing)c.mesh.userData.chargeRing.visible=!!c.token?.charged;
+      if(c.mesh.userData.multiRing)c.mesh.userData.multiRing.visible=!!c.token?.multiplied;
     }
   }
-  coinMesh.count = n; coinMesh.instanceMatrix.needsUpdate = true;
+  coinMesh.count = n; coinMesh.instanceMatrix.needsUpdate = true; if (coinMesh.instanceColor) coinMesh.instanceColor.needsUpdate=true;
 }
 
 // ================== 投币器 + 幸运门 ==================
@@ -352,11 +358,14 @@ function updateConfetti(dt) {
 // ================== 游戏状态 ==================
 const sfx = slotSfx;
 let run = new Run();
+let tokens = new TokenSystem();
+let tokenUI, tokenAcc=0, tokenNotifyAt=-10;
+const tokenRemovals=new Set();
 const state = { coins: 50, won: 0, col: { big: 0, gem: 0, plush: 0 }, jackpots: 0 };
 let wallT = 0, pushT = 0, feverT = 0, partyT = 0, shake = 0, started = false;
 let resultPhase = '', resetting = false; 
 const stats = { lost: 0 }; const winTimes = []; let combo = 0, lastWin = -100, showerQueue = [];
-const inputOpen = () => started && run.phase === 'playing' && !$('help').classList.contains('show') && !document.hidden;
+const inputOpen = () => started && run.phase === 'playing' && !$('help').classList.contains('show') && !tokenUI?.isOpen() && !document.hidden;
 
 // ---------- HUD ----------
 const $ = id => document.getElementById(id);
@@ -378,6 +387,7 @@ function updateHud(dt) {
   action.disabled = !run.reached;
   action.textContent = run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
   $('dropbtn').disabled = !inputOpen() || run.shots <= 0;
+  tokenUI?.refresh(); tokenUI?.shop();
   renderResult();
 }
 function bumpCoinHud() { const el = $('coinbox'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
@@ -407,23 +417,45 @@ function say(kind) {
 // ---------- 结算 ----------
 function onWin(c) {
   if (!started || !run.active) return;
-  const p = c.body.translation(), val = VALUES[c.kind];
-  state.won += val;
+  const p=c.p=c.body.translation();
+  const result=tokens.score(c,coins,specialAdapter);
+  if(isBad(c.kind)) {
+    const lost=run.penalize(result.penalty);combo=0;
+    floatText(`坏币 -${lost} 分`,p.x,.5,FRONT_Z+.2,'lost');
+    tokens.log(`${TOKENS[c.kind].name}入账 · -${lost} 分`);sfx.lost(p.x/6);
+    $('score-formula').textContent=`${TOKENS[c.kind].name}扣除 ${lost} 分（最低 0 分）`;return;
+  }
+  state.won += VALUES[c.kind]||0;
   const now = time;
   combo = now - lastWin < 0.7 ? combo + 1 : 0; lastWin = now;
   winTimes.push(now); while (winTimes.length && now - winTimes[0] > 4) winTimes.shift();
-  const scored = run.award(c.kind, combo, feverT > 0);
-  $('score-formula').textContent = `${scored.base} 基础分 × ${scored.factor.toFixed(2)} = +${scored.points}`;
+  const base=tokens.scoreBase(c,(BASE_POINTS[c.kind]||10)+(c.kind==='coin'?run.level('value')*2:0));
+  const scored=run.awardBase(base,combo,feverT>0,tokens.globalFactor(coins));
+  $('score-formula').textContent = `${scored.base} 币值 × ${scored.factor.toFixed(2)} = +${scored.points}`;
   if (winTimes.length >= 9 && feverT <= 0) startFever();
-  sfx.win(combo, p.x / 6);
-  burst(p.x, 0.1, FRONT_Z + 0.2, c.kind === 'coin' ? 10 : 50, c.kind === 'gem' ? '#4fe8ff' : '#ffd34d', c.kind === 'coin' ? 2.5 : 5, 3);
-  floatText('+' + scored.points + ' 分', p.x, 0.4, FRONT_Z + 0.3, c.kind === 'coin' ? (feverT > 0 ? 'fever' : '') : 'big');
+  sfx.win(combo,p.x/6);
+  burst(p.x,.1,FRONT_Z+.2,c.kind==='coin'?10:30,TOKENS[c.kind]?.color||'#ffd34d',3,3);
+  floatText('+'+scored.points+' 分',p.x,.4,FRONT_Z+.3,c.kind==='coin'?(feverT>0?'fever':''):'big');
   bumpCoinHud();
-  if (c.kind !== 'coin') {
-    state.col[c.kind]++; sfx.prize(); mascot.react('happy', 2); say('big'); shake = 0.25;
-    banner({ big: '🏅 大金币', gem: '💎 宝石', plush: '🐋 大肥鱼立牌' }[c.kind] + `<small>+${scored.points} 分</small>`, 'prize', 1500);
-  } else if (Math.random() < 0.05) { mascot.react('happy', 0.8); say('win'); }
+  if(TOKENS[c.kind]) {sfx.prize();mascot.react('happy',1);}
+  else if(c.kind!=='coin'){
+    state.col[c.kind]=(state.col[c.kind]||0)+1;sfx.prize();mascot.react('happy',2);say('big');shake=.25;
+    banner({big:'🏅 大金币',gem:'💎 宝石',plush:'🐋 大肥鱼立牌'}[c.kind]+`<small>+${scored.points} 分</small>`,'prize',1500);
+  }else if(Math.random()<.05){mascot.react('happy',.8);say('win');}
 }
+// Bridge pure token rules to actual Rapier bodies. Destructions are flushed after
+// iteration so a chain reaction cannot corrupt the physical entity array.
+const specialAdapter={
+ spawn(kind,p,meta){const c=spawn(kind,THREE.MathUtils.clamp(p.x,-4.4,4.4),Math.max(.5,p.y),THREE.MathUtils.clamp(p.z,-5.6,2.8),randQ(.08),V(0,-1,0));if(c&&meta)c.token={...c.token,...cleanMeta(meta),uid:c.token.uid};return c;},
+ remove(c){tokenRemovals.add(c);},
+ change(c,kind){if(c.mesh)scene.remove(c.mesh);c.kind=kind;c.mesh=makeSpecialMesh(kind);scene.add(c.mesh);},
+ shells(delta){run.cash=Math.max(0,Math.min(1e9,run.cash+delta));},
+ push(c,v){if(c.state==='field'&&!c.tokenDead)c.body.applyImpulse(v,true);},
+ notify(text,p){if(time-tokenNotifyAt<.5)return;tokenNotifyAt=time;floatText(text,p.x,p.y+.7,p.z,'lucky');burst(p.x,p.y+.2,p.z,8,'#92e7ff',1,.8);sfx.gate();}
+};
+function flushTokens(){for(let i=coins.length-1;i>=0;i--)if(tokenRemovals.has(coins[i]))removeCoin(i);tokenRemovals.clear();}
+function stepTokens(dt){coins.forEach(c=>c.p=c.body.translation());tokens.tick(dt,coins,specialAdapter);flushTokens();}
+
 function startFever() {
   feverT = 12 + run.level('fever') * 3; sfx.fast = 1.35; banner(`FEVER!!<small>${feverT} 秒内得分翻倍</small>`, 'fever'); flash('#ff4fd8'); mascot.react('excited', 2);
 }
@@ -460,9 +492,11 @@ function dropCoin() {
   if (!inputOpen() || coins.length >= MAX_COINS || !run.spendShot()) return;
   state.coins = run.shots;
   const x = dropper.position.x + (Math.random() - 0.5) * 0.04;
-  const c = spawn('coin', x, DROP_Y - 0.3, DROP_Z + (Math.random() - 0.5) * 0.06, randQ(0.1), V(0, -3, 0));
+  const kind=tokens.consume();
+  const c = spawn(kind, x, DROP_Y - 0.3, DROP_Z + (Math.random() - 0.5) * 0.06, randQ(0.1), V(0, -3, 0));
   if (c) c.fromDrop = true;
   sfx.drop(x / 6);
+  tokens.afterDrop(run.round,coins,specialAdapter);
   dropper.scale.y = 0.8;
 }
 
@@ -472,20 +506,20 @@ function save() {
   if (!started && !loaded) return;
   const bodies = coins.filter(c => c.state === 'field').slice(0, MAX_COINS).map(c => {
     const p = c.body.translation(), q = c.body.rotation(), v = c.body.linvel(), a = c.body.angvel();
-    return { kind:c.kind, p, q, v, a, fromDrop:c.fromDrop, gated:c.gated, prevY:c.prevY };
+    return { kind:c.kind, p, q, v, a, fromDrop:c.fromDrop, gated:c.gated, prevY:c.prevY, token:cleanMeta(c.token) };
   });
   const slotState = {};
   for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (slot[key] !== undefined) slotState[key] = slot[key];
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:2, run:run.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue, slotState, combo, lastWin, winTimes, lost:stats.lost })); }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:3, run:run.serialize(), tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue, slotState, combo, lastWin, winTimes, lost:stats.lost })); }
   catch (e) { $('save-status').textContent = '无法保存：请检查浏览器存储空间'; }
 }
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!d || d.version !== 2 || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
+    if (!d || ![2,3].includes(d.version) || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
     const restored = new Run(d.run);
-    if (d.bodies.some(b => !SHAPES[b.kind] || !['x','y','z'].every(k => Number.isFinite(b.p?.[k])) || !['x','y','z','w'].every(k => Number.isFinite(b.q?.[k])))) return false;
-    run = restored;
+    if (d.bodies.some(b => (!SHAPES[b.kind] && !TOKENS[b.kind]) || !['x','y','z'].every(k => Number.isFinite(b.p?.[k])) || !['x','y','z','w'].every(k => Number.isFinite(b.q?.[k])))) return false;
+    run = restored; tokens = new TokenSystem(d.tokens);
     state.coins = run.shots; state.won = d.state?.won || 0; state.col = d.state?.col || {big:0,gem:0,plush:0}; state.jackpots = d.state?.jackpots || 0;
     pushPhase = Number.isFinite(d.pushPhase) ? d.pushPhase : pushPhase;
     pushMax = Number.isFinite(d.pushMax) ? d.pushMax : -0.5;
@@ -493,17 +527,17 @@ function load() {
     pusherBody.setTranslation(V(0, PUSH_H / 2, front - PUSH_D / 2), true);
     for (const b of d.bodies) {
       const c = spawn(b.kind, b.p.x,b.p.y,b.p.z,b.q,b.v);
-      if (c) { c.fromDrop=!!b.fromDrop; c.gated=!!b.gated; c.prevY=Number.isFinite(b.prevY)?b.prevY:b.p.y; if(b.a) c.body.setAngvel(b.a,true); }
+      if (c) { c.token={...cleanMeta(b.token),uid:c.token.uid}; tokens.uid=Math.max(tokens.uid,c.token.uid); c.fromDrop=!!b.fromDrop; c.gated=!!b.gated; c.prevY=Number.isFinite(b.prevY)?b.prevY:b.p.y; if(b.a) c.body.setAngvel(b.a,true); }
     }
     for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (d.slotState?.[key] !== undefined) slot[key]=d.slotState[key];
     wallT=Math.max(0,d.wallT||0); pushT=Math.max(0,d.pushT||0); feverT=Math.max(0,d.feverT||0); partyT=Math.max(0,d.partyT||0);
-    showerQueue=Array.isArray(d.showerQueue)?d.showerQueue.filter(s=>SHAPES[s.kind]&&Number.isFinite(s.t)).slice(0,100):[];
+    showerQueue=Array.isArray(d.showerQueue)?d.showerQueue.filter(s=>(SHAPES[s.kind]||TOKENS[s.kind])&&Number.isFinite(s.t)).slice(0,100):[];
     restoredTime=Number.isFinite(d.time)?d.time:0; combo=d.combo||0; lastWin=Number.isFinite(d.lastWin)?d.lastWin:-100; winTimes.push(...(d.winTimes||[])); stats.lost=d.lost||0;
     sfx.fast=feverT>0?1.35:1;
     return true;
   } catch (e) {
     for (let i=coins.length-1;i>=0;i--) removeCoin(i);
-    run = new Run(); return false;
+    run = new Run(); tokens=new TokenSystem(); return false;
   }
 }
 function initialFill() {
@@ -553,6 +587,7 @@ function renderResult(force = false) {
   $('reroll-shop').disabled=run.cash<3||run.rerolls>=1;
   $('reroll-shop').textContent=run.rerolls?'本次已刷新':'刷新货架 · 3 贝壳';
   const cards=$('shop-cards'); cards.replaceChildren();
+  if(shop) tokenUI?.shop(true);
   if(shop) for(const id of run.offers) {
     const u=UPGRADES[id], bought=run.bought.includes(id), price=run.price(id), card=document.createElement('article');
     card.className=`upgrade-card ${u.color}${bought?' purchased':''}`;
@@ -577,6 +612,7 @@ $('reroll-shop').onclick=()=>{if(run.reroll()){sfx.tick();save();renderResult(tr
 $('next-round').onclick=()=>{
   if(run.phase==='shop') {
     if(!run.next()) return;
+    coins.forEach(c=>c.p=c.body.translation());tokens.startStage(run.round,coins,specialAdapter);flushTokens();
     // Preserve the physical field and outstanding slot rewards; buffs restart each stage.
     wallT=run.level('guard')*6; pushT=0; feverT=0; partyT=0; combo=0; lastWin=-100; winTimes.length=0; sfx.fast=1;
     holding=false; resultPhase=''; $('score-formula').textContent='基础分 × 构筑倍率 × 连击 × FEVER';
@@ -612,6 +648,7 @@ document.addEventListener('visibilitychange', () => { holding=false; clock.getDe
 addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('help').classList.contains('show')) { $('help').classList.remove('show'); holding=false; cv.focus({preventScroll:true}); }
   if (e.code === 'Space' && (e.target === document.body || e.target === cv || e.target === dropBtn)) { holding = inputOpen(); e.preventDefault(); }
+  if(e.code==='KeyQ'&&inputOpen()){const ids=['coin',...Object.keys(tokens.bag).filter(k=>tokens.bag[k]>0)];tokens.select(ids[(ids.indexOf(tokens.selected)+1)%ids.length]);holding=false;tokenUI.refresh(true);save();}
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') aimX = Math.max(-4.3, aimX - 0.4);
   if (e.code === 'ArrowRight' || e.code === 'KeyD') aimX = Math.min(4.3, aimX + 0.4);
 });
@@ -689,7 +726,7 @@ function frame() {
   composer.render();
 }
 function update(dt) {
-  if (!started || !run.active || $('help').classList.contains('show') || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
+  if (!started || !run.active || $('help').classList.contains('show') || tokenUI?.isOpen() || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
 
   // 投币器跟随
@@ -735,10 +772,12 @@ function update(dt) {
 
   // 物理
   stepWorld(dt);
+  tokenAcc+=dt;if(tokenAcc>=.2){stepTokens(Math.min(.5,tokenAcc));tokenAcc=0;}
 
   // 硬币状态
   for (let i = coins.length - 1; i >= 0; i--) {
     const c = coins[i], p = c.p = c.body.translation();
+    if(c.tokenDead)continue;
     if (!c.body.isSleeping()) {
       const v = c.body.linvel(), dv = Math.hypot(v.x - c.pv.x, v.y - c.pv.y, v.z - c.pv.z);
       if (dv > 2.6 && p.y > -2.6 && c.state !== 'won') sfx.clink(Math.min(1, dv / 9) * (c.kind === 'coin' ? 1 : 1.3), p.x / 6);
@@ -762,7 +801,7 @@ function update(dt) {
     if (c.state === 'lost' && p.y < -3) c.scale = 0;
     if (c.scale <= 0 || p.y < -12) removeCoin(i);
   }
-  syncCoins();
+  flushTokens();syncCoins();
 
   // 推板网格
   { const pp = pusherBody.translation(); pusherMesh.position.set(pp.x, pp.y, pp.z); }
@@ -793,4 +832,5 @@ function update(dt) {
   updateHud(dt);
 }
 frame();
-window.__game = { theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),landmarks:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]].map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
+tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>{holding=false;},sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
+window.__game = { get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),landmarks:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]].map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };

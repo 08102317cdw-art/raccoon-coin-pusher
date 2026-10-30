@@ -10,7 +10,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:
 /* The game has its own viewport. HUD panels never sit on top of the cabinet. */
 :root{--rail-width:272px;--top-reserve:144px;--bottom-reserve:100px}
 #app{position:fixed;left:0;top:0;right:var(--rail-width);bottom:0;overflow:hidden;background:#10071e}
-#app canvas{display:block;cursor:crosshair;outline:none}#app canvas:focus-visible{outline:2px solid #725781;outline-offset:-2px}
+#app canvas{display:block;cursor:crosshair;outline:none}#app canvas:focus-visible{outline:2px solid #6da6c7;outline-offset:-2px}
 #hud{position:fixed;inset:0 0 0 auto;width:var(--rail-width);z-index:3;display:flex;flex-direction:column;gap:24px;padding:24px 20px;overflow-y:auto;touch-action:pan-y;pointer-events:auto;opacity:0;transition:opacity .4s;background:linear-gradient(180deg,#20122e,#140b21);border-left:1px solid #594366}
 #hud.show{opacity:1}
 #hud-top,#hud-bottom{flex-shrink:0}
@@ -159,6 +159,21 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 @media(max-height:760px) and (min-width:761px){#hud-character{display:none}#start .start-character{height:105px}#start ul{margin-top:16px}}
 @media(max-height:580px){#start .start-character{display:none}#start h1{font-size:36px}#start h2{margin:8px 0 16px}#start ul{margin-top:16px;font-size:14px}.fan-label{margin-top:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* Token controls live in reserved HUD space; never float on the playable canvas. */
+#token-controls{margin-top:14px}#token-open{width:100%;min-height:44px;padding:8px 10px;color:#d9f4ff;background:#1e435c;border:1px solid #6b95ae;border-radius:8px;font-size:14px;font-weight:700;text-align:left}
+#token-field-status{display:block;color:#c5dbe7;font-size:14px;line-height:20px;margin-top:6px}#token-latest{font-size:14px;line-height:1.5;color:#aaddeb;margin-top:8px;min-height:21px}
+#token-modal{position:fixed;inset:0;z-index:15;display:flex;align-items:center;justify-content:center;padding:24px;background:#030b16e8;backdrop-filter:blur(8px);touch-action:pan-y}
+.token-dialog{width:min(980px,100%);max-height:calc(100dvh - 48px);overflow:auto;background:#102a3f;border:1px solid #5d8199;border-radius:12px;padding:24px;touch-action:pan-y}
+.token-dialog header{position:sticky;top:-1px;z-index:1;background:#102a3f;box-shadow:0 -24px 0 #102a3f;padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:16px}.token-dialog h2{font-size:26px}.token-dialog button,#token-shop button{min-height:44px;padding:8px 12px;border:1px solid #7192a7;background:#173a53;color:#e4f4ff;border-radius:8px;font-size:14px}
+.token-tabs{display:flex;gap:8px;margin-top:20px}.token-tabs button[aria-selected="true"]{background:#d3eef4;color:#10283b;border-color:#d3eef4;font-weight:700}
+#token-subtitle{font-size:16px;line-height:1.6;color:#cedfe9;margin:16px 0}#token-event-log{font-size:14px;line-height:1.6;padding:12px;background:#0a1c2c;border-radius:8px;color:#adddec;margin-bottom:16px}
+#token-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.token-card{display:flex;flex-direction:column;align-items:flex-start;padding:16px;border:1px solid #496e88;border-radius:12px;background:#16364c;min-width:0}.token-glyph{font:900 30px/1.2 "Noto Sans SC",sans-serif;color:#d6e9aa}.token-card h3{font-size:18px;margin:8px 0}.token-card small{color:#bcd2e0;font-size:14px}.token-card p{font-size:14px;line-height:1.7;color:#d6e5ee;margin:10px 0 16px;flex:1}.token-card button{width:100%;margin-top:auto}.token-card.bad{border-color:#b8867c;background:#382d38}.token-select:disabled{opacity:1!important;color:#9eb5c4!important;background:#193044!important}
+#token-shop{margin-top:24px;padding-top:20px;border-top:1px solid #496d86}#token-shop h3{font-size:18px}#token-shop-note{font-size:14px;line-height:1.6;color:#c7dce8;margin:8px 0 12px}#token-shop-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.token-pack{padding:14px;border:1px solid #496d86;border-radius:8px;background:#102b41}.token-pack h4{font-size:16px}.token-pack p{font-size:14px;line-height:1.7;color:#ccdfeb;margin:8px 0 12px}.token-pack>div{display:flex;flex-direction:column;gap:8px}.token-pack button:disabled{opacity:1!important;color:#a9becc!important;background:#20394c!important}.token-pack button:not(:disabled):hover,.token-card button:not(:disabled):hover{background:#d7eef4!important;color:#10283b!important}
+@media(max-height:1000px){#hud-character{display:none}}
+@media(max-width:760px){#token-controls{margin-top:6px}.token-toolbar{display:flex;gap:8px;align-items:center}#token-open{width:auto;flex:1;min-width:0}#token-field-status{margin:0;width:128px;font-size:14px;line-height:20px}#token-latest{display:none}#token-modal{padding:12px}.token-dialog{max-height:calc(100dvh - 24px);padding:16px}.token-dialog h2{font-size:22px}#token-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.token-card{padding:12px}.token-card h3{font-size:16px}#token-shop-cards{grid-template-columns:1fr}.token-tabs{gap:6px}.token-tabs button{padding:8px;font-size:14px}}
+@media(max-width:359px){#token-field-status{width:116px}#token-open{font-size:14px}#token-cards{grid-template-columns:1fr}}
+@media(max-height:580px) and (min-width:761px){#token-latest{display:none}#token-controls{margin-top:8px}#token-field-status{margin-top:4px}}
 </style>
 </head>
 <body>
@@ -182,6 +197,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
       <div class="panel" id="colbox"><span class="stat-label">贝壳</span><strong id="cash">0</strong></div>
       <div id="total-score"><span>总分</span><b id="won">0</b></div>
     </div>
+    <section id="token-controls" aria-label="代币选择与台面状态"><div class="token-toolbar"><button id="token-open" aria-haspopup="dialog">鲸 普通金币 · ∞ · 选择</button><small id="token-field-status">台面坏币 0 · 环境 ×1.00</small></div><p id="token-latest">首批代币已放入币仓 · 点此选择</p></section>
   </div>
   <figure id="hud-character" aria-label="大肥鱼角色装饰"><img data-character="idle" alt="蓝发鲸尾女仆大肥鱼" draggable="false"><figcaption>今天也要满载而归</figcaption></figure>
   <div id="hud-bottom">
@@ -199,8 +215,8 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   <ul>
     <li>01　有限投币，冲刺每关目标分</li>
     <li>02　金币基础分 × 构筑倍率 × 连击加成</li>
-    <li>03　通关赚贝壳，在商店挑选升级</li>
-    <li>04　保留台面和构筑，挑战全部 8 关</li>
+    <li>03　19 种特殊币，组合种植与捕食流</li>
+    <li>04　清除坏币，关间补给，挑战 8 关</li>
   </ul>
   <p class="fan-label">非官方同人 · 角色素材署名见玩法说明</p>
 </div>
@@ -221,12 +237,17 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   <p class="rules-note">每关初始 50 次投币，赢币只加分、不返还投币次数，无免费补给。用完后等候落币；达标可提前结算。商店与说明界面暂停游戏。</p>
   <p class="rules-note">通关贝壳 = 8 + 关卡 ×2；每剩 5 次投币额外 +1（最多 +6），超额得分最多 +4。商店每次可刷新一次。</p>
   <p class="rules-note">每关保留台面和未完成抽奖，清除临时增益，再应用开局护墙。新模式单独存档，旧版存档保留。</p>
+  <p class="rules-note">特殊代币：点击「普通金币 · 选择」打开币仓，可选特殊币替换下一次投币，仍消耗 1 次投币额度；Q 切换现有币。图鉴内可查看 19 种特殊币和 3 种坏币。打开币仓时暂停游戏。</p>
+  <p class="rules-note">联动：种子 + 水滴长成摇钱树；虾米喂鱼、猫猫吃鱼鼠；母鸡跨关产蛋、蛋在下一关孵化；闪电充能，电池吸能；倍率印记不重复叠乘。跨关保留币仓、币值与净化次数。</p>
+  <p class="rules-note">第 2 关起坏币入侵，之后每 12 次手动投币再来 1 枚，台面最多 8 枚坏币。锈蚀降低环境倍率；盗壳偷贝壳；腐蚀吞普通币。坏币进前沿扣分，最低 0 分，不触发连击。杀手币最多清 6 枚，每枚 +1 贝壳，清满后消耗。</p>
+  <p class="rules-note">每间商店可免费领 1 份代币补给，另可购买各一份；下一关自动补充 1 枚杀手币。特殊币的复制、产蛋与掉币不返还投币额度；台面总量上限 420 枚，爆破连锁单次最多 16 次。</p>
   <details id="art-credits"><summary>角色素材与同人声明</summary>
     <p>本游戏是非官方同人作品，与 DeepSeek 无关联、无官方背书。角色原型「溟月」：上善无形；深蓝女仆鲸鱼娘设定：ZipZipPipe；本作使用的 Q 版立绘：CrossPet（AI 辅助绘制）。本作仅作缩放压缩、裁切与游戏整合。</p>
     <p>角色美术及其改编部分按 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> 分享：署名、非商业、相同方式共享。代码单独采用 MIT；代码许可不覆盖角色美术、既有角色权利或商标。</p>
     <p><a href="https://github.com/lokicorvus/crosspet/tree/5c64326b6e7fc175eda0360c0bb5c4732541d138/characters/deepseek" target="_blank" rel="noopener noreferrer">立绘来源</a> · <a href="https://space.bilibili.com/4456176" target="_blank" rel="noopener noreferrer">上善无形</a> · <a href="https://space.bilibili.com/4168597" target="_blank" rel="noopener noreferrer">ZipZipPipe</a></p>
   </details>
 </div></div>
+<div id="token-modal" hidden><section class="token-dialog" role="dialog" aria-modal="true" aria-labelledby="token-title"><header><h2 id="token-title">代币仓</h2><button id="token-close" aria-label="关闭代币仓">关闭 ×</button></header><div class="token-tabs" role="tablist" aria-label="代币信息"><button id="token-tab-bag" role="tab" aria-selected="true">币仓 · 选择投币</button><button id="token-tab-atlas" role="tab" aria-selected="false">图鉴 · 全部联动</button></div><p id="token-subtitle"></p><p id="token-event-log"></p><div id="token-cards"></div></section></div>
 <div id="run-modal" hidden>
   <section class="run-card" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-describedby="result-target">
     <header class="result-header"><p id="result-kicker">挑战完成</p><h2 id="result-title">大肥鱼补给站</h2></header>
@@ -234,6 +255,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
     <section id="shop-section">
       <div class="shop-heading"><h3>选择你的下一步构筑</h3><div>可用贝壳 <strong id="shop-wallet">0</strong></div></div>
       <div id="shop-cards"></div>
+      <section id="token-shop"><h3>代币补给</h3><p id="token-shop-note"></p><div id="token-shop-cards"></div></section>
       <div class="shop-tools"><span>每件商品每次货架限购一件</span><button id="reroll-shop">刷新货架 · 3 贝壳</button></div>
     </section>
     <div class="build-summary"><span>当前构筑</span><p id="build-list"></p></div>
