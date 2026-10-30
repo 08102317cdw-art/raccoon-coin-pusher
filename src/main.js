@@ -14,7 +14,8 @@ import { Slot } from './slot.js?v=2.1.1';
 import { Run, UPGRADES, TARGETS, BASE_POINTS } from './roguelike.js?v=2.2.0';
 import { TOKENS, TokenSystem, cleanMeta, isBad } from './tokens.js?v=2.2.0';
 import { makeTokenMesh } from './token-mesh.js?v=2.2.0';
-import { createTokenUI } from './token-ui.js?v=2.2.0';
+import { createTokenUI } from './token-ui.js?v=2.3.0';
+import { upgradeArt, arcadeToast } from './token-art.js?v=2.3.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -570,12 +571,12 @@ function buildSummary() {
 function renderResult(force = false) {
   const phase = run.phase;
   if (run.active || !started) { $('run-modal').hidden=true; resultPhase=''; return; }
-  $('run-modal').hidden=false;
+  $('run-modal').hidden=false;$('run-modal').dataset.phase=phase;
   if (resultPhase===phase && !force) return;
   resultPhase=phase; holding=false;
   const shop=phase==='shop', won=phase!=='gameover', r=run.receipt;
   $('result-kicker').textContent = phase==='victory' ? '八关制霸 · RUN COMPLETE' : `第 ${run.round} 关 · ${won?'挑战完成':'本局结束'}`;
-  $('result-title').textContent = shop ? '大肥鱼补给站' : won ? '恭喜通关！' : '差一点，再来一局';
+  $('result-title').textContent = shop ? '靠港啦！鲸鱼补给站' : won ? '恭喜通关！' : '差一点，再来一局';
   $('result-score').textContent = run.score.toLocaleString();
   $('result-target').textContent = `目标 ${run.target.toLocaleString()} · 本局累计 ${run.total.toLocaleString()} 分`;
   $('result-rewards').textContent = won && r ? `通关 +${r.base}　节币 +${r.thrift}　超额 +${r.over}　＝ 贝壳 +${r.reward}` : '投币额度已用尽。落币结算后仍未达到目标。';
@@ -590,14 +591,14 @@ function renderResult(force = false) {
   if(shop) tokenUI?.shop(true);
   if(shop) for(const id of run.offers) {
     const u=UPGRADES[id], bought=run.bought.includes(id), price=run.price(id), card=document.createElement('article');
-    card.className=`upgrade-card ${u.color}${bought?' purchased':''}`;
-    const icon=document.createElement('div'); icon.className='upgrade-icon'; icon.textContent=u.icon;
+    card.className=`upgrade-card ${u.color}${bought?' purchased':''}`;card.dataset.upgrade=id;
+    const icon=document.createElement('div'); icon.className='upgrade-icon'; icon.innerHTML=upgradeArt(id);
     const title=document.createElement('h4'); title.textContent=u.name;
     const level=document.createElement('div'); level.className='upgrade-level'; level.textContent=id==='supply'?'一次性 · 下一关生效':`Lv.${run.level(id)} / ${u.max} · 整局生效`;
     const desc=document.createElement('p'); desc.textContent=u.desc;
     const button=document.createElement('button'); button.className='buy-button'; button.disabled=bought||run.cash<price;
     button.textContent=bought?'✓ 已购买':run.cash<price?`贝壳不足 · 需要 ${price}`:`购买 · ${price} 贝壳`;
-    button.onclick=()=>{ if(run.buy(id)){sfx.gate();save();renderResult(true);updateHud(0);} };
+    button.onclick=()=>{ if(run.buy(id)){sfx.gate();save();renderResult(true);updateHud(0);arcadeToast(`${u.name}改装完成！`);$('shop-tab-upgrades').focus({preventScroll:true});} };
     card.append(icon,title,level,desc,button); cards.append(card);
   }
   if(force) return;
@@ -608,7 +609,7 @@ function finishRound() {
   run.finish(); holding=false; sfx.levelUp(); confettiBurst(140); save(); renderResult(true); updateHud(0);
 }
 $('round-action').onclick=finishRound;
-$('reroll-shop').onclick=()=>{if(run.reroll()){sfx.tick();save();renderResult(true);}};
+$('reroll-shop').onclick=()=>{if(run.reroll()){sfx.tick();save();renderResult(true);arcadeToast('新一批宝贝上架啦');$('reroll-shop').focus({preventScroll:true});}};
 $('next-round').onclick=()=>{
   if(run.phase==='shop') {
     if(!run.next()) return;
@@ -654,8 +655,10 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { if (e.code === 'Space') holding = false; });
 const dropBtn = $('dropbtn');
-dropBtn.addEventListener('pointerdown', e => { e.preventDefault(); holding = true; dropCd = 0; });
+dropBtn.addEventListener('pointerdown', e => { e.preventDefault(); if(!inputOpen())return; holding=true;dropCoin();dropCd=feverT>0?.14:.2; });
 dropBtn.addEventListener('pointerup', () => holding = false);
+// Enter / assistive activation should work without a pointer; Space keeps hold-to-drop.
+dropBtn.addEventListener('click', e => { if(e.detail===0){dropCoin();updateHud(0);} });
 dropBtn.addEventListener('pointerleave', () => holding = false);
 $('btn-sound').onclick = e => { sfx.setEnabled(!sfx.enabled); e.currentTarget.classList.toggle('off', !sfx.enabled); };
 $('btn-music').onclick = e => { sfx.setMusic(!sfx.musicOn); e.currentTarget.classList.toggle('off', !sfx.musicOn); };

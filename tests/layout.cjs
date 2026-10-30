@@ -7,7 +7,7 @@ const {chromium}=require('playwright-core');
   for(const [name,width,height] of [['reported',944,690],['desktop',1440,900],['mobile',390,844],['small',390,667],['landscape',844,390]]){
    const context=await browser.newContext({viewport:{width,height},isMobile:width<=760,hasTouch:width<=760});
    const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));
-   await p.goto('file://'+process.cwd()+'/dist/raccoon-coin-pusher.html');await p.waitForFunction(()=>!!window.__game,{timeout:60000});
+   await p.goto('file://'+process.cwd()+'/dist/raccoon-coin-pusher.html');await p.waitForFunction(()=>!!window.__game,null,{timeout:120000});
    await p.evaluate(()=>{__game.pause(true);__game.start();__game.update(.016);__game.render();});
    const inspect=()=>p.evaluate(()=>{
     const g=__game;g.render();const r=g.layout().viewport,box=id=>document.getElementById(id).getBoundingClientRect();
