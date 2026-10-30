@@ -1,10 +1,19 @@
-# 浣熊推币机 · Raccoon Coin Pusher
+# 大肥鱼推币机 · Dafeiyu Coin Pusher
 
-Three.js + Rapier 制作的开源 3D 推币机。**v2 加入八关肉鸽循环：限量投币 → 目标分 → 结算 → 商店构筑 → 下一关。** 保留物理推币、LUCKY 门、老虎机、FEVER、浣熊吉祥物和程序化音效。
+Three.js + Rapier 制作的开源 3D 推币机。**v2 加入八关肉鸽循环：限量投币 → 目标分 → 结算 → 商店构筑 → 下一关。** 保留物理推币、LUCKY 门、老虎机、FEVER、大肥鱼互动立牌和程序化音效。
 
 [🎮 在线试玩](https://08102317cdw-art.github.io/raccoon-coin-pusher/)
 
-这是独立的浣熊主题原型，不是 Steam《RACCOIN》的移植；未使用其美术、音频或代码。
+这是独立的免费非商业同人游戏，不是 Steam《RACCOIN》的移植，也不是 DeepSeek 官方作品，未获官方背书。未使用 RACCOIN 的美术、音频或代码。
+
+## v2.1 大肥鱼海洋主题
+
+- 游戏展示名改为「大肥鱼推币机」，旧仓库路径与试玩链接暂不变，避免已有链接失效。
+- 蓝白机台、鲸鱼纹金币与台毡、大肥鱼角色立牌、老虎机角色图案与收藏小立牌。
+- 大肥鱼会在中奖时欢呼、JACKPOT 时端饭碗；桌面侧栏与开始页加入角色插画。
+- 八关肉鸽、商店、计分和既有存档保留，沿用原存档键以兼容旧进度。
+- 沿用独立游戏视口：桌面侧栏 / 手机上下控制区不覆盖机台。
+- 美术署名见游戏「玩法 → 角色素材与同人声明」及 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## v2 玩法
 
@@ -27,7 +36,7 @@ Three.js + Rapier 制作的开源 3D 推币机。**v2 加入八关肉鸽循环�
 | 普通金币 | 10（可升级） |
 | 大金币 | 100 |
 | 宝石 | 200 |
-| 浣熊玩偶 | 300 |
+| 大肥鱼立牌 | 300 |
 
 基础构筑倍率为 ×1.00；“倍率芯片”每级 +0.25。0.7 秒内连续进币时，连击每次增加 ×0.1，最高 ×1.5。4 秒内累计赢 9 枚触发 FEVER，基础持续 12 秒，期间得分 ×2。倍率按每次入账时计算，四舍五入至整数。
 
@@ -94,6 +103,8 @@ npm run pages
 ```sh
 npm test                         # 无浏览器的纯规则断言
 CHROMIUM_PATH=/path/to/chromium node tests/browser.cjs
+CHROMIUM_PATH=/path/to/chromium node tests/layout.cjs
+CHROMIUM_PATH=/path/to/chromium node tests/theme.cjs
 ```
 
 浏览器集成测试需要安装 Chromium；覆盖投币输入、物理落币得分、购买、保存恢复、失败重开、八关状态迁移以及 390px 手机界面。用可控物理奖品事件验证全部关卡，不代表已经通过真人无辅助通关或完成平衡性验证。
@@ -108,7 +119,7 @@ src/
   main.js           场景、物理、输入、奖励、存档及关卡 UI
   roguelike.js      纯关卡状态机、得分、经济与商店规则
   slot.js           LUCKY 抽奖状态与显示
-  mascot.js         浣熊动画
+  mascot.js         大肥鱼表情与立牌动画
   textures.js       程序化纹理
   audio.js          Web Audio 合成音效与音乐
 tests/
@@ -119,4 +130,10 @@ build.sh            离线单文件构建
 
 ## 许可证
 
-MIT License，详见 [LICENSE](LICENSE)。
+**混合许可，不是全部内容都可 MIT 商用。**
+
+- 代码：MIT，见 [LICENSE](LICENSE)。
+- 大肥鱼角色立绘及其裁切、缩放、衍生美术：CC BY-NC-SA 4.0，署名上善无形、ZipZipPipe 与 CrossPet，**不得商用**，改编美术分享时须同协议。
+- 既有角色设定与第三方商标权利仍归各自权利人；本作不是官方授权产品。若计划收费、广告变现、赞助推广等商业用途，须先另行取得相关权利人的许可，不能依赖代码 MIT 许可。
+
+详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 [角色素材许可](licenses/CHARACTER-ART.md)。

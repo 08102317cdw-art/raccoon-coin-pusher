@@ -8,9 +8,13 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Sfx } from './audio.js';
 import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js';
-import { buildRaccoon } from './mascot.js';
+import { buildDafeiyu } from './mascot.js';
+import { loadCharacterArt, characterSources } from './character-art.js';
 import { Slot } from './slot.js';
 import { Run, UPGRADES, TARGETS } from './roguelike.js';
+
+await loadCharacterArt();
+for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
 
 // ================== 常量 ==================
 const HALF_W = 5, FRONT_Z = 4, BACK_Z = -10, WALL_Z = -6.2;
@@ -32,8 +36,8 @@ renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadow
 app.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#120722');
-scene.fog = new THREE.Fog('#120722', 28, 60);
+scene.background = new THREE.Color('#071321');
+scene.fog = new THREE.Fog('#071321', 28, 60);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.65;
@@ -48,7 +52,7 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(app.clientWidth, app.clientH
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
-scene.add(new THREE.HemisphereLight('#c9b8ff', '#2a1030', 0.35));
+scene.add(new THREE.HemisphereLight('#c8eaff', '#0d2035', 0.35));
 const key = new THREE.DirectionalLight('#fff1dd', 2.0);
 key.position.set(4, 16, 8); key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
@@ -64,9 +68,9 @@ const ct = coinTextures();
 const coinFaceMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 1.6, metalness: 1, roughness: 0.3, color: '#ffffff' });
 const coinSideMat = new THREE.MeshStandardMaterial({ map: ct.side, metalness: 1, roughness: 0.35 });
 const chrome = new THREE.MeshStandardMaterial({ color: '#dfe6ef', metalness: 1, roughness: 0.18 });
-const orange = new THREE.MeshStandardMaterial({ color: '#d9621a', roughness: 0.5, metalness: 0.15 });
-const brown = new THREE.MeshStandardMaterial({ color: '#5b2f1a', roughness: 0.7 });
-const darkMat = new THREE.MeshStandardMaterial({ color: '#160b22', roughness: 0.9 });
+const orange = new THREE.MeshStandardMaterial({ color: '#347fb3', roughness: 0.5, metalness: 0.15 });
+const brown = new THREE.MeshStandardMaterial({ color: '#c5e5ee', roughness: 0.7 });
+const darkMat = new THREE.MeshStandardMaterial({ color: '#10263c', roughness: 0.9 });
 const glass = new THREE.MeshPhysicalMaterial({ color: '#bff6ff', metalness: 0, roughness: 0.05, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide });
 
 // ================== 物理世界 ==================
@@ -135,7 +139,7 @@ meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y - SCREEN_H / 2 - 0.12,
 meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, -SCREEN_W / 2 - 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1);
 meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, SCREEN_W / 2 + 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1);
 // 顶部招牌
-const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.5), new THREE.MeshBasicMaterial({ map: textTexture('浣熊推币机', 1024, 170, { color: '#fff0a8', strokeColor: '#c2410c', stroke: 22, font: '900 118px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif' }), transparent: true, toneMapped: false }));
+const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.5), new THREE.MeshBasicMaterial({ map: textTexture('大肥鱼推币机', 1024, 170, { color: '#fff0a8', strokeColor: '#15547d', stroke: 22, font: '900 105px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif' }), transparent: true, toneMapped: false }));
 sign.position.set(0, SCREEN_Y + SCREEN_H / 2 + 1.05, WALL_Z + 0.1); scene.add(sign);
 
 // ---------- 推板 ----------
@@ -183,7 +187,7 @@ function makeSpecialMesh(kind) {
     const b = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.22, 6), gemMat); b.rotation.x = Math.PI; b.position.y = -0.26; g.add(b);
     g.children.forEach(c => c.castShadow = true); return g;
   }
-  const r = buildRaccoon(coinFaceMat); r.root.scale.setScalar(0.48); r.root.position.y = -0.5;
+  const r = buildDafeiyu(coinFaceMat); r.root.scale.setScalar(0.48); r.root.position.y = -0.5;
   const g = new THREE.Group(); g.add(r.root); g.userData.rac = r; return g;
 }
 const VALUES = { coin: 1, big: 10, gem: 20, plush: 30 };
@@ -277,12 +281,12 @@ function updateLeds(t) {
 staticBox(HALF_W, 0.2, 1.3, 0, TRAY_Y - 0.2, FRONT_Z + 1.4);
 staticBox(HALF_W, 0.8, 0.1, 0, TRAY_Y + 0.5, FRONT_Z + 2.75);
 meshBox(HALF_W * 2 + 0.3, 0.4, 2.8, new THREE.MeshStandardMaterial({ color: '#2a1440', metalness: 0.6, roughness: 0.3 }), 0, TRAY_Y - 0.2, FRONT_Z + 1.4);
-const trayFront = meshBox(HALF_W * 2 + 2.4, 1.8, 0.3, new THREE.MeshStandardMaterial({ map: stripeTexture('#ff7a18', '#ffb43d', 'WIN!'), roughness: 0.4, metalness: 0.2 }), 0, TRAY_Y + 0.1, FRONT_Z + 2.9, 0.1);
-meshBox(HALF_W * 2 + 2.4, 3, 0.3, brown, 0, TRAY_Y - 2.4, FRONT_Z + 2.9);
+const trayFront = meshBox(HALF_W * 2 + 2.4, 1.8, 0.3, new THREE.MeshStandardMaterial({ map: stripeTexture('#4389b5', '#d3eef5', 'WIN!'), roughness: 0.4, metalness: 0.2 }), 0, TRAY_Y + 0.1, FRONT_Z + 2.9, 0.1);
+meshBox(HALF_W * 2 + 2.4, 3, 0.3, darkMat, 0, TRAY_Y - 2.4, FRONT_Z + 2.9);
 meshBox(HALF_W * 2 + 0.2, 2.6, 0.2, darkMat, 0, -1.6, FRONT_Z + 0.05);
 
 // ================== 吉祥物 ==================
-const mascot = buildRaccoon(coinFaceMat);
+const mascot = buildDafeiyu(coinFaceMat);
 mascot.root.position.set(-HALF_W - 1.55, 2.73, -1.2); mascot.root.scale.setScalar(1.25); mascot.root.rotation.y = 0.55;
 mascot.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
 scene.add(mascot.root);
@@ -391,8 +395,8 @@ function banner(text, cls = '', dur = 1800) {
 }
 function flash(color = '#fff') { const el = $('flash'); el.style.background = color; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
 const lines = {
-  win: ['好耶！', '叮叮叮~', '再来再来！', '发财啦！'], big: ['大奖！！', '浣熊暴富！', '哇哦哦哦！'], miss: ['可惜~', '差一点！', '下次一定！'],
-  idle: ['投币投币~', '瞄准幸运门！', '推它推它！', '金币快掉了！'], reach: ['听牌了！！', '来啊来啊！', '心跳加速…'], poor: ['投币用尽，等硬币落下吧！'],
+  win: ['好耶！', '叮叮叮~', '再来再来！', '发财啦！'], big: ['大奖！！', '开饭开饭！', '哇哦哦哦！'], miss: ['可惜~', '差一点！', '下次一定！'],
+  idle: ['投币投币～', '瞄准幸运门！', '咕噜咕噜～', '饭钱要来啦！'], reach: ['听牌了！！', '来啊来啊！', '大鱼要开饭啦！'], poor: ['投币用尽，等硬币落下吧！'],
 };
 let bubbleT = 0, idleTalk = 6;
 function say(kind) {
@@ -417,7 +421,7 @@ function onWin(c) {
   bumpCoinHud();
   if (c.kind !== 'coin') {
     state.col[c.kind]++; sfx.prize(); mascot.react('happy', 2); say('big'); shake = 0.25;
-    banner({ big: '🏅 大金币', gem: '💎 宝石', plush: '🦝 浣熊玩偶' }[c.kind] + `<small>+${scored.points} 分</small>`, 'prize', 1500);
+    banner({ big: '🏅 大金币', gem: '💎 宝石', plush: '🐋 大肥鱼立牌' }[c.kind] + `<small>+${scored.points} 分</small>`, 'prize', 1500);
   } else if (Math.random() < 0.05) { mascot.react('happy', 0.8); say('win'); }
 }
 function startFever() {
@@ -438,7 +442,7 @@ function onSlot(o) {
     case 'miss': if (Math.random() < 0.4) say('miss'); break;
     case 'jackpot':
       state.jackpots++; sfx.fanfare(true); partyT = 6; shake = 0.8; flash('#ffe14d'); confettiBurst(360);
-      banner('JACKPOT!!!<small>浣熊大爆发 · 金币雨 ×40</small>', 'jp', 3500); mascot.react('jackpot', 5); say('big');
+      banner('JACKPOT!!!<small>大肥鱼开饭啦 · 金币雨 ×40</small>', 'jp', 3500); mascot.react('jackpot', 5); say('big');
       shower(40, 'coin', 0.06); showerQueue.push({ t: 0.8, kind: 'plush', prize: true }, { t: 1.4, kind: 'gem', prize: true }); showerQueue.sort((a,b) => a.t-b.t); break;
     case 'seven':
       sfx.fanfare(true); partyT = 3; shake = 0.4; flash('#ff6a7a'); confettiBurst(160);
@@ -537,7 +541,7 @@ function renderResult(force = false) {
   resultPhase=phase; holding=false;
   const shop=phase==='shop', won=phase!=='gameover', r=run.receipt;
   $('result-kicker').textContent = phase==='victory' ? '八关制霸 · RUN COMPLETE' : `第 ${run.round} 关 · ${won?'挑战完成':'本局结束'}`;
-  $('result-title').textContent = shop ? '浣熊补给站' : won ? '恭喜通关！' : '差一点，再来一局';
+  $('result-title').textContent = shop ? '大肥鱼补给站' : won ? '恭喜通关！' : '差一点，再来一局';
   $('result-score').textContent = run.score.toLocaleString();
   $('result-target').textContent = `目标 ${run.target.toLocaleString()} · 本局累计 ${run.total.toLocaleString()} 分`;
   $('result-rewards').textContent = won && r ? `通关 +${r.base}　节币 +${r.thrift}　超额 +${r.over}　＝ 贝壳 +${r.reward}` : '投币额度已用尽。落币结算后仍未达到目标。';
@@ -619,6 +623,7 @@ dropBtn.addEventListener('pointerleave', () => holding = false);
 $('btn-sound').onclick = e => { sfx.setEnabled(!sfx.enabled); e.currentTarget.classList.toggle('off', !sfx.enabled); };
 $('btn-music').onclick = e => { sfx.setMusic(!sfx.musicOn); e.currentTarget.classList.toggle('off', !sfx.musicOn); };
 $('btn-help').onclick = () => { holding=false; $('help').classList.toggle('show'); };
+$('art-credits').addEventListener('click', e => e.stopPropagation());
 $('help').onclick = () => { $('help').classList.remove('show'); cv.focus({preventScroll:true}); };
 $('btn-reset').onclick = () => { if (confirm('重置存档并重新开始？')) { resetting=true; localStorage.removeItem(SAVE_KEY); location.reload(); } };
 $('start-button').onclick = () => {
@@ -649,7 +654,7 @@ function resize() {
     [[-5.3,5.3],[1.2,9.5],[-6.6,-5.9]], // backboard, sign and slot screen
     [[-7.3,7.3],[-2.8,2.9],[-10,4.6]],  // cabinet rails
     [[-6.3,6.3],[-3.3,-0.1],[4.0,7.1]], // payout tray (not decorative plinth)
-    [[-7.7,-5.1],[2.5,5.8],[-2.2,0.3]], // raccoon mascot
+    [[-7.7,-5.1],[2.5,5.8],[-2.2,0.3]], // Dafeiyu standee
   ];
   for(const [xs,ys,zs] of regions) for(const x of xs) for(const y of ys) for(const z of zs) {
     const relative=new THREE.Vector3(x,y,z).sub(CAM_TARGET);
@@ -788,4 +793,4 @@ function update(dt) {
   updateHud(dt);
 }
 frame();
-window.__game = { pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),landmarks:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]].map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
+window.__game = { theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),landmarks:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]].map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
