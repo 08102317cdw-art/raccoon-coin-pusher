@@ -45,10 +45,10 @@ const {chromium}=require('playwright-core');
   await page.reload();await page.waitForFunction(()=>!!window.__game,{timeout:60000});await page.evaluate(()=>__game.pause(true));await page.click('#start-button');await page.evaluate(()=>__game.pause(true));
   check(await page.evaluate(()=>__game.run.phase==='shop'&&__game.run.multiplier===1.25),'reload restores shop and purchased upgrades');
   check(await page.evaluate(()=>__game.run.cash)===saved.cash,'reload does not duplicate reward');
-  const bodyCount=await page.evaluate(()=>__game.coins.length);
+  const fieldIds=await page.evaluate(()=>__game.coins.map(c=>c.token.uid));
   await page.click('#next-round');
   check(await page.evaluate(()=>__game.run.round===2&&__game.run.shots===50&&__game.run.score===0),'next round resets budget and score');
-  check(await page.evaluate(()=>__game.coins.length)===bodyCount,'next round retains physical field');
+  check(await page.evaluate(ids=>ids.every(id=>__game.coins.some(c=>c.token.uid===id)),fieldIds),'next round retains all original physical field bodies');
   // Keyboard: held key spends during update, shop buttons do not.
   await page.locator('body').click({position:{x:20,y:850}});await page.keyboard.down('Space');await page.evaluate(()=>__game.update(.21));await page.keyboard.up('Space');
   check(await page.evaluate(()=>__game.run.shots===49),'space keyboard drop');

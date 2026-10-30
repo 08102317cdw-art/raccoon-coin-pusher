@@ -12,7 +12,7 @@ const {chromium}=require('playwright-core');
    const inspect=()=>p.evaluate(()=>{
     const g=__game;g.render();const r=g.layout().viewport,box=id=>document.getElementById(id).getBoundingClientRect();
     const area=q=>Math.max(0,Math.min(r.right,q.right)-Math.max(r.left,q.left))*Math.max(0,Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top));
-    const panels=['runbox','resources','btns','dropbtn','round-action'].filter(id=>document.getElementById(id).getClientRects().length);
+    const panels=['runbox','resources','token-controls','btns','dropbtn','round-action'].filter(id=>document.getElementById(id).getClientRects().length);
     return {viewport:r,overlaps:panels.filter(id=>area(box(id))>1),landmarksInside:g.layout().landmarks.every(([x,y])=>x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom),overflow:document.documentElement.scrollWidth>innerWidth,details:!document.getElementById('score-formula').hidden};
    });
    if(name==='landscape')assert.ok(await p.evaluate(()=>document.getElementById('btns').getBoundingClientRect().bottom<=innerHeight),'landscape controls accessible');
