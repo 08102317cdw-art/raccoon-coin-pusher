@@ -655,7 +655,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { if (e.code === 'Space') holding = false; });
 const dropBtn = $('dropbtn');
-dropBtn.addEventListener('pointerdown', e => { e.preventDefault(); holding = true; dropCd = 0; });
+dropBtn.addEventListener('pointerdown', e => { e.preventDefault(); if(!inputOpen())return; holding=true;dropCoin();dropCd=feverT>0?.14:.2; });
 dropBtn.addEventListener('pointerup', () => holding = false);
 // Enter / assistive activation should work without a pointer; Space keeps hold-to-drop.
 dropBtn.addEventListener('click', e => { if(e.detail===0){dropCoin();updateHud(0);} });
