@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { paintCabinetPanel } from './cabinet-art.js?v=2.4.0';
 import { characterImages } from './character-art.js?v=2.1.1';
 
 const mk = (w, h = w) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
@@ -61,13 +62,11 @@ export function floorTexture() {
 }
 
 export function stripeTexture(a = '#3476a5', b = '#d2edf3', label = '') {
-  const [c, g] = mk(1024, 128);
-  g.fillStyle = a; g.fillRect(0, 0, 1024, 128);
-  g.fillStyle = b; for (let x = -128; x < 1024; x += 96) { g.beginPath(); g.moveTo(x, 128); g.lineTo(x + 48, 128); g.lineTo(x + 176, 0); g.lineTo(x + 128, 0); g.fill(); }
-  if (label) {
-    g.fillStyle = 'rgba(40,20,0,0.75)'; g.fillRect(360, 18, 304, 92);
-    g.font = '900 64px "Arial Black", Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff3c4'; g.fillText(label, 512, 66);
-  }
+  const [c,g]=mk(1536,192),W=c.width,H=c.height;
+  const bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#a1d3cf');bg.addColorStop(.12,'#428c9b');bg.addColorStop(.8,'#286079');bg.addColorStop(1,'#183e56');g.fillStyle=bg;g.fillRect(0,0,W,H);
+  g.strokeStyle='#e6d3a1';g.lineWidth=3;g.strokeRect(14,12,W-28,H-24);g.strokeStyle='#c7e5d660';g.lineWidth=1;g.strokeRect(23,21,W-46,H-42);
+  for(const side of [-1,1]){g.save();g.translate(W/2+side*340,H/2);g.scale(side,1);g.strokeStyle='#c6e1ce88';g.lineWidth=3;for(let j=0;j<3;j++){g.beginPath();g.moveTo(0,-25+j*25);g.bezierCurveTo(90,-65+j*25,140,25+j*25,225,-15+j*25);g.bezierCurveTo(285,-55+j*25,300,0+j*25,365,-10+j*25);g.stroke();}g.restore();}
+  g.fillStyle='#10384e';g.beginPath();g.roundRect(W/2-248,24,496,H-48,55);g.fill();g.strokeStyle='#d4bd80';g.lineWidth=3;g.stroke();g.textAlign='center';g.textBaseline='middle';g.fillStyle='#ffebba';g.font='bold 66px Georgia';g.fillText(label==='WIN!'?'TREASURE':label==='PUSH'?'LUCKY PUSH':label,W/2,H*.45);g.fillStyle='#9dc6bd';g.font='15px Arial';g.fillText(label==='WIN!'?'W H A L E  B A Y  ·  赏 品 取 出 口':'把 幸 运 推 向 前 方',W/2,H*.76);
   return tex(c);
 }
 
@@ -81,12 +80,7 @@ export function plateTexture() {
 }
 
 export function wallTexture() {
-  const S = 512, [c, g] = mk(S);
-  const grd = g.createLinearGradient(0, 0, 0, S); grd.addColorStop(0, '#132e50'); grd.addColorStop(1, '#244c70');
-  g.fillStyle = grd; g.fillRect(0, 0, S, S);
-  g.fillStyle = 'rgba(160,230,255,0.07)';
-  for (let y = 0; y < S; y += 64) for (let x = (y / 64 % 2) * 32; x < S; x += 64) { g.beginPath(); g.moveTo(x, y + 32); g.lineTo(x + 32, y); g.lineTo(x + 64, y + 32); g.lineTo(x + 32, y + 64); g.fill(); }
-  const t = tex(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+  const [c,g]=mk(1536,1024);paintCabinetPanel(g,1536,1024);return tex(c);
 }
 
 export function glowSprite() {
@@ -127,7 +121,7 @@ export function drawSymbol(g, id, cx, cy, s) {
       const gr = g.createRadialGradient(-s * 0.1, -s * 0.12, 2, 0, 0, s * 0.38); gr.addColorStop(0, '#fff3b0'); gr.addColorStop(1, '#d99413');
       g.fillStyle = gr; g.beginPath(); g.arc(0, 0, s * 0.36, 0, Math.PI * 2); g.fill();
       g.strokeStyle = '#a86a00'; g.lineWidth = s * 0.05; g.stroke();
-      g.font = `900 ${s * 0.42}px "Arial Black", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#a86a00'; g.fillText('$', 0, s * 0.02); break;
+      g.font = `900 ${s * 0.42}px "Arial Black", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#a86a00'; drawWhale(g,0,s*.02,s*.23,'#9d6b20','#ffe7a9'); break;
     }
     case 'star': {
       g.beginPath();

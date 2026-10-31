@@ -22,7 +22,7 @@ const {chromium}=require('playwright-core');
     await p.evaluate(()=>{__game.spawn('plush',0,-.8,4.5);__game.update(.016);});
     await p.waitForFunction(()=>!document.getElementById('round-action').hidden);await p.evaluate(()=>{document.getElementById('banner').className='';document.getElementById('floats').replaceChildren();document.getElementById('bubble').classList.remove('show');});
     // ResizeObserver reserves space when the stage-clear button appears.
-    await p.waitForFunction(()=>{const a=document.getElementById('app').getBoundingClientRect(),b=document.getElementById('hud-bottom').getBoundingClientRect();return innerWidth>760||a.bottom<=b.top+1;});
+    await p.waitForFunction(()=>{const a=document.getElementById('app').getBoundingClientRect(),b=document.getElementById(document.body.classList.contains('mobile-machine')?'machine-console':'hud-bottom').getBoundingClientRect();return innerWidth>760||a.bottom<=b.top+1;});
     layout=await inspect();assert.deepEqual(layout.overlaps,[],name+' target reached overlaps');
     await p.screenshot({path:`hud-${name}-goal.png`,timeout:120000,animations:'disabled'});
     await p.click('#detail-toggle');await p.waitForFunction(()=>!document.getElementById('score-formula').hidden);

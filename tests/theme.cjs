@@ -7,7 +7,7 @@ const assert=require('node:assert/strict'),{chromium}=require('playwright-core')
  try{
   for(const [name,width,height] of [['desktop',1440,900],['mobile',390,844]]){
    const ctx=await browser.newContext({viewport:{width,height},isMobile:name==='mobile',hasTouch:name==='mobile'}),p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));
-   await p.goto('file://'+process.cwd()+'/dist/raccoon-coin-pusher.html');await p.waitForFunction(()=>!!window.__game,{timeout:60000});await p.evaluate(()=>__game.pause(true));
+   await p.goto('file://'+process.cwd()+'/dist/raccoon-coin-pusher.html');await p.waitForFunction(()=>!!window.__game,null,{timeout:120000});await p.evaluate(()=>__game.pause(true));
    check((await p.title()).includes('大肥鱼推币机'),name+' new title');
    check(await p.evaluate(()=>Array.from(document.querySelectorAll('[data-character]')).every(im=>im.complete&&im.naturalWidth>0)),name+' embedded art decoded');
    await p.screenshot({path:`theme-${name}-start.png`,animations:'disabled',timeout:120000});
@@ -15,7 +15,7 @@ const assert=require('node:assert/strict'),{chromium}=require('playwright-core')
    if(name==='mobile')check(await p.evaluate(()=>getComputedStyle(document.getElementById('hud')).backgroundImage==='none'&&getComputedStyle(document.getElementById('hud')).backgroundColor==='rgba(0, 0, 0, 0)'), 'mobile HUD wrapper transparent');
    check(await p.evaluate(()=>!document.getElementById('hud').innerText.includes('浣熊')),name+' no stale visible branding');
    await p.screenshot({path:`theme-${name}-play.png`,animations:'disabled',timeout:120000});
-   await p.click('#btn-help');await p.locator('#art-credits summary').scrollIntoViewIfNeeded();await p.click('#art-credits summary');
+   if(name==='mobile')await p.click('#machine-menu');await p.click('#btn-help');await p.locator('#art-credits summary').scrollIntoViewIfNeeded();await p.click('#art-credits summary');
    check(await p.locator('#art-credits').getAttribute('open')!==null,name+' credits expanded');
    check(await p.locator('#help').evaluate(e=>e.classList.contains('show')),name+' credits do not close help');
    check((await p.locator('#art-credits').innerText()).includes('CrossPet'),name+' attribution visible');
