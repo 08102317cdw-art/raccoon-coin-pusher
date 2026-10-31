@@ -3,7 +3,7 @@ import { characterImages } from './character-art.js?v=2.1.1';
 
 // Licensed, illustrated acrylic standee — not an unofficial approximation of the art.
 // Textures are shared between the cabinet mascot and collectible mini-standees.
-const maps = {};
+const maps = {}, masks=new WeakMap();
 function artMap(name) {
   if (!maps[name]) {
     const t = new THREE.Texture(characterImages[name]); t.colorSpace = THREE.SRGBColorSpace;
@@ -21,6 +21,11 @@ export function buildDafeiyu() {
   pedestal.position.y = -.03; root.add(pedestal);
   return {
     root, body, portrait, mood: 'idle', moodT: 0, pose: 'idle',
+    hitTest(ray){
+      root.updateWorldMatrix(true,true);const hit=ray.intersectObject(portrait,false)[0];if(!hit?.uv)return false;
+      const im=material.map.image;let mask=masks.get(im);if(!mask){const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);mask=g.getImageData(0,0,c.width,c.height);masks.set(im,mask);}
+      const x=Math.max(0,Math.min(mask.width-1,Math.floor(hit.uv.x*mask.width))),y=Math.max(0,Math.min(mask.height-1,Math.floor((1-hit.uv.y)*mask.height)));return mask.data[(y*mask.width+x)*4+3]>40;
+    },
     react(m, dur = 1.2) { this.mood = m; this.moodT = dur; },
     update(dt, t) {
       this.moodT -= dt; if (this.moodT <= 0) this.mood = 'idle';

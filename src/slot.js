@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { drawSymbol, SYMBOLS } from './textures.js?v=2.4.0';
 
-import { makeSlotBackdrop } from './cabinet-art.js?v=2.4.0';
+import { makeSlotBackdrop } from './cabinet-art.js?v=2.4.1';
 
 // 结果表：权重 / 名称
 export const OUTCOMES = [
@@ -28,6 +28,11 @@ export class Slot {
     });
     this.queue = 0; this.spinning = false; this.t = 0; this.msg = ''; this.msgT = 0; this.reach = false; this.flash = 0;
     this.status = []; this.lastTick = 0;
+  }
+  setDisplay(compact,width=1024,height=576) {
+    const H=compact?Math.max(260,Math.min(490,Math.round(this.W*height/Math.max(1,width)))):576;
+    if(this.compact===compact&&this.H===H)return;
+    this.compact=compact;this.H=H;this.canvas.height=H;this.backdrop=makeSlotBackdrop(this.W,H,compact);this.draw();
   }
   add() { if (this.queue < 5) { this.queue++; return true; } return false; }
   roll() {
@@ -87,7 +92,7 @@ export class Slot {
     const g = this.g, W = this.W, H = this.H;
     g.drawImage(this.backdrop,0,0);g.textAlign='center';g.textBaseline='middle';
     // 转轮
-    const rw = 262, rh = 300, gap = 23, x0 = W / 2 - (rw * 3 + gap * 2) / 2, y0 = 110, cell = 130;
+    const rw=262, gap=23, x0=W/2-(rw*3+gap*2)/2, y0=this.compact?78:110, rh=this.compact?H-143:300, cell=this.compact?Math.min(130,rh*.57):130, symbolSize=this.compact?Math.min(145,cell*1.12):150;
     const winGlow = this.msgT > 0 && this.win ? (Math.sin(this.flash * 20) > 0) : false;
     this.reels.forEach((r, i) => {
       const x = x0 + i * (rw + gap);
@@ -98,8 +103,8 @@ export class Slot {
       const L = r.strip.length, base = Math.floor(r.pos), frac = r.pos - base, blur = r.state === 'spin' && r.speed > 15;
       for (let k = -2; k <= 2; k++) {
         const idx = (((base - k) % L) + L) % L, cy = y0 + rh / 2 + (k + frac) * cell;
-        if (blur) { g.globalAlpha = 0.35; drawSymbol(g, r.strip[idx], x + rw / 2, cy - 22, 150); drawSymbol(g, r.strip[idx], x + rw / 2, cy + 22, 150); g.globalAlpha = 1; }
-        else drawSymbol(g, r.strip[idx], x + rw / 2, cy, 150);
+        if (blur) { g.globalAlpha = 0.35; drawSymbol(g, r.strip[idx], x + rw / 2, cy - 22, symbolSize); drawSymbol(g, r.strip[idx], x + rw / 2, cy + 22, symbolSize); g.globalAlpha = 1; }
+        else drawSymbol(g, r.strip[idx], x + rw / 2, cy, symbolSize);
       }
       const sh = g.createLinearGradient(0, y0, 0, y0 + rh); sh.addColorStop(0, 'rgba(0,0,0,0.45)'); sh.addColorStop(0.25, 'rgba(0,0,0,0)'); sh.addColorStop(0.75, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.45)');
       g.fillStyle = sh; g.fillRect(x, y0, rw, rh);
@@ -112,14 +117,14 @@ export class Slot {
     g.beginPath(); g.moveTo(x0 - 24, y0 + rh / 2); g.lineTo(x0 + rw * 3 + gap * 2 + 24, y0 + rh / 2); g.stroke();
     // 保留灯
     for (let i = 0; i < 5; i++) {
-      const cx = W / 2 - 120 + i * 60, cy = 452, on = i < this.queue;
-      g.fillStyle = '#081f2d';g.beginPath();g.arc(cx,cy,19,0,Math.PI*2);g.fill();g.strokeStyle='#bfa66c';g.lineWidth=2;g.stroke();g.fillStyle = on ? '#b6ecd1' : '#315461'; g.beginPath(); g.arc(cx, cy, 17, 0, Math.PI * 2); g.fill();
-      if (on) { g.fillStyle = 'rgba(160,255,220,0.8)'; g.beginPath(); g.arc(cx - 5, cy - 5, 6, 0, Math.PI * 2); g.fill(); }
+      const cx=this.compact?200+i*50:W/2-120+i*60, cy=this.compact?H-35:452, on=i<this.queue, qr=this.compact?13:17;
+      g.fillStyle = '#081f2d';g.beginPath();g.arc(cx,cy,qr+2,0,Math.PI*2);g.fill();g.strokeStyle='#bfa66c';g.lineWidth=2;g.stroke();g.fillStyle = on ? '#b6ecd1' : '#315461'; g.beginPath(); g.arc(cx, cy, qr, 0, Math.PI * 2); g.fill();
+      if (on) { g.fillStyle = 'rgba(160,255,220,0.8)'; g.beginPath(); g.arc(cx - 4, cy - 4, this.compact?4:6, 0, Math.PI * 2); g.fill(); }
     }
-    g.font = 'bold 26px "Noto Sans SC", sans-serif'; g.fillStyle = '#bed2b6'; g.fillText('好运', W / 2 - 200, 453);
+    g.font = 'bold 26px "Noto Sans SC", sans-serif'; g.fillStyle = '#bed2b6'; g.fillText('好运', this.compact?130:W/2-200, this.compact?H-34:453);
     // 状态
-    g.font = 'bold 30px "Arial Black", "Noto Sans SC", sans-serif';
-    this.status.forEach((s, i) => { g.fillStyle = s.color; g.fillText(s.text, W / 2 + (i - (this.status.length - 1) / 2) * 300, 515); });
+    g.font = `bold ${this.compact?20:30}px "Arial Black", "Noto Sans SC", sans-serif`;
+    this.status.forEach((s, i) => { g.fillStyle = s.color; g.fillText(s.text, this.compact?750+(i-(this.status.length-1)/2)*155:W/2+(i-(this.status.length-1)/2)*300, this.compact?H-34:515); });
     if (this.reach) bigText(g, 'REACH!', W / 2, y0 + rh / 2, 120, '#ff2d55', Math.sin(this.flash * 18) > -0.3);
     else if (this.msgT > 0 && this.msg) bigText(g, this.msg, W / 2, y0 + rh / 2, this.win ? 100 : 80, this.win ? '#ffe14d' : '#9be7ff', true);
     this.texture.needsUpdate = true;

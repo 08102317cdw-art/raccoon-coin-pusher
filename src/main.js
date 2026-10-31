@@ -7,18 +7,18 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Sfx } from './audio.js';
-import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=2.4.0';
-import { buildDafeiyu } from './mascot.js?v=2.1.1';
+import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=2.4.1';
+import { buildDafeiyu } from './mascot.js?v=2.4.1';
 import { loadCharacterArt, characterSources } from './character-art.js?v=2.1.1';
-import { Slot } from './slot.js?v=2.4.0';
+import { Slot } from './slot.js?v=2.4.1';
 import { Run, UPGRADES, TARGETS, BASE_POINTS } from './roguelike.js?v=2.2.0';
 import { TOKENS, TokenSystem, cleanMeta, isBad } from './tokens.js?v=2.2.0';
 import { makeTokenMesh } from './token-mesh.js?v=2.2.0';
 import { createTokenUI } from './token-ui.js?v=2.3.0';
 import { upgradeArt, arcadeToast } from './token-art.js?v=2.3.0';
-import { createMobileCabinet } from './mobile-cabinet.js?v=2.4.0';
-import { dressCabinet } from './cabinet-details.js?v=2.4.0';
-import { createSeasideRoom } from './seaside-room.js?v=2.4.0';
+import { createMobileCabinet } from './mobile-cabinet.js?v=2.4.1';
+import { dressCabinet } from './cabinet-details.js?v=2.4.1';
+import { createSeasideRoom } from './seaside-room.js?v=2.4.1';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -414,7 +414,7 @@ function banner(text, cls = '', dur = 1800) {
 function flash(color = '#fff') { const el = $('flash'); el.style.background = color; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
 const lines = {
   win: ['好耶！', '叮叮叮~', '再来再来！', '发财啦！'], big: ['大奖！！', '开饭开饭！', '哇哦哦哦！'], miss: ['可惜~', '差一点！', '下次一定！'],
-  idle: ['投币投币～', '瞄准幸运门！', '咕噜咕噜～', '饭钱要来啦！'], reach: ['听牌了！！', '来啊来啊！', '大鱼要开饭啦！'], poor: ['投币用尽，等硬币落下吧！'],
+  idle: ['投币投币～', '瞄准幸运门！', '咕噜咕噜～', '饭钱要来啦！'], reach: ['听牌了！！', '来啊来啊！', '大鱼要开饭啦！'], poor: ['投币用尽，等硬币落下吧！'], pet:['在这儿陪你呀！','一起推个满载而归～','摸摸头，一起加油！'],
 };
 let bubbleT = 0, idleTalk = 6;
 function say(kind) {
@@ -646,9 +646,9 @@ function aimFrom(cx, cy) {
   if (ray.ray.intersectPlane(aimPlane, hit)) aimX = THREE.MathUtils.clamp(hit.x, -4.3, 4.3);
 }
 const cv = renderer.domElement;
-cv.tabIndex=0; cv.setAttribute('aria-label','推币机投币区域：空格投币，左右方向键瞄准');
+cv.tabIndex=0; cv.setAttribute('aria-label','推币机投币区域：空格投币，左右方向键瞄准，轻触大肥鱼互动');
 cv.addEventListener('pointermove', e => aimFrom(e.clientX, e.clientY));
-cv.addEventListener('pointerdown', e => { aimFrom(e.clientX, e.clientY); holding = true; dropCd = 0; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointerdown', e => { aimFrom(e.clientX, e.clientY); if(inputOpen()&&mascot.hitTest(ray)){holding=false;mascot.react('happy',1.8);say('pet');sfx.gate();return;} holding = true; dropCd = 0; cv.setPointerCapture(e.pointerId); });
 addEventListener('pointerup', () => holding = false);
 addEventListener('pointercancel', () => holding = false);
 addEventListener('blur', () => holding = false);
@@ -688,11 +688,12 @@ function resize() {
   resizeFrame = 0;
   const narrow=mobileCabinet.mobile;
   backboardGroup.visible=!narrow;
-  mascot.root.position.set(narrow?-6.0:-HALF_W-1.55,narrow?2.75:2.73,narrow?-2.6:-1.2);mascot.root.scale.setScalar(narrow?.85:1.25);
+  mascot.root.position.set(narrow?-5.1:-HALF_W-1.55,narrow?2.75:2.73,narrow?1.35:-1.2);mascot.root.scale.setScalar(narrow?1.48:1.25);
   CAM_TARGET.set(0,narrow?.3:2.0,narrow?-1.05:-1.2);
   // The rear slot is a live cabinet-mounted canvas on phones, not a faraway mesh.
   leds.instanceMatrix.needsUpdate=true;ledPos.forEach((p,i)=>{if(narrow&&p[3]===2)tmpM.makeScale(0,0,0);else tmpM.makeTranslation(p[0],p[1],p[2]);leds.setMatrixAt(i,tmpM);});
   const r=app.getBoundingClientRect(), w=Math.max(1,r.width), h=Math.max(1,r.height);
+  const slotHost=narrow?$('machine-live-slot').getBoundingClientRect():null;slot.setDisplay(narrow,slotHost?.width,slotHost?.height);
   camera.aspect=w/h; camera.fov=narrow?49:46;
   const tan=Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
   const up=new THREE.Vector3(0,CAM_DIR.z,-CAM_DIR.y);
@@ -826,7 +827,7 @@ function update(dt) {
   if (bubbleT > 0) { bubbleT -= dt; if (bubbleT <= 0) $('bubble').classList.remove('show'); }
   idleTalk -= dt; if (idleTalk < 0) { idleTalk = 10 + Math.random() * 10; if (bubbleT <= 0 && started) say('idle'); }
   {
-    const [bx, by] = toScreen(mascot.root.position.x + 0.2, mascot.root.position.y + 3.0, mascot.root.position.z);
+    const [bx, by] = toScreen(mascot.root.position.x + 0.2, mascot.root.position.y + 2.4*mascot.root.scale.y+.3, mascot.root.position.z);
     const b = $('bubble'), r=app.getBoundingClientRect(); b.style.left = Math.max(r.left+b.offsetWidth/2+8,Math.min(r.right-b.offsetWidth/2-8,bx)) + 'px'; b.style.top = Math.max(r.top+44,by) + 'px';
   }
 
@@ -847,4 +848,4 @@ function update(dt) {
 }
 frame();
 tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>{holding=false;},sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,slotViewport:(mobileCabinet.mobile?slot.canvas.getBoundingClientRect().toJSON():null),environment:'whale-bay-pavilion',landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
+window.__game = { get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,slotViewport:(mobileCabinet.mobile?slot.canvas.getBoundingClientRect().toJSON():null),environment:'whale-bay-pavilion',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
