@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { drawSymbol, SYMBOLS } from './textures.js?v=2.4.0';
+import { drawSymbol, SYMBOLS } from './textures.js?v=3.2.0';
 
-import { makeSlotBackdrop } from './cabinet-art.js?v=2.4.1';
+import { makeSlotBackdrop } from './cabinet-art.js?v=3.2.0';
 
 // 结果表：权重 / 名称
 export const OUTCOMES = [
@@ -92,7 +92,7 @@ export class Slot {
     const g = this.g, W = this.W, H = this.H;
     g.drawImage(this.backdrop,0,0);g.textAlign='center';g.textBaseline='middle';
     // 转轮
-    const rw=262, gap=23, x0=W/2-(rw*3+gap*2)/2, y0=this.compact?78:110, rh=this.compact?H-143:300, cell=this.compact?Math.min(130,rh*.57):130, symbolSize=this.compact?Math.min(145,cell*1.12):150;
+    const rw=262, gap=23, x0=W/2-(rw*3+gap*2)/2, y0=this.compact?36:110, rh=this.compact?H-82:300, cell=this.compact?rh*.76:130, symbolSize=this.compact?Math.min(210,rh*.73):150;
     const winGlow = this.msgT > 0 && this.win ? (Math.sin(this.flash * 20) > 0) : false;
     this.reels.forEach((r, i) => {
       const x = x0 + i * (rw + gap);
@@ -117,14 +117,14 @@ export class Slot {
     g.beginPath(); g.moveTo(x0 - 24, y0 + rh / 2); g.lineTo(x0 + rw * 3 + gap * 2 + 24, y0 + rh / 2); g.stroke();
     // 保留灯
     for (let i = 0; i < 5; i++) {
-      const cx=this.compact?200+i*50:W/2-120+i*60, cy=this.compact?H-35:452, on=i<this.queue, qr=this.compact?13:17;
+      const cx=this.compact?W/2-100+i*50:W/2-120+i*60, cy=this.compact?H-18:452, on=i<this.queue, qr=this.compact?9:17;
       g.fillStyle = '#081f2d';g.beginPath();g.arc(cx,cy,qr+2,0,Math.PI*2);g.fill();g.strokeStyle='#bfa66c';g.lineWidth=2;g.stroke();g.fillStyle = on ? '#b6ecd1' : '#315461'; g.beginPath(); g.arc(cx, cy, qr, 0, Math.PI * 2); g.fill();
       if (on) { g.fillStyle = 'rgba(160,255,220,0.8)'; g.beginPath(); g.arc(cx - 4, cy - 4, this.compact?4:6, 0, Math.PI * 2); g.fill(); }
     }
-    g.font = 'bold 26px "Noto Sans SC", sans-serif'; g.fillStyle = '#bed2b6'; g.fillText('好运', this.compact?130:W/2-200, this.compact?H-34:453);
+    g.font = 'bold 26px "Noto Sans SC", sans-serif'; g.fillStyle = '#bed2b6'; if(!this.compact)g.fillText('好运', W/2-200,453);
     // 状态
     g.font = `bold ${this.compact?20:30}px "Arial Black", "Noto Sans SC", sans-serif`;
-    this.status.forEach((s, i) => { g.fillStyle = s.color; g.fillText(s.text, this.compact?750+(i-(this.status.length-1)/2)*155:W/2+(i-(this.status.length-1)/2)*300, this.compact?H-34:515); });
+    if(!this.compact)this.status.forEach((s, i) => { g.fillStyle = s.color; g.fillText(s.text, this.compact?750+(i-(this.status.length-1)/2)*155:W/2+(i-(this.status.length-1)/2)*300, this.compact?H-34:515); });
     if (this.reach) bigText(g, 'REACH!', W / 2, y0 + rh / 2, 120, '#ff2d55', Math.sin(this.flash * 18) > -0.3);
     else if (this.msgT > 0 && this.msg) bigText(g, this.msg, W / 2, y0 + rh / 2, this.win ? 100 : 80, this.win ? '#ffe14d' : '#9be7ff', true);
     this.texture.needsUpdate = true;

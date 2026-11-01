@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>大肥鱼推币机 · Dafeiyu Coin Pusher</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
@@ -195,8 +195,8 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 #lottery.is-docked .lottery-card{max-height:46px;overflow:hidden}
 @media(max-width:760px){#pick-cards{grid-template-columns:1fr}#run-modal.is-docked,#token-modal.is-docked,#help.show.is-docked{align-items:flex-start;justify-content:flex-end}#lottery{top:8%}}
 </style>
-<link rel="stylesheet" href="./src/arcade-ui.css?v=3.1.0">
-<link rel="stylesheet" href="./src/mobile-cabinet.css?v=3.1.0">
+<link rel="stylesheet" href="./src/arcade-ui.css?v=3.2.0">
+<link rel="stylesheet" href="./src/mobile-cabinet.css?v=3.2.0">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/":"https://cdn.jsdelivr.net/npm/three@0.170.0/","@dimforge/rapier3d-compat":"https://esm.sh/@dimforge/rapier3d-compat@0.14.0?target=es2022"}}</script>
 </head>
 <body>
@@ -242,11 +242,11 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
     <div id="hint"><span class="desktop-instruction">Q 左槽 · W / 空格中槽 · E 右槽 · 长按锁定连投</span><span class="mobile-instruction">按住左、中、右槽 · 点按比长按更快</span><span id="save-status">进度自动保存</span></div>
   </div>
 </aside>
-<div id="start"><span class="start-orbit orbit-a" aria-hidden="true"></span><span class="start-orbit orbit-b" aria-hidden="true"></span><p class="start-eyebrow">WHALE ARCADE · 海边的幸运机台</p>
+<div id="start"><span class="start-orbit orbit-a" aria-hidden="true"></span><span class="start-orbit orbit-b" aria-hidden="true"></span><p class="start-eyebrow">THE LUCKY WHALE · 投币俱乐部</p>
   <img class="start-character" data-character="happy" alt="大肥鱼举手欢迎你" draggable="false">
   <h1>大肥鱼推币机</h1>
   <h2>DAFEIYU COIN PUSHER</h2>
-  <button class="go" id="start-button">出海寻宝 · 开始 / 继续</button>
+  <button class="go" id="start-button">投入好运 · 开始 / 继续</button>
   <ul>
     <li>01　左右槽看推板，中槽稳落中间</li>
     <li>02　金币基础分 × 构筑倍率 × 连击加成</li>
@@ -318,6 +318,6 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   </section>
 </div>
 <div id="arcade-toast" role="status" aria-live="polite"></div>
-<script type="module">import "./src/main.js?v=3.1.0";</script>
+<script type="module">import "./src/main.js?v=3.2.0";</script>
 </body>
 </html>
