@@ -59,11 +59,12 @@ export class Sfx {
     [1, 1.47, 2.09, 2.76].forEach((m, i) => this.tone('sine', base * m, base * m * 0.995, 0.05 + 0.22 * intensity / (i + 1), v / (i + 1.2), 0, pan, 0.15, 0.001));
     this.noise(0.02, v * 0.6, 'highpass', 5000, 0, pan);
   }
-  drop(pan = 0) {
+  drop(pan = 0, streak = 0) {
     if (!this.ok()) return;
+    const lift = Math.pow(2, Math.min(12, Math.max(0, streak)) / 12);
     this.noise(0.06, 0.25, 'lowpass', 1400, 0, pan, 1, 300);
-    this.tone('triangle', 520, 260, 0.08, 0.12, 0, pan);
-    this.clink(0.4, pan);
+    this.tone('triangle', 520 * lift, 280 * lift, 0.09, 0.13, 0, pan);
+    this.clink(0.35 + Math.min(0.25, streak * 0.03), pan);
   }
   win(combo = 0, pan = 0) {
     if (!this.ok()) return;

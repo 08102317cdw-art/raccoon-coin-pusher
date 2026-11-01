@@ -1,0 +1,64 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+(async () => {
+  const api = await import('data:text/javascript;base64,' + Buffer.from(fs.readFileSync('src/chutes.js')).toString('base64'));
+  const { planInsertion, pusherMovingForward, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers, TIMING } = api;
+  let checks = 0;
+  const check = (truth, label) => { assert.ok(truth, label); checks++; };
+  check(pusherMovingForward(0) && !pusherMovingForward(Math.PI), 'pusher direction follows the stroke');
+  const leftForward = planInsertion({ side: 'left', phase: 0 });
+  const leftBack = planInsertion({ side: 'left', phase: Math.PI });
+  const rightForward = planInsertion({ side: 'right', phase: 0 });
+  const rightBack = planInsertion({ side: 'right', phase: Math.PI });
+  check(leftForward.land.x < -2.5 && leftForward.land.x > leftForward.spawn.x, 'forward left drop stays on the left while sliding right');
+  check(Math.abs(leftBack.land.x) < 0.5 && leftBack.land.x > leftBack.spawn.x, 'retracting left drop slides across to the middle');
+  check(rightForward.land.x > 2.5 && rightForward.land.x < rightForward.spawn.x, 'forward right drop stays on the right while sliding left');
+  check(Math.abs(rightBack.land.x) < 0.5 && rightBack.land.x < rightBack.spawn.x, 'retracting right drop slides across to the middle');
+  check(leftForward.land.z > leftForward.spawn.z && rightBack.land.z > rightBack.spawn.z, 'slides travel toward the front lip');
+  for (const phase of [0, Math.PI / 2, Math.PI]) {
+    const middle = planInsertion({ side: 'middle', phase });
+    const paired = planInsertion({ side: 'left', phase, both: true });
+    check(Math.abs(middle.land.x) < 0.05 && Math.abs(paired.land.x) < 0.05, 'middle and paired drops ignore pusher timing at ' + phase);
+  }
+  const special = planInsertion({ special: true, phase: 0.4, side: 'left' });
+  check(special.tier === 2 && special.chute === 'pendulum' && special.land.z > 0.4 && Math.abs(special.land.x) <= 1.1, 'specials leave the pendulum on the lower tier');
+  check(special.land.z > 0, 'special landing stays in front of the pusher');
+  const power = shakePower(2);
+  check(power > shakePower(0), 'pusher upgrades strengthen a shake');
+  for (let i = 0; i < 9; i++) {
+    const shake = fieldImpulse('shake', i, power);
+    const nuke = fieldImpulse('nuke', i, power);
+    check(shake.z > 0 && nuke.z > shake.z && nuke.y > 0, 'shake and nuke both drive coins forward');
+  }
+  const lanes = createLaunchers();
+  check(!stepLaunchers(lanes, 0.21).length, 'idle launchers do not fire');
+  engage(lanes.middle, 'ptr:1', { immediate: false });
+  check(stepLaunchers(lanes, 0.21).join() === 'middle', 'a held chute fires on the update');
+  disengage(lanes.middle, 'ptr:1');
+  check(!stepLaunchers(lanes, 0.25).length, 'release stops an unlocked chute');
+  const button = createLaunchers();
+  check(engage(button.middle, 'ptr:2', { immediate: true }).fired, 'a button press fires immediately');
+  check(stepLaunchers(button, 0.21).join() === 'middle', 'holding the button repeats');
+  disengage(button.middle, 'ptr:2');
+  check(!stepLaunchers(button, 0.25).length, 'releasing the button stops the repeat');
+  const mash = createLaunchers();
+  check(engage(mash.left, 'a', { immediate: true }).fired && engage(mash.left, 'b', { immediate: true }).fired, 'repeated taps fire without waiting for the hold interval');
+  const lock = createLaunchers();
+  engage(lock.right, 'hold', { immediate: true });
+  stepLaunchers(lock, TIMING.lockAfter);
+  check(lock.right.locked, 'holding locks the launcher');
+  disengage(lock.right, 'hold');
+  check(stepLaunchers(lock, TIMING.holdInterval).includes('right'), 'a locked launcher keeps firing after release');
+  engage(lock.right, 'tap', { immediate: true });
+  check(!lock.right.sources.size || lock.right.armUnlock, 'a fresh tap arms the unlock');
+  disengage(lock.right, 'tap');
+  check(!lock.right.locked && !stepLaunchers(lock, 0.3).includes('right'), 'a short tap unlocks without another shot');
+  releaseLaunchers(lock);
+  check(!lock.right.locked && !lock.right.sources.size, 'menus clear locks');
+  const pair = createLaunchers();
+  engage(pair.left, 'L', { immediate: false });
+  engage(pair.right, 'R', { immediate: false });
+  const both = stepLaunchers(pair, 0.05);
+  check(both.includes('left') && both.includes('right'), 'both chutes can fire on the same step');
+  console.log(`PASS: ${checks} chute assertions`);
+})().catch(e => { console.error(e); process.exitCode = 1; });

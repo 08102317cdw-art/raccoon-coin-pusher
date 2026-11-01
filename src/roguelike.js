@@ -10,7 +10,11 @@ export const UPGRADES = Object.freeze({
   lucky: { name: '幸运门扩展', icon: '♧', desc: 'LUCKY 门有效宽度 +0.20', cost: 10, step: 5, max: 4, color: 'pink' },
   fever: { name: '狂热电池', icon: 'ϟ', desc: '每次 FEVER 持续时间 +3 秒', cost: 8, step: 4, max: 4, color: 'pink' },
   supply: { name: '应急币袋', icon: '+', desc: '仅下一关额外获得 12 次投币', cost: 5, step: 0, max: 1, color: 'gold' },
+  pin: { name: '松台销', icon: '⌁', desc: '每投入 20 枚，机台自动摇晃一次，不消耗本局仅有的一次手动摇台。已有推板改装时，摇动和全场轰击更有力。', cost: 8, step: 0, max: 1, color: 'cyan' },
 });
+export const EXCHANGE_GRANT = 8;
+export const EXCHANGE_LIMIT = 2;
+export const EXCHANGE_COSTS = Object.freeze([12, 18]);
 const safeInt = (n, fallback = 0, max = 1e9) => Number.isSafeInteger(n) && n >= 0 && n <= max ? n : fallback;
 export class Run {
   constructor(saved, random = Math.random) {
@@ -18,6 +22,7 @@ export class Run {
     this.round = 1; this.phase = 'playing'; this.score = 0; this.total = 0;
     this.shots = 50; this.cash = 0; this.levels = {}; this.offers = []; this.bought = [];
     this.rerolls = 0; this.pendingShots = 0; this.settle = 0; this.receipt = null;
+    this.tickets = 0; this.exchanged = 0; this.shakes = 1; this.inserts = 0;
     if (saved) this.restore(saved);
   }
   get target() { return TARGETS[this.round - 1]; }
@@ -32,6 +37,27 @@ export class Run {
     if (!this.shots) { this.phase = 'settling'; this.settle = 15; }
     return true;
   }
+  exchangeCost() { return EXCHANGE_COSTS[Math.min(this.exchanged, EXCHANGE_COSTS.length - 1)]; }
+  canExchange() {
+    return (this.phase === 'playing' || this.phase === 'settling') && this.exchanged < EXCHANGE_LIMIT && this.tickets >= this.exchangeCost();
+  }
+  exchange() {
+    if (!this.canExchange()) return false;
+    this.tickets -= this.exchangeCost();
+    this.exchanged++;
+    this.shots = Math.min(180, this.shots + EXCHANGE_GRANT);
+    if (this.phase === 'settling') { this.phase = 'playing'; this.settle = 0; }
+    return true;
+  }
+  shake() {
+    if (!this.active || this.shakes <= 0) return false;
+    this.shakes--;
+    return true;
+  }
+  noteInsert() {
+    this.inserts++;
+    return this.level('pin') > 0 && this.inserts % 20 === 0;
+  }
   award(kind, combo = 0, fever = false) {
     if (!this.active || !(kind in BASE_POINTS)) return null;
     const base = BASE_POINTS[kind] + (kind === 'coin' ? this.level('value') * 2 : 0);
@@ -44,6 +70,7 @@ export class Run {
     const factor = this.multiplier * chain * (fever ? 2 : 1) * Math.max(.1, Math.min(4, environment));
     const points = Math.round(base * factor);
     this.score = Math.min(1e9, this.score + points); this.total = Math.min(1e9, this.total + points);
+    this.tickets = Math.min(9999, this.tickets + 1);
     return { base, factor, points };
   }
   penalize(amount) {
@@ -94,6 +121,7 @@ export class Run {
     this.round++; this.score = 0; this.phase = 'playing';
     this.shots = 50 + this.level('reserve') * 8 + this.pendingShots;
     this.pendingShots = 0; this.offers = []; this.bought = []; this.receipt = null; this.settle = 0;
+    this.exchanged = 0; this.inserts = 0;
     return true;
   }
   serialize() {
@@ -107,7 +135,11 @@ export class Run {
     if (d.phase === 'shop' && d.round === TARGETS.length || d.phase === 'victory' && d.round !== TARGETS.length) throw Error('Invalid final round');
     this.round = d.round; this.phase = d.phase;
     for (const key of ['score', 'total', 'shots', 'cash', 'pendingShots', 'rerolls']) this[key] = safeInt(d[key]);
-    this.shots = Math.min(this.shots, 102); this.pendingShots = Math.min(this.pendingShots, 12); this.rerolls = Math.min(this.rerolls, 1);
+    this.shots = Math.min(this.shots, 180); this.pendingShots = Math.min(this.pendingShots, 12); this.rerolls = Math.min(this.rerolls, 1);
+    this.tickets = safeInt(d.tickets, 0, 9999);
+    this.exchanged = Math.min(EXCHANGE_LIMIT, safeInt(d.exchanged, 0, EXCHANGE_LIMIT));
+    this.inserts = safeInt(d.inserts, 0, 100000);
+    this.shakes = Object.prototype.hasOwnProperty.call(d, 'shakes') ? Math.min(1, safeInt(d.shakes, 0, 1)) : 1;
     this.settle = Number.isFinite(d.settle) ? Math.max(0, Math.min(15, d.settle)) : 15;
     for (const id of Object.keys(UPGRADES)) if (id !== 'supply') { const n=safeInt(d.levels?.[id], 0, UPGRADES[id].max); if(n>0) this.levels[id]=n; }
     this.offers = [...new Set((Array.isArray(d.offers) ? d.offers : []).filter(id => id in UPGRADES))].slice(0, 3);
