@@ -9,17 +9,19 @@ import { Sfx } from './audio.js';
 import { coinTextures } from './textures.js?v=3.2.0';
 import { buildDafeiyu } from './mascot.js?v=2.4.1';
 import { loadCharacterArt, characterSources } from './character-art.js?v=2.1.1';
-import { Run, UPGRADES, TARGETS, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=3.0.0';
+import { Run, UPGRADES, TARGETS, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=3.3.0';
 import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=3.1.0';
 import { TOKENS, TokenSystem, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=3.1.0';
-import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=3.1.0';
+import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=3.3.0';
 import { makeTokenMesh } from './token-mesh.js?v=2.2.0';
-import { createTokenUI } from './token-ui.js?v=2.3.0';
+import { createTokenUI } from './token-ui.js?v=3.3.0';
 import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=2.3.0';
-import { createMobileCabinet } from './mobile-cabinet.js?v=3.2.0';
+import { createMobileCabinet } from './mobile-cabinet.js?v=3.3.0';
 import { createSeasideRoom } from './arcade-room.js?v=3.2.0';
-import { createPrizeWheel } from './prize-wheel.js?v=3.2.0';
-import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=3.2.0';
+import { createPrizeWheel } from './prize-wheel.js?v=3.3.0';
+import { ComboWheel } from './combo-wheel.js?v=3.3.0';
+import { createMachineJuice } from './machine-juice.js?v=3.3.0';
+import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=3.3.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -32,6 +34,7 @@ const GAP_Z = -0.6;                // 侧墙在此结束，之后两侧为漏币
 const DROP_Y = 3.3, DROP_Z = -4.75, GATE_Y = 2.35;
 const TRAY_Y = -2.8, MAX_COINS = 420;
 const SAVE_KEY = 'raccoon-pusher-run-v2'; // v1 arcade save is intentionally untouched
+const motionReduced = matchMedia('(prefers-reduced-motion: reduce)');
 const isTouch = matchMedia('(pointer: coarse)').matches;
 
 // ================== 渲染器 / 场景 ==================
@@ -93,8 +96,8 @@ function staticBox(hx, hy, hz, x, y, z, fr = F_FLOOR) {
   world.createCollider(RAPIER.ColliderDesc.cuboid(hx, hy, hz).setFriction(fr).setRestitution(0.1), body);
   return body;
 }
-const { meshBox, guards, backboardGroup, slotSfx, slot, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh } = createCabinetBase({
-  scene, world, staticBox, HALF_W, FRONT_Z, BACK_Z, GAP_Z, WALL_Z, PUSH_H, PUSH_BACK, PUSH_D, F_PUSH, chrome, orange, brown, darkMat, glass, onSlot,
+const { meshBox, guards, backboardGroup, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh } = createCabinetBase({
+  scene, world, staticBox, HALF_W, FRONT_Z, BACK_Z, GAP_Z, WALL_Z, PUSH_H, PUSH_BACK, PUSH_D, F_PUSH, chrome, orange, brown, darkMat, glass,
 });
 let pushPhase = -Math.PI / 2, pushMax = -0.5, pushMaxTarget = -0.5, pushSpeed = 1.55;
 function physicsStep() {
@@ -196,7 +199,7 @@ function syncCoins() {
   coinMesh.count = n; coinMesh.instanceMatrix.needsUpdate = true; if (coinMesh.instanceColor) coinMesh.instanceColor.needsUpdate=true;
 }
 
-const { chuteMat, chuteRig, pendulum, gate, GATE_HW, gateMat, ledPos, leds, updateLeds, mascot } = createCabinetAccents({
+const { chuteMat, chuteRig, pendulum, ledPos, leds, updateLeds, mascot } = createCabinetAccents({
   scene, staticBox, meshBox, HALF_W, FRONT_Z, WALL_Z, GATE_Y, DROP_Z, TRAY_Y, SCREEN_W, SCREEN_H, SCREEN_Y, chrome, darkMat, coinFaceMat,
   getEffects: () => ({ feverT, partyT }),
 });
@@ -204,10 +207,11 @@ const { chuteMat, chuteRig, pendulum, gate, GATE_HW, gateMat, ledPos, leds, upda
 const { burst, updateSparkles, confettiBurst, updateConfetti } = createCabinetParticles(scene);
 
 // ================== 游戏状态 ==================
-const sfx = slotSfx;
+const sfx = new Sfx();
+const comboWheel = new ComboWheel();
 let run = new Run();
 let tokens = new TokenSystem();
-let tokenUI, mobileCabinet, prizeWheel, tokenAcc=0, tokenNotifyAt=-10;
+let tokenUI, mobileCabinet, prizeWheel, juice, restoredWheelQueue = [], tokenAcc=0, tokenNotifyAt=-10;
 const tokenRemovals=new Set();
 const state = { coins: 50, won: 0, col: { big: 0, gem: 0, plush: 0 }, jackpots: 0 };
 let wallT = 0, pushT = 0, feverT = 0, partyT = 0, shake = 0, started = false;
@@ -218,7 +222,7 @@ let resultPhase = '', resetting = false;
 const stats = { lost: 0 }; const winTimes = []; let combo = 0, lastWin = -100, showerQueue = [];
 const catalogBlocking = () => !!tokenUI?.isOpen() && !$('token-modal').classList.contains('is-docked');
 const helpBlocking = () => $('help').classList.contains('show') && !$('help').classList.contains('is-docked');
-const inputOpen = () => started && run.phase === 'playing' && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !document.hidden;
+const inputOpen = () => started && run.phase === 'playing' && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !prizeWheel?.active && !document.hidden;
 
 // ---------- HUD ----------
 const $ = id => document.getElementById(id);
@@ -236,9 +240,9 @@ function updateHud(dt) {
   $('cash').textContent = run.cash;
   $('round-status').textContent = run.phase === 'settling' ? `落币结算 ${Math.ceil(run.settle)}s` : run.reached ? '目标达成' : '限量投币挑战';
   const action = $('round-action');
-  action.hidden = !run.active || !started || (!run.reached && run.phase !== 'settling');
-  action.disabled = !run.reached;
-  action.textContent = run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
+  action.hidden = !started || (run.active ? (!run.reached && run.phase !== 'settling') : !mobileCabinet?.shopClosed);
+  action.disabled = run.active && !run.reached;
+  action.textContent = !run.active ? '拉开补给舱 →' : run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
   const canDrop = inputOpen() && run.shots > 0;
   for (const [id, side] of [['chute-left', 'left'], ['dropbtn', 'middle'], ['chute-right', 'right']]) {
     const button = $(id); if (!button) continue;
@@ -251,13 +255,13 @@ function updateHud(dt) {
   if (lamp) lamp.textContent = `${forward ? '推板前进 · 左右槽落到两侧' : '推板收回 · 左右槽落到中间'}${run.level('pin') ? ` · 松台销 ${run.inserts % 20}/20` : ''}`;
   const exchange = $('exchange-btn'), shakeBtn = $('shake-btn');
   if (exchange) {
-    const live = started && (run.phase === 'playing' || run.phase === 'settling') && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen();
+    const live = started && (run.phase === 'playing' || run.phase === 'settling') && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !prizeWheel?.active;
     exchange.disabled = !live || !run.canExchange();
     exchange.querySelector('span').textContent = `兑币 +${EXCHANGE_GRANT}`;
     exchange.querySelector('small').textContent = run.exchanged >= 2 ? '已兑完' : `票 ${run.tickets}/${run.exchangeCost()} · 余${Math.max(0, 2 - run.exchanged)}`;
   }
   if (shakeBtn) {
-    shakeBtn.disabled = !started || !run.active || run.shakes <= 0 || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen();
+    shakeBtn.disabled = !started || !run.active || run.shakes <= 0 || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || prizeWheel?.active;
     shakeBtn.querySelector('small').textContent = run.shakes > 0 ? '本局 1 次' : '已用完';
   }
   tokens.setClipSize(2 + run.level('clip'));
@@ -280,10 +284,10 @@ function updateHud(dt) {
   }
   const energyCount = $('energy-count');
   if (energyCount) {
-    energyCount.textContent = `${run.energy}/8`;
-    const bar = $('energy-bar'); if (bar) bar.style.width = `${run.energy / 8 * 100}%`;
+    energyCount.textContent = comboWheel.level ? '×'+comboWheel.level : comboWheel.count+'/8';
+    const bar = $('energy-bar'); if (bar) bar.style.width = Math.min(100,comboWheel.count/8*100)+'%';
   }
-  tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update(slot);
+  tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update();prizeWheel?.update();
   renderResult();
 }
 function bumpCoinHud() { const el = $('coinbox'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
@@ -317,7 +321,7 @@ function onWin(c) {
   if (PRIZES[c.kind]) { rewardPrize(c); return; }
   const result=tokens.score(c,coins,specialAdapter);
   if(isBad(c.kind)) {
-    const lost=run.penalize(result.penalty);combo=0;
+    const lost=run.penalize(result.penalty);combo=0;comboWheel.reset();
     floatText(`坏币 -${lost} 分`,p.x,.5,FRONT_Z+.2,'lost');
     tokens.log(`${TOKENS[c.kind].name}入账 · -${lost} 分`);sfx.lost(p.x/6);
     $('score-formula').textContent=`${TOKENS[c.kind].name}扣除 ${lost} 分（最低 0 分）`;return;
@@ -334,12 +338,13 @@ function onWin(c) {
   burst(p.x,.1,FRONT_Z+.2,c.kind==='coin'?10:30,TOKENS[c.kind]?.color||'#ffd34d',3,3);
   floatText('+'+scored.points+' 分',p.x,.4,FRONT_Z+.3,c.kind==='coin'?(feverT>0?'fever':''):'big');
   bumpCoinHud();
+  { const [x,y]=toScreen(p.x,.4,FRONT_Z+.3);juice?.score({x,y,points:scored.points,combo}); }
   if(TOKENS[c.kind]) {sfx.prize();mascot.react('happy',1);}
   else if(c.kind!=='coin'){
     state.col[c.kind]=(state.col[c.kind]||0)+1;sfx.prize();mascot.react('happy',2);say('big');shake=.25;
     banner({big:'🏅 大金币',gem:'💎 宝石',plush:'🐋 大肥鱼立牌'}[c.kind]+`<small>+${scored.points} 分</small>`,'prize',1500);
   }  else if(Math.random()<.05){mascot.react('happy',.8);say('win');}
-  if (run.pendingSpin) presentLottery();
+  const before=comboWheel.level;comboWheel.score(time,1+(run.relics.tide||0));if(comboWheel.level>before)juice?.combo(comboWheel.level);
 }
 function rewardPrize(c) {
   const spec = PRIZES[c.kind];
@@ -355,28 +360,40 @@ function rewardPrize(c) {
   $('score-formula').textContent = `${spec.name} +${scored.points} 分`;
   sfx.prize(); mascot.react('happy', 1.4); say('big'); shake = Math.max(shake, 0.28);
   banner(`${spec.name}入手！<small>+${scored.points} 分</small>`, 'prize', 1600);
-  if (run.pendingSpin) presentLottery();
+  const before=comboWheel.level;comboWheel.score(time,1+(run.relics.tide||0));if(comboWheel.level>before)juice?.combo(comboWheel.level);
 }
-function presentLottery() {
-  while (run.pendingSpin > 0) {
-    run.pendingSpin--;
-    const item = spinLottery(run.random);
-    if (item.id === 'tickets') run.tickets = Math.min(9999, run.tickets + 8);
-    else if (item.id === 'shells') run.cash = Math.min(1e9, run.cash + 4);
-    else if (item.id === 'prize' && coins.length < 380) spawnTablePrize(null, (Math.random() - 0.5) * 3);
-    else if (item.id === 'special') {
-      const ids = SPECIAL_IDS.filter(id => id !== 'tree');
-      const id = ids[Math.floor(run.random() * ids.length)];
-      tokens.grant({ [id]: 1 }); tokens.select(id);
-    } else if (item.id === 'tower') { if (coins.length < 360) { shower(10); spawnTablePrize('chest', 0); } }
-    else if (coins.length < 360) shower(8);
-    else run.tickets = Math.min(9999, run.tickets + 6);
-    showLottery(item);
-  }
+function presentLottery(level) {
+  showLottery({ ...spinLottery(run.random), level });
+  save();
+}
+function awardWheel(item) {
+  const level = item.level || 1;
+  if(item.coins){shower(Math.min(250,item.coins*level+run.level('lucky')*4));sfx.fanfare(false);save();return;}
+  if(item.prizes){for(let i=0;i<Math.min(30,item.prizes*level);i++)spawnTablePrize(null,(run.random()-.5)*6);sfx.fanfare(false);save();return;}
+  if (item.id === 'tickets') run.tickets = Math.min(9999, run.tickets + 8 * level);
+  else if (item.id === 'shells') run.cash = Math.min(1e9, run.cash + 4 * level);
+  else if (item.id === 'prize' && coins.length < 380) spawnTablePrize(null, (Math.random() - 0.5) * 3);
+  else if (item.id === 'special') {
+    const ids = SPECIAL_IDS.filter(id => id !== 'tree');
+    tokens.grant({ [ids[Math.floor(run.random() * ids.length)]]: level });
+  } else if (item.towerLayers) {
+    spawnCoinTower(item.towerLayers+level-1);
+  } else if (coins.length < 360) shower(8 * level + run.level('lucky')*4);
+  else run.tickets = Math.min(9999, run.tickets + 6);
+  sfx.fanfare(false); save();
+}
+// A real stacked reward, not a rain effect labelled as a tower. Bounded for phones.
+function spawnCoinTower(height=6) {
+ const layers=Math.min(12,Math.max(1,height));
+ const free=Math.max(0,MAX_COINS-coins.length),limit=Math.min(layers*7,free);
+ for(let i=0;i<limit;i++){
+  const layer=Math.floor(i/7),ring=i%7,a=ring*Math.PI/3;
+  spawn('coin',ring===6?0:Math.cos(a)*1.22,1.6+layer*(COIN_H+.012),ring===6?.6:.6+Math.sin(a)*1.22,randQ(0));
+ }
+ if(!limit)run.tickets=Math.min(9999,run.tickets+8);
 }
 function showLottery(item) {
   prizeWheel?.enqueue(item);
-  sfx.fanfare(false);
 }
 const PRIZE_ORDER = ['shell', 'plushie', 'chest'];
 let prizeCursor = 0;
@@ -415,27 +432,8 @@ function dropPrize(kind) {
 function shower(n, kind = 'coin', delay = 0.05) {
   for (let i = 0; i < n; i++) showerQueue.push({ t: i * delay, kind });
 }
-function onSlot(o) {
-  if (!run.active) return;
-  switch (o.id) {
-    case 'reach': mascot.react('excited', 2.5); say('reach'); break;
-    case 'miss': if (Math.random() < 0.4) say('miss'); break;
-    case 'jackpot':
-      state.jackpots++; sfx.fanfare(true); partyT = 6; shake = 0.8; flash('#ffe14d'); confettiBurst(360);
-      banner('JACKPOT!!!<small>大肥鱼开饭啦 · 金币雨 ×40</small>', 'jp', 3500); mascot.react('jackpot', 5); say('big');
-      shower(40, 'coin', 0.06); showerQueue.push({ t: 0.8, kind: 'plush', prize: true }, { t: 1.4, kind: 'gem', prize: true }); showerQueue.sort((a,b) => a.t-b.t); break;
-    case 'seven':
-      sfx.fanfare(true); partyT = 3; shake = 0.4; flash('#ff6a7a'); confettiBurst(160);
-      banner('777 金币雨！<small>×20</small>', 'jp', 2500); mascot.react('jackpot', 3); shower(20); break;
-    case 'coin': sfx.fanfare(false); banner('金币 ×10', 'win'); mascot.react('happy', 1.5); shower(10, 'coin', 0.09); say('win'); break;
-    case 'wall': sfx.fanfare(false); sfx.whoosh(); wallT = 30; banner('护墙升起！<small>两侧不再漏币 · 30 秒</small>', 'win'); mascot.react('happy', 1.5); break;
-    case 'bell': sfx.fanfare(false); banner('奖品掉落！', 'win'); dropPrize(Math.random() < 0.35 ? 'gem' : 'big'); mascot.react('happy', 1.5); break;
-    case 'push': sfx.fanfare(false); sfx.whoosh(); pushT = 18; banner('超级推板！<small>推程加长 · 18 秒</small>', 'win'); mascot.react('excited', 1.5); break;
-  }
-}
-
 // ---------- 投币 ----------
-let aimX = 0;
+
 function buzz(ms) { try { navigator.vibrate?.(ms); } catch (e) { /* optional haptic */ } }
 function blastField(mode) {
   const power = shakePower(run.level('push'));
@@ -501,9 +499,7 @@ function save() {
     const p = c.body.translation(), q = c.body.rotation(), v = c.body.linvel(), a = c.body.angvel();
     return { kind:c.kind, p, q, v, a, fromDrop:c.fromDrop, gated:c.gated, prevY:c.prevY, token:cleanMeta(c.token) };
   });
-  const slotState = {};
-  for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (slot[key] !== undefined) slotState[key] = slot[key];
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:5, run:run.serialize(), tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue, slotState, combo, lastWin, winTimes, lost:stats.lost })); }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:5, run:run.serialize(), wheelQueue:prizeWheel?.pending||[], tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue,  combo, lastWin, winTimes, lost:stats.lost })); }
   catch (e) { $('save-status').textContent = '无法保存：请检查浏览器存储空间'; }
 }
 function load() {
@@ -512,7 +508,7 @@ function load() {
     if (!d || ![2,3,4,5].includes(d.version) || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
     const restored = new Run(d.run);
     if (d.bodies.some(b => (!SHAPES[b.kind] && !TOKENS[b.kind]) || !['x','y','z'].every(k => Number.isFinite(b.p?.[k])) || !['x','y','z','w'].every(k => Number.isFinite(b.q?.[k])))) return false;
-    run = restored; tokens = new TokenSystem(d.tokens);
+    run = restored; run.energy=0;run.pendingSpin=0;restoredWheelQueue=Array.isArray(d.wheelQueue)?d.wheelQueue:[]; tokens = new TokenSystem(d.tokens);
     state.coins = run.shots; state.won = d.state?.won || 0; state.col = d.state?.col || {big:0,gem:0,plush:0}; state.jackpots = d.state?.jackpots || 0;
     pushPhase = Number.isFinite(d.pushPhase) ? d.pushPhase : pushPhase;
     pushMax = Number.isFinite(d.pushMax) ? d.pushMax : -0.5;
@@ -522,8 +518,7 @@ function load() {
       const c = spawn(b.kind, b.p.x,b.p.y,b.p.z,b.q,b.v);
       if (c) { c.token={...cleanMeta(b.token),uid:c.token.uid}; tokens.uid=Math.max(tokens.uid,c.token.uid); c.fromDrop=!!b.fromDrop; c.gated=!!b.gated; c.prevY=Number.isFinite(b.prevY)?b.prevY:b.p.y; if(b.a) c.body.setAngvel(b.a,true); }
     }
-    for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (d.slotState?.[key] !== undefined) slot[key]=d.slotState[key];
-    wallT=Math.max(0,d.wallT||0); pushT=Math.max(0,d.pushT||0); feverT=Math.max(0,d.feverT||0); partyT=Math.max(0,d.partyT||0);
+      wallT=Math.max(0,d.wallT||0); pushT=Math.max(0,d.pushT||0); feverT=Math.max(0,d.feverT||0); partyT=Math.max(0,d.partyT||0);
     showerQueue=Array.isArray(d.showerQueue)?d.showerQueue.filter(s=>(SHAPES[s.kind]||TOKENS[s.kind])&&Number.isFinite(s.t)).slice(0,100):[];
     restoredTime=Number.isFinite(d.time)?d.time:0; combo=d.combo||0; lastWin=Number.isFinite(d.lastWin)?d.lastWin:-100; winTimes.push(...(d.winTimes||[])); stats.lost=d.lost||0;
     sfx.fast=feverT>0?1.35:1;
@@ -579,7 +574,7 @@ function renderPicks() {
   const box = $('pick-cards'); box.replaceChildren();
   const rarityName = { common: '常见', uncommon: '少见', rare: '稀有' };
   section.classList.toggle('is-picked',!!run.picked);
-  section.querySelector('h3').textContent=run.picked?'本关航路已装配':'航路三选一';
+  section.querySelector('h3').textContent=run.picked?'装配完成':'本关奖励 · 三选一';
   const visiblePicks=run.picked?run.picks.filter(card=>card.id===run.chosen):run.picks;
   visiblePicks.forEach(card => {
     const button = document.createElement('button');
@@ -603,12 +598,14 @@ function renderPicks() {
 function renderResult(force = false) {
   const phase = run.phase;
   if (run.active || !started) { $('run-modal').hidden=true; resultPhase=''; return; }
+  if(mobileCabinet?.shopClosed && !force) return;
+  mobileCabinet?.openShop();
   $('run-modal').hidden=false;$('run-modal').dataset.phase=phase;
   if (resultPhase===phase && !force) return;
   resultPhase=phase; releaseLaunchers(lanes);
   const shop=phase==='shop', won=phase!=='gameover', r=run.receipt;
   $('result-kicker').textContent = phase==='victory' ? '八关制霸 · RUN COMPLETE' : `第 ${run.round} 关 · ${won?'挑战完成':'本局结束'}`;
-  $('result-title').textContent = shop ? '靠港啦！鲸鱼补给站' : won ? '恭喜通关！' : '差一点，再来一局';
+  $('result-title').textContent = shop ? '机台补给舱' : won ? '恭喜通关！' : '差一点，再来一局';
   $('result-score').textContent = run.score.toLocaleString();
   $('result-target').textContent = `目标 ${run.target.toLocaleString()} · 本局累计 ${run.total.toLocaleString()} 分`;
   $('result-rewards').textContent = won && r ? `通关 +${r.base}　节币 +${r.thrift}　超额 +${r.over}　＝ 贝壳 +${r.reward}` : '投币额度已用尽。落币结算后仍未达到目标。';
@@ -641,14 +638,14 @@ function finishRound() {
   if(!run.active||!run.reached) return;
   run.finish(); releaseLaunchers(lanes); sfx.levelUp(); confettiBurst(140); save(); renderResult(true); updateHud(0);
 }
-$('round-action').onclick=finishRound;
+$('round-action').onclick=()=>{ if(!run.active){mobileCabinet.openShop();renderResult(true);}else finishRound(); };
 $('reroll-shop').onclick=()=>{if(run.reroll()){sfx.tick();save();renderResult(true);arcadeToast('新一批宝贝上架啦');$('reroll-shop').focus({preventScroll:true});}};
 $('next-round').onclick=()=>{
   if(run.phase==='shop') {
     if(!run.next()) return;
     coins.forEach(c=>c.p=c.body.translation());tokens.startStage(run.round,coins,specialAdapter);flushTokens();
     spawnRoundPrizes();
-    // Preserve the physical field and outstanding slot rewards; buffs restart each stage.
+    // Preserve the physical field; buffs restart each stage.
     wallT=run.level('guard')*6; pushT=0; feverT=0; partyT=0; combo=0; lastWin=-100; winTimes.length=0; sfx.fast=1;
     releaseLaunchers(lanes); resultPhase=''; $('score-formula').textContent='基础分 × 构筑倍率 × 连击 × FEVER';
     $('run-modal').hidden=true; state.coins=run.shots; sfx.levelUp(); cv.focus({preventScroll:true});
@@ -741,9 +738,9 @@ function toggleDock(id, label) {
   const button = panel.querySelector('[data-dock]');
   if (button) button.textContent = panel.classList.contains('is-docked') ? `展开${label}` : '收起';
 }
-$('dock-shop').onclick = () => toggleDock('run-modal', '补给');
+$('dock-shop').onclick = () => { $('run-modal').hidden=true; mobileCabinet.returnToCabinet(); };
 $('dock-help').onclick = () => toggleDock('help', '说明');
-$('dock-tokens').onclick = () => toggleDock('token-modal', '币仓');
+$('dock-tokens').onclick = () => $('token-close').click();
 // The wheel's own close action is wired after its mechanism is mounted.
 $('pick-reroll').onclick = () => { if (rerollPicks(run, pickOptions())) { sfx.tick(); save(); renderResult(true); } };
 $('btn-sound').onclick = e => { sfx.setEnabled(!sfx.enabled); e.currentTarget.classList.toggle('off', !sfx.enabled); };
@@ -762,19 +759,25 @@ $('start-button').onclick = () => {
 // Fit the complete playable cabinet to the actual canvas, not the browser window.
 // This also keeps aiming and projected reward text correct after HUD reflow.
 let resizeFrame = 0;
-mobileCabinet=createMobileCabinet(slot.canvas,()=>queueResize());
-prizeWheel=createPrizeWheel();
-$('lottery-dock').onclick=()=>mobileCabinet.toggleWheel(false);
+mobileCabinet=createMobileCabinet(()=>queueResize());
+juice=createMachineJuice($('mobile-cabinet'));
+prizeWheel=createPrizeWheel({
+  canPresent: () => started && run.active && !helpBlocking() && !catalogBlocking() && !mobileCabinet.isMenuOpen(),
+  onActive: active => { releaseLaunchers(lanes); mobileCabinet.setWheelActive(active); },
+  onReveal: awardWheel,
+  random:()=>run.random(),
+  onChange: () => { if(started) save(); },
+});
+for (const item of restoredWheelQueue) prizeWheel.enqueue(item);
 function resize() {
   resizeFrame = 0;
   const narrow=mobileCabinet.mobile;
   backboardGroup.visible=false;
-  mascot.root.position.set(-5.1,2.7,1.25);mascot.root.scale.setScalar(narrow?1.08:.96);
-  CAM_TARGET.set(0,.55,-1.0);
-  // The rear slot is a live cabinet-mounted canvas on phones, not a faraway mesh.
+  mascot.root.position.set(-5.1,2.7,1.25);mascot.root.scale.setScalar(narrow?.78:.96);
+  CAM_DIR.set(0,narrow?.84:.601,narrow?.543:.799).normalize();
+  CAM_TARGET.set(0,narrow?.8:.55,narrow?-.7:-1.0);
   leds.instanceMatrix.needsUpdate=true;ledPos.forEach((p,i)=>{if(p[3]===2)tmpM.makeScale(0,0,0);else tmpM.makeTranslation(p[0],p[1],p[2]);leds.setMatrixAt(i,tmpM);});
   const r=app.getBoundingClientRect(), w=Math.max(1,r.width), h=Math.max(1,r.height);
-  const slotHost=$('machine-live-slot').getBoundingClientRect();slot.setDisplay(true,slotHost.width,slotHost.height);
   camera.aspect=w/h; camera.fov=narrow?49:46;
   const tan=Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
   const up=new THREE.Vector3(0,CAM_DIR.z,-CAM_DIR.y);
@@ -782,7 +785,7 @@ function resize() {
   // Separate real cabinet regions avoid fitting imaginary upper-front corners,
   // which would unnecessarily shrink the playfield, especially on phones.
   const regions=[
-    [[-5.65,5.65],[-.1,2.75],[-6.3,4.25]],
+    [[narrow?-5.2:-5.65,narrow?5.2:5.65],[-.1,2.75],[-6.3,4.25]],
     [[-4.4,4.4],[3.2,4.2],[-5.8,-3.5]],
   ];
   for(const [xs,ys,zs] of regions) for(const x of xs) for(const y of ys) for(const z of zs) {
@@ -818,7 +821,7 @@ function frame() {
   composer.render();
 }
 function update(dt) {
-  if (!started || !run.active || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
+  if (!started || !run.active || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || prizeWheel?.active || document.hidden) { updateHud(dt); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
 
   for (const rig of Object.values(chuteRig)) rig.scale.y += (1 - rig.scale.y) * Math.min(1, dt * 12);
@@ -831,12 +834,6 @@ function update(dt) {
   chuteMat.mid.emissiveIntensity = tokens.selected !== 'coin' ? 1.15 : forward ? 0.22 : 0.85;
   if (inputOpen()) for (const side of stepLaunchers(lanes, dt)) dropCoin(side);
   stepSlides(dt);
-  gate.position.x = Math.sin(time * 1.05) * 3.3 + Math.sin(time * 2.3) * 0.5;
-  const gateHalfWidth = GATE_HW + run.level('lucky') * 0.1;
-  gate.scale.x = gateHalfWidth / GATE_HW;
-  gateMat.emissiveIntensity = 1.6 + Math.sin(time * 6) * 0.6 + (gate.userData.hitT > 0 ? 4 : 0);
-  gate.userData.hitT = (gate.userData.hitT || 0) - dt;
-
   // 奖励计时
   wallT = Math.max(0, wallT - dt); pushT = Math.max(0, pushT - dt); partyT = Math.max(0, partyT - dt);
   if (feverT > 0) { feverT -= dt; if (feverT <= 0) sfx.fast = 1; }
@@ -846,11 +843,6 @@ function update(dt) {
     g.mesh.position.y = g.y; { const ty = wallT > 0 ? 0.7 : -20, cur = g.body.translation(); if (Math.abs(cur.y - ty) > 0.01) g.body.setTranslation({ x: cur.x, y: ty, z: cur.z }, true); }
     g.mesh.material.opacity = 0.35 + 0.2 * Math.sin(time * 8) * (wallT < 5 && wallT > 0 ? 2 : 0.5);
   });
-  slot.status = [];
-  if (wallT > 0) slot.status.push({ text: `护墙 ${Math.ceil(wallT)}s`, color: '#7cf3ff' });
-  if (pushT > 0) slot.status.push({ text: `超级推板 ${Math.ceil(pushT)}s`, color: '#ffb34d' });
-  if (feverT > 0) slot.status.push({ text: `FEVER ${Math.ceil(feverT)}s`, color: '#ff6ad5' });
-
   // 金币雨
   if (showerQueue.length) {
     showerQueue.forEach(s => s.t -= dt);
@@ -878,13 +870,6 @@ function update(dt) {
       else if (dv > 2.6 && c.state === 'won' && c.t < 1) sfx.clink(Math.min(0.7, dv / 12), p.x / 6);
       c.pv = v;
     }
-    if (c.fromDrop && !c.gated && c.prevY > GATE_Y && p.y <= GATE_Y) {
-      c.gated = true;
-      if (Math.abs(p.x - gate.position.x) < gateHalfWidth - 0.12) {
-        gate.userData.hitT = 0.4; sfx.gate(); burst(p.x, GATE_Y, DROP_Z, 24, '#5bff95', 3, 2);
-        if (slot.add()) floatText('LUCKY!', p.x, GATE_Y + 0.6, DROP_Z, 'lucky'); else floatText('保留已满', p.x, GATE_Y + 0.6, DROP_Z, 'lucky');
-      }
-    }
     c.prevY = p.y;
     if (c.ccd !== false && p.y < 1.9 && c.state === 'field') { c.ccd = false; c.body.enableCcd(false); }
     if (c.state === 'field' && p.y < -0.4) {
@@ -910,21 +895,22 @@ function update(dt) {
     const b = $('bubble'), r=app.getBoundingClientRect(); b.style.left = Math.max(r.left+b.offsetWidth/2+8,Math.min(r.right-b.offsetWidth/2-8,bx)) + 'px'; b.style.top = Math.max(r.top+44,by) + 'px';
   }
 
-  slot.update(dt);
+  const spinLevel = comboWheel.tick(time);
+  if (spinLevel) presentLottery(spinLevel);
   updateLeds(time); updateSparkles(dt); updateConfetti(dt);
   if (partyT > 0 && Math.random() < 0.3) burst((Math.random() - 0.5) * 10, 3 + Math.random() * 3, -2 + Math.random() * 4, 6, `hsl(${Math.random() * 360},100%,65%)`, 3, 2);
-  pinkL.intensity = 6 + (partyT > 0 || feverT > 0 ? Math.sin(time * 20) * 5 : Math.sin(time * 2) * 1.5);
-  cyanL.intensity = 6 + (partyT > 0 || feverT > 0 ? Math.cos(time * 20) * 5 : Math.cos(time * 2) * 1.5);
+  pinkL.intensity = motionReduced.matches?3:6 + (partyT > 0 || feverT > 0 ? Math.sin(time * 20) * 5 : Math.sin(time * 2) * 1.5);
+  cyanL.intensity = motionReduced.matches?3:6 + (partyT > 0 || feverT > 0 ? Math.cos(time * 20) * 5 : Math.cos(time * 2) * 1.5);
 
   // 相机：轻微呼吸 + 震动
   shake = Math.max(0, shake - dt * 1.5);
-  const sx = (Math.random() - 0.5) * shake * 0.6, sy = (Math.random() - 0.5) * shake * 0.6;
-  camera.position.set(CAM_POS.x + Math.sin(time * 0.3) * 0.25 + sx, CAM_POS.y + Math.sin(time * 0.4) * 0.1 + sy, CAM_POS.z);
+  const sx = motionReduced.matches?0:(Math.random() - 0.5) * shake * 0.6, sy = motionReduced.matches?0:(Math.random() - 0.5) * shake * 0.6;
+  camera.position.set(CAM_POS.x + (motionReduced.matches?0:Math.sin(time * 0.3) * 0.15) + sx, CAM_POS.y + (motionReduced.matches?0:Math.sin(time * 0.4) * 0.06) + sy, CAM_POS.z);
   camera.lookAt(CAM_TARGET.x, CAM_TARGET.y, CAM_TARGET.z);
 
-  if (run.tick(dt, slot.spinning || slot.queue > 0 || showerQueue.length > 0 || slot.msgT > 0)) { releaseLaunchers(lanes); save(); }
+  if (run.tick(dt, showerQueue.length > 0 || prizeWheel?.active || comboWheel.level > 0)) { releaseLaunchers(lanes); save(); }
   updateHud(dt);
 }
 frame();
 tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>releaseLaunchers(lanes),sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,slotViewport:(mobileCabinet.mobile?slot.canvas.getBoundingClientRect().toJSON():null),environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };
+window.__game = { get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };
