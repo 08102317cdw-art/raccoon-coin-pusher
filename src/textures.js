@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { paintCabinetPanel } from './cabinet-art.js?v=2.4.1';
+import { paintCabinetPanel } from './cabinet-art.js?v=3.2.0';
 import { characterImages } from './character-art.js?v=2.1.1';
 
 const mk = (w, h = w) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
@@ -33,6 +33,10 @@ export function coinTextures() {
   g.fillStyle = '#d99a22';
   for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2; g.beginPath(); g.arc(S / 2 + Math.cos(a) * (S / 2 - 58), S / 2 + Math.sin(a) * (S / 2 - 58), 5, 0, Math.PI * 2); g.fill(); }
   drawWhale(g, S / 2, S / 2 + 6, 158, '#9c6510', '#ffe7a0');
+  g.strokeStyle='#986524';g.lineWidth=2;
+  for(let r=208;r<232;r+=4){g.beginPath();g.arc(256,256,r,0,Math.PI*2);g.stroke();}
+  g.save();g.translate(256,256);g.fillStyle='#8d5b1d';g.font='bold 13px Arial';g.textAlign='center';
+  const text='LUCKY WHALE • 01 •';for(let i=0;i<text.length;i++){g.save();g.rotate((i-text.length/2)*.115);g.fillText(text[i],0,188);g.restore();}g.restore();
   // bump 贴图
   const [b, bg] = mk(S);
   bg.fillStyle = '#808080'; bg.fillRect(0, 0, S, S);
@@ -47,17 +51,16 @@ export function coinTextures() {
 }
 
 export function floorTexture() {
-  const S = 1024, [c, g] = mk(S);
-  const grd = g.createLinearGradient(0, 0, 0, S); grd.addColorStop(0, '#123a4a'); grd.addColorStop(1, '#0c5566');
-  g.fillStyle = grd; g.fillRect(0, 0, S, S);
-  g.globalAlpha = 0.18; g.fillStyle = '#7ff3ff';
-  for (let i = 0; i < 26; i++) {
-    const x = (i * 197) % S, y = (i * 331) % S, r = 26;
-    drawWhale(g, x, y, r*1.5, '#7ff3ff', '#123a4a');
-  }
-  g.globalAlpha = 0.25; g.strokeStyle = '#ffd36b'; g.lineWidth = 14;
-  for (let y = 120; y < S; y += 260) for (let x = S * 0.2; x < S; x += S * 0.3) { g.beginPath(); g.moveTo(x - 40, y); g.lineTo(x, y + 40); g.lineTo(x + 40, y); g.stroke(); }
-  g.globalAlpha = 1;
+  const S=1024,[c,g]=mk(S);
+  g.fillStyle='#143444';g.fillRect(0,0,S,S);
+  for(let y=0;y<S;y+=128)for(let x=0;x<S;x+=128){g.fillStyle=((x+y)/128)%2?'#193e4b':'#12303e';g.fillRect(x,y,128,128);}
+  // Woven check, tidal guilloche, double brass selvedge and a quiet whale hallmark.
+  g.strokeStyle='#a0c1b512';g.lineWidth=1;
+  for(let y=8;y<S;y+=8){g.beginPath();g.moveTo(0,y);g.lineTo(S,y);g.stroke();}
+  g.strokeStyle='#a7c7b61a';g.lineWidth=2;
+  for(let y=80;y<S;y+=128)for(let x=64;x<S;x+=128){g.beginPath();g.arc(x,y,36,Math.PI,0);g.stroke();g.beginPath();g.arc(x,y-7,28,Math.PI,0);g.stroke();}
+  for(const inset of [14,23]){g.strokeStyle=inset===14?'#c2aa70':'#91b8ac';g.lineWidth=inset===14?3:1;g.strokeRect(inset,inset,S-2*inset,S-2*inset);}
+  g.globalAlpha=.18;drawWhale(g,512,565,160,'#c5d9c2','#15394a');g.globalAlpha=1;
   return tex(c);
 }
 
@@ -72,7 +75,7 @@ export function stripeTexture(a = '#3476a5', b = '#d2edf3', label = '') {
 
 export function plateTexture() {
   const S = 512, [c, g] = mk(S);
-  g.fillStyle = '#c7ced8'; g.fillRect(0, 0, S, S);
+  g.fillStyle = '#92abb2'; g.fillRect(0, 0, S, S);
   for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '60,70,80'},0.05)`; g.fillRect(0, Math.random() * S, S, 1); }
   g.fillStyle = 'rgba(80,90,110,0.35)';
   for (let y = 32; y < S; y += 64) for (let x = (y / 64 % 2) * 32 + 32; x < S; x += 64) { g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.fill(); }
