@@ -11,8 +11,10 @@ import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, g
 import { buildDafeiyu } from './mascot.js?v=2.4.1';
 import { loadCharacterArt, characterSources } from './character-art.js?v=2.1.1';
 import { Slot } from './slot.js?v=2.4.1';
-import { Run, UPGRADES, TARGETS, BASE_POINTS } from './roguelike.js?v=2.2.0';
-import { TOKENS, TokenSystem, cleanMeta, isBad } from './tokens.js?v=2.2.0';
+import { Run, UPGRADES, TARGETS, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=3.0.0';
+import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=3.1.0';
+import { TOKENS, TokenSystem, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=3.1.0';
+import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=3.1.0';
 import { makeTokenMesh } from './token-mesh.js?v=2.2.0';
 import { createTokenUI } from './token-ui.js?v=2.3.0';
 import { upgradeArt, arcadeToast } from './token-art.js?v=2.3.0';
@@ -183,13 +185,33 @@ const SHAPES = {
   big: () => RAPIER.ColliderDesc.roundCylinder(0.08, 0.83, 0.02).setDensity(6),
   gem: () => RAPIER.ColliderDesc.cylinder(0.3, 0.4).setDensity(4),
   plush: () => RAPIER.ColliderDesc.cuboid(0.42, 0.5, 0.36).setDensity(1.5),
+  shell: () => RAPIER.ColliderDesc.ball(0.36).setDensity(4),
+  chest: () => RAPIER.ColliderDesc.cuboid(0.34, 0.22, 0.26).setDensity(5),
+  plushie: () => RAPIER.ColliderDesc.ball(0.34).setDensity(2),
 };
 const coins = [];
 const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), tmpS = new THREE.Vector3();
 
 const bigMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 2, metalness: 1, roughness: 0.2, color: '#ffd77a', emissive: '#6a3a00', emissiveIntensity: 0.5 });
 const gemMat = new THREE.MeshPhysicalMaterial({ color: '#36e0ff', metalness: 0.1, roughness: 0.04, clearcoat: 1, iridescence: 1, iridescenceIOR: 1.6, emissive: '#0a5a8a', emissiveIntensity: 0.6, flatShading: true });
+function makePrizeMesh(kind) {
+  if (kind === 'shell') {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.4, 18, 12), new THREE.MeshStandardMaterial({ color: '#f3d7a4', roughness: 0.42, metalness: 0.2, emissive: '#8a5a22', emissiveIntensity: 0.15 }));
+    m.scale.set(1, 0.72, 0.5); m.castShadow = true; return m;
+  }
+  if (kind === 'chest') {
+    const g = new THREE.Group();
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.42, 0.5), new THREE.MeshStandardMaterial({ color: '#c9893a', roughness: 0.55 }));
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.16, 0.54), new THREE.MeshStandardMaterial({ color: '#f0c36a', roughness: 0.4, emissive: '#a56b20', emissiveIntensity: 0.2 }));
+    lid.position.y = 0.28; g.add(box, lid); g.children.forEach(c => c.castShadow = true); return g;
+  }
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 12), new THREE.MeshStandardMaterial({ color: '#7ec8e3', roughness: 0.45, emissive: '#1d6d8a', emissiveIntensity: 0.2 }));
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.32, 4), new THREE.MeshStandardMaterial({ color: '#4aa4c4', roughness: 0.5 }));
+  tail.rotation.z = Math.PI / 2; tail.position.x = -0.42; g.add(body, tail); return g;
+}
 function makeSpecialMesh(kind) {
+  if (PRIZES[kind]) return makePrizeMesh(kind);
   if (TOKENS[kind]) return makeTokenMesh(kind);
   if (kind === 'big') { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 48), [coinSideMat, bigMat, bigMat]); m.castShadow = true; return m; }
   if (kind === 'gem') {
@@ -240,16 +262,31 @@ function syncCoins() {
   coinMesh.count = n; coinMesh.instanceMatrix.needsUpdate = true; if (coinMesh.instanceColor) coinMesh.instanceColor.needsUpdate=true;
 }
 
-// ================== 投币器 + 幸运门 ==================
-const dropper = new THREE.Group(); scene.add(dropper);
-meshBox(1.0, 0.5, 0.7, orange, 0, 0.15, 0, 0.12, dropper);
-meshBox(0.7, 0.2, 0.25, darkMat, 0, -0.12, 0, 0.05, dropper);
-const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, HALF_W * 2, 12), chrome); rail.rotation.z = Math.PI / 2; rail.position.set(0, DROP_Y + 0.4, DROP_Z - 0.2); scene.add(rail);
-dropper.position.set(0, DROP_Y, DROP_Z);
-const laserMat = new THREE.MeshBasicMaterial({ color: '#ff3d6e', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
-const laser = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, DROP_Y - PUSH_H, 6), laserMat);
-laser.position.y = -(DROP_Y - PUSH_H) / 2; dropper.add(laser);
-const laserDot = new THREE.Mesh(new THREE.CircleGeometry(0.18, 24), laserMat); laserDot.rotation.x = -Math.PI / 2; laserDot.position.y = -(DROP_Y - PUSH_H) + 0.02; dropper.add(laserDot);
+// ================== 固定投币槽 + 幸运门 ==================
+const chuteMat = {
+  side: new THREE.MeshStandardMaterial({ color: '#9fd8cf', emissive: '#1c6f68', emissiveIntensity: 0.25, metalness: 0.48, roughness: 0.34 }),
+  mid: new THREE.MeshStandardMaterial({ color: '#e8c56d', emissive: '#a07820', emissiveIntensity: 0.4, metalness: 0.58, roughness: 0.3 }),
+};
+const chuteRig = {};
+function buildChute(side) {
+  const g = new THREE.Group();
+  const mat = side === 'middle' ? chuteMat.mid : chuteMat.side;
+  const tray = new THREE.Mesh(new THREE.BoxGeometry(side === 'middle' ? 0.72 : 0.82, 0.16, 1.65), mat);
+  tray.castShadow = tray.receiveShadow = true; g.add(tray);
+  const lipMesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 0.16), chrome);
+  lipMesh.position.z = 0.78; g.add(lipMesh);
+  const mouthX = side === 'left' ? -3.9 : side === 'right' ? 3.9 : 0;
+  g.position.set(mouthX, side === 'middle' ? 3.35 : 3.15, -5.55);
+  if (side === 'left') { g.rotation.z = -0.42; g.rotation.y = 0.32; }
+  if (side === 'right') { g.rotation.z = 0.42; g.rotation.y = -0.32; }
+  scene.add(g); chuteRig[side] = g; return g;
+}
+buildChute('left'); buildChute('right'); buildChute('middle');
+const pendulum = new THREE.Group();
+const hanger = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.9, 8), chuteMat.mid); hanger.position.y = 0.95; pendulum.add(hanger);
+const basket = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.28, 0.9), chuteMat.mid); basket.castShadow = true; pendulum.add(basket);
+const chuteLip = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.1, 0.18), chrome); chuteLip.position.set(0, -0.1, 0.42); pendulum.add(chuteLip);
+pendulum.position.set(0, 4.05, -3.55); scene.add(pendulum);
 
 const gate = new THREE.Group(); scene.add(gate);
 const GATE_HW = 0.62;
@@ -371,9 +408,14 @@ let tokenUI, mobileCabinet, tokenAcc=0, tokenNotifyAt=-10;
 const tokenRemovals=new Set();
 const state = { coins: 50, won: 0, col: { big: 0, gem: 0, plush: 0 }, jackpots: 0 };
 let wallT = 0, pushT = 0, feverT = 0, partyT = 0, shake = 0, started = false;
+const lanes = createLaunchers();
+const recentDrops = [];
+let dropStreak = 0, dropStreakAt = -10;
 let resultPhase = '', resetting = false; 
 const stats = { lost: 0 }; const winTimes = []; let combo = 0, lastWin = -100, showerQueue = [];
-const inputOpen = () => started && run.phase === 'playing' && !$('help').classList.contains('show') && !tokenUI?.isOpen() && !mobileCabinet?.isMenuOpen() && !document.hidden;
+const catalogBlocking = () => !!tokenUI?.isOpen() && !$('token-modal').classList.contains('is-docked');
+const helpBlocking = () => $('help').classList.contains('show') && !$('help').classList.contains('is-docked');
+const inputOpen = () => started && run.phase === 'playing' && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !document.hidden;
 
 // ---------- HUD ----------
 const $ = id => document.getElementById(id);
@@ -394,7 +436,50 @@ function updateHud(dt) {
   action.hidden = !run.active || !started || (!run.reached && run.phase !== 'settling');
   action.disabled = !run.reached;
   action.textContent = run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
-  $('dropbtn').disabled = !inputOpen() || run.shots <= 0;
+  const canDrop = inputOpen() && run.shots > 0;
+  for (const [id, side] of [['chute-left', 'left'], ['dropbtn', 'middle'], ['chute-right', 'right']]) {
+    const button = $(id); if (!button) continue;
+    button.disabled = !canDrop;
+    button.classList.toggle('is-locked', !!lanes[side]?.locked);
+    button.setAttribute('aria-pressed', String(!!lanes[side]?.locked));
+  }
+  const forward = pusherMovingForward(pushPhase);
+  const lamp = $('timing-lamp');
+  if (lamp) lamp.textContent = `${forward ? '推板前进 · 左右槽落到两侧' : '推板收回 · 左右槽落到中间'}${run.level('pin') ? ` · 松台销 ${run.inserts % 20}/20` : ''}`;
+  const exchange = $('exchange-btn'), shakeBtn = $('shake-btn');
+  if (exchange) {
+    const live = started && (run.phase === 'playing' || run.phase === 'settling') && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen();
+    exchange.disabled = !live || !run.canExchange();
+    exchange.querySelector('span').textContent = `兑币 +${EXCHANGE_GRANT}`;
+    exchange.querySelector('small').textContent = run.exchanged >= 2 ? '已兑完' : `票 ${run.tickets}/${run.exchangeCost()} · 余${Math.max(0, 2 - run.exchanged)}`;
+  }
+  if (shakeBtn) {
+    shakeBtn.disabled = !started || !run.active || run.shakes <= 0 || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen();
+    shakeBtn.querySelector('small').textContent = run.shakes > 0 ? '本局 1 次' : '已用完';
+  }
+  tokens.setClipSize(2 + run.level('clip'));
+  const clipHost = $('coin-clip');
+  if (clipHost) {
+    const sig = `${tokens.clipSize}|${tokens.selected}|${tokens.clip.join(',')}`;
+    if (clipHost.dataset.sig !== sig) {
+      clipHost.dataset.sig = sig; clipHost.replaceChildren();
+      for (let i = 0; i < tokens.clipSize; i++) {
+        const id = tokens.clip[i];
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'clip-slot' + (id && id === tokens.selected ? ' armed' : '');
+        button.textContent = id ? (TOKENS[id].glyph || '币') : '空';
+        button.setAttribute('aria-label', id ? `币槽 ${TOKENS[id].name}` : '空币槽');
+        button.onclick = () => { if (tokens.armClip(i)) { tokenUI?.refresh(true); save(); updateHud(0); } };
+        clipHost.append(button);
+      }
+    }
+  }
+  const energyCount = $('energy-count');
+  if (energyCount) {
+    energyCount.textContent = `${run.energy}/8`;
+    const bar = $('energy-bar'); if (bar) bar.style.width = `${run.energy / 8 * 100}%`;
+  }
   tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update(slot);
   renderResult();
 }
@@ -414,7 +499,7 @@ function banner(text, cls = '', dur = 1800) {
 function flash(color = '#fff') { const el = $('flash'); el.style.background = color; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
 const lines = {
   win: ['好耶！', '叮叮叮~', '再来再来！', '发财啦！'], big: ['大奖！！', '开饭开饭！', '哇哦哦哦！'], miss: ['可惜~', '差一点！', '下次一定！'],
-  idle: ['投币投币～', '瞄准幸运门！', '咕噜咕噜～', '饭钱要来啦！'], reach: ['听牌了！！', '来啊来啊！', '大鱼要开饭啦！'], poor: ['投币用尽，等硬币落下吧！'], pet:['在这儿陪你呀！','一起推个满载而归～','摸摸头，一起加油！'],
+  idle: ['看推板再投～', '左槽右槽～', '中间也行！', '饭钱要来啦！'], reach: ['听牌了！！', '来啊来啊！', '大鱼要开饭啦！'], poor: ['票够的话可以兑币！', '试试摇一下台面？'], pet:['在这儿陪你呀！','一起推个满载而归～','摸摸头，一起加油！'],
 };
 let bubbleT = 0, idleTalk = 6;
 function say(kind) {
@@ -426,6 +511,7 @@ function say(kind) {
 function onWin(c) {
   if (!started || !run.active) return;
   const p=c.p=c.body.translation();
+  if (PRIZES[c.kind]) { rewardPrize(c); return; }
   const result=tokens.score(c,coins,specialAdapter);
   if(isBad(c.kind)) {
     const lost=run.penalize(result.penalty);combo=0;
@@ -449,7 +535,62 @@ function onWin(c) {
   else if(c.kind!=='coin'){
     state.col[c.kind]=(state.col[c.kind]||0)+1;sfx.prize();mascot.react('happy',2);say('big');shake=.25;
     banner({big:'🏅 大金币',gem:'💎 宝石',plush:'🐋 大肥鱼立牌'}[c.kind]+`<small>+${scored.points} 分</small>`,'prize',1500);
-  }else if(Math.random()<.05){mascot.react('happy',.8);say('win');}
+  }  else if(Math.random()<.05){mascot.react('happy',.8);say('win');}
+  if (run.pendingSpin) presentLottery();
+}
+function rewardPrize(c) {
+  const spec = PRIZES[c.kind];
+  const scored = run.awardBase(spec.points, combo, feverT > 0, tokens.globalFactor(coins));
+  if (!scored) return;
+  run.tickets = Math.min(9999, run.tickets + spec.tickets);
+  run.cash = Math.min(1e9, run.cash + spec.shells);
+  if (spec.coin) {
+    const ids = SPECIAL_IDS.filter(id => id !== 'tree');
+    const id = ids[Math.floor(Math.random() * ids.length)];
+    tokens.grant({ [id]: 1 }); tokens.select(id);
+  }
+  $('score-formula').textContent = `${spec.name} +${scored.points} 分`;
+  sfx.prize(); mascot.react('happy', 1.4); say('big'); shake = Math.max(shake, 0.28);
+  banner(`${spec.name}入手！<small>+${scored.points} 分</small>`, 'prize', 1600);
+  if (run.pendingSpin) presentLottery();
+}
+function presentLottery() {
+  while (run.pendingSpin > 0) {
+    run.pendingSpin--;
+    const item = spinLottery(run.random);
+    if (item.id === 'tickets') run.tickets = Math.min(9999, run.tickets + 8);
+    else if (item.id === 'shells') run.cash = Math.min(1e9, run.cash + 4);
+    else if (item.id === 'prize' && coins.length < 380) spawnTablePrize(null, (Math.random() - 0.5) * 3);
+    else if (item.id === 'special') {
+      const ids = SPECIAL_IDS.filter(id => id !== 'tree');
+      const id = ids[Math.floor(run.random() * ids.length)];
+      tokens.grant({ [id]: 1 }); tokens.select(id);
+    } else if (item.id === 'tower') { if (coins.length < 360) { shower(10); spawnTablePrize('chest', 0); } }
+    else if (coins.length < 360) shower(8);
+    else run.tickets = Math.min(9999, run.tickets + 6);
+    showLottery(item);
+  }
+}
+function showLottery(item) {
+  const panel = $('lottery'); if (!panel) return;
+  panel.hidden = false; panel.classList.remove('is-docked');
+  $('lottery-result').textContent = `${item.name} · ${item.text}`;
+  const wheel = $('lottery-wheel');
+  wheel.classList.remove('spin'); void wheel.offsetWidth; wheel.classList.add('spin');
+  sfx.fanfare(false); flash('#ffe7a1');
+}
+const PRIZE_ORDER = ['shell', 'plushie', 'chest'];
+let prizeCursor = 0;
+function spawnTablePrize(kind, x) {
+  const id = PRIZES[kind] ? kind : PRIZE_ORDER[prizeCursor++ % PRIZE_ORDER.length];
+  const px = Number.isFinite(x) ? x : (Math.random() - 0.5) * 3.2;
+  const c = spawn(id, px, 1.45, 1.2, randQ(0.25), V(0, -0.3, 0.15));
+  if (c) burst(px, 1.6, 1.2, 14, '#ffe7a8', 1.6, 1.2);
+  return c;
+}
+function spawnRoundPrizes() {
+  const count = 1 + (run.relics.net || 0);
+  for (let i = 0; i < count; i++) spawnTablePrize(PRIZE_ORDER[(run.round + i) % 3], -1.7 + i * 1.5);
 }
 // Bridge pure token rules to actual Rapier bodies. Destructions are flushed after
 // iteration so a chain reaction cannot corrupt the physical entity array.
@@ -495,17 +636,62 @@ function onSlot(o) {
 }
 
 // ---------- 投币 ----------
-let aimX = 0, holding = false, dropCd = 0;
-function dropCoin() {
-  if (!inputOpen() || coins.length >= MAX_COINS || !run.spendShot()) return;
+let aimX = 0;
+function buzz(ms) { try { navigator.vibrate?.(ms); } catch (e) { /* optional haptic */ } }
+function blastField(mode) {
+  const power = shakePower(run.level('push'));
+  const list = coins.filter(c => c.state === 'field' && !c.slide && !c.body.isKinematic());
+  list.forEach((c, i) => { c.body.applyImpulse(fieldImpulse(mode, i, power), true); c.body.wakeUp(); });
+  shake = Math.max(shake, mode === 'nuke' ? 0.85 : 0.62);
+  sfx.whoosh(); flash(mode === 'nuke' ? '#ffb15a' : '#fff6d2');
+  banner(mode === 'nuke' ? '全场轰出！<small>爆破币把硬币推向出币口</small>' : '机台摇晃！<small>台面硬币被抖向前沿</small>', mode === 'nuke' ? 'jp' : 'win', 1400);
+  mascot.react('excited', 1.2);
+}
+function dropCoin(side = 'middle') {
+  if (!inputOpen() || coins.length >= MAX_COINS || !run.spendShot()) return false;
   state.coins = run.shots;
-  const x = dropper.position.x + (Math.random() - 0.5) * 0.04;
-  const kind=tokens.consume();
-  const c = spawn(kind, x, DROP_Y - 0.3, DROP_Z + (Math.random() - 0.5) * 0.06, randQ(0.1), V(0, -3, 0));
-  if (c) c.fromDrop = true;
-  sfx.drop(x / 6);
-  tokens.afterDrop(run.round,coins,specialAdapter);
-  dropper.scale.y = 0.8;
+  const kind = tokens.consume();
+  const now = time;
+  const resolved = kind === 'coin' ? (side === 'left' || side === 'right' ? side : 'middle') : 'middle';
+  recentDrops.push({ side: resolved, time: now });
+  for (let i = recentDrops.length - 1; i >= 0; i--) if (now - recentDrops[i].time > 0.08) recentDrops.splice(i, 1);
+  const paired = kind === 'coin' && recentDrops.some(d => d.side === 'left') && recentDrops.some(d => d.side === 'right');
+  const swingScale = 1 + (run.relics.swing || 0) * 0.28;
+  const plan = planInsertion({ side: resolved, phase: pushPhase, pushMax, special: kind !== 'coin', both: paired, jitter: (Math.random() - 0.5) * 0.08, swing: kind === 'coin' ? null : pendulumOffset(time, swingScale) });
+  const flat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.04, Math.random() * 0.4, 0));
+  const c = spawn(kind, plan.spawn.x, plan.spawn.y, plan.spawn.z, flat, null);
+  if (c) {
+    c.fromDrop = true;
+    c.slide = { t: 0, dur: plan.duration, from: plan.spawn, to: { ...plan.land }, tier: plan.tier, born: now };
+    c.body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
+    c.body.setNextKinematicTranslation(plan.spawn);
+    if (paired) for (const coin of coins) if (coin.slide && coin.slide.tier === 1 && now - coin.slide.born < 0.08) coin.slide.to.x = Math.sign(coin.slide.from.x) * 0.18;
+  }
+  dropStreak = now - dropStreakAt < 0.45 ? dropStreak + 1 : 0; dropStreakAt = now;
+  sfx.drop((plan.land.x || 0) / 6, dropStreak);
+  buzz(Math.min(28, 10 + dropStreak * 3));
+  shake = Math.min(0.18, shake + 0.06);
+  burst(plan.spawn.x, plan.spawn.y, plan.spawn.z, 10, kind === 'coin' ? '#ffe08a' : (TOKENS[kind]?.color || '#9fd8ff'), 2.2, 1.4);
+  const rig = chuteRig[resolved] || chuteRig.middle; if (rig) rig.scale.y = 0.82;
+  if (kind === 'bomb') blastField('nuke');
+  if (run.noteInsert()) blastField('shake');
+  tokens.afterDrop(run.round, coins, specialAdapter);
+  return true;
+}
+function stepSlides(dt) {
+  for (const c of coins) if (c.slide) {
+    c.slide.t += dt;
+    const u = Math.min(1, c.slide.t / c.slide.dur), e = u * u * (3 - 2 * u);
+    const p = { x: c.slide.from.x + (c.slide.to.x - c.slide.from.x) * e, y: c.slide.from.y + (c.slide.to.y - c.slide.from.y) * e, z: c.slide.from.z + (c.slide.to.z - c.slide.from.z) * e };
+    c.body.setNextKinematicTranslation(p);
+    if (u >= 1) {
+      const dx = c.slide.to.x - c.slide.from.x, dz = c.slide.to.z - c.slide.from.z;
+      c.body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+      c.body.setLinvel({ x: dx * 0.35, y: c.slide.tier === 2 ? -0.6 : -0.9, z: Math.max(c.slide.tier === 2 ? 0.35 : 1.1, dz * 0.45) }, true);
+      c.body.enableCcd(true);
+      c.slide = null;
+    }
+  }
 }
 
 // ================== 存档 ==================
@@ -518,13 +704,13 @@ function save() {
   });
   const slotState = {};
   for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (slot[key] !== undefined) slotState[key] = slot[key];
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:3, run:run.serialize(), tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue, slotState, combo, lastWin, winTimes, lost:stats.lost })); }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:5, run:run.serialize(), tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue, slotState, combo, lastWin, winTimes, lost:stats.lost })); }
   catch (e) { $('save-status').textContent = '无法保存：请检查浏览器存储空间'; }
 }
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!d || ![2,3].includes(d.version) || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
+    if (!d || ![2,3,4,5].includes(d.version) || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
     const restored = new Run(d.run);
     if (d.bodies.some(b => (!SHAPES[b.kind] && !TOKENS[b.kind]) || !['x','y','z'].every(k => Number.isFinite(b.p?.[k])) || !['x','y','z','w'].every(k => Number.isFinite(b.q?.[k])))) return false;
     run = restored; tokens = new TokenSystem(d.tokens);
@@ -573,14 +759,50 @@ if (!loaded) for (let i = coins.length - 1; i >= 0; i--) if (coins[i].body.trans
 
 // ================== 关卡结算 / 商店 ==================
 function buildSummary() {
-  return Object.entries(run.levels).filter(([,n])=>n>0).map(([id,n])=>`${UPGRADES[id].name} Lv.${n}`).join(' · ') || '尚无永久升级';
+  const chips = Object.entries(run.levels).filter(([,n])=>n>0).map(([id,n])=>`${UPGRADES[id].name} Lv.${n}`);
+  const relics = Object.entries(run.relics).filter(([,n])=>n>0).map(([id,n])=>`${RELICS[id].name}×${n}`);
+  return [...chips, ...relics].join(' · ') || '尚无永久升级';
+}
+function pickOptions() {
+  const names = {};
+  for (const id of SPECIAL_IDS) if (id !== 'tree') names[id] = TOKENS[id].name;
+  return { coinIds: SPECIAL_IDS.filter(id => id !== 'tree'), upgrades: UPGRADES, names };
+}
+function renderPicks() {
+  const section = $('pick-section'); if (!section) return;
+  if ((run.phase === 'shop' || run.phase === 'victory') && !run.picks.length && !run.picked) run.picks = rollPicks(run, pickOptions());
+  const show = (run.phase === 'shop' || run.phase === 'victory') && run.picks.length > 0;
+  section.hidden = !show;
+  if (!show) return;
+  const reroll = $('pick-reroll');
+  reroll.disabled = !!run.picked || run.pickRerolls <= 0;
+  reroll.textContent = run.pickRerolls && !run.picked ? '重抽一次' : '不能重抽';
+  const box = $('pick-cards'); box.replaceChildren();
+  const rarityName = { common: '常见', uncommon: '少见', rare: '稀有' };
+  run.picks.forEach(card => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `pick-card rarity-${card.rarity}${run.chosen === card.id ? ' chosen' : ''}`;
+    button.disabled = !!run.picked && run.chosen !== card.id;
+    const rarity = document.createElement('small'); rarity.textContent = rarityName[card.rarity] || '航路';
+    const title = document.createElement('strong'); title.textContent = card.name;
+    const desc = document.createElement('span'); desc.textContent = card.desc;
+    button.append(rarity, title, desc);
+    button.onclick = () => {
+      if (!applyPick(run, card, (id, count) => tokens.grant({ [id]: count }))) return;
+      if (card.kind === 'coin') tokens.select(card.id);
+      tokens.setClipSize(2 + run.level('clip'));
+      sfx.gate(); save(); renderResult(true); arcadeToast(`选定 ${card.name}`);
+    };
+    box.append(button);
+  });
 }
 function renderResult(force = false) {
   const phase = run.phase;
   if (run.active || !started) { $('run-modal').hidden=true; resultPhase=''; return; }
   $('run-modal').hidden=false;$('run-modal').dataset.phase=phase;
   if (resultPhase===phase && !force) return;
-  resultPhase=phase; holding=false;
+  resultPhase=phase; releaseLaunchers(lanes);
   const shop=phase==='shop', won=phase!=='gameover', r=run.receipt;
   $('result-kicker').textContent = phase==='victory' ? '八关制霸 · RUN COMPLETE' : `第 ${run.round} 关 · ${won?'挑战完成':'本局结束'}`;
   $('result-title').textContent = shop ? '靠港啦！鲸鱼补给站' : won ? '恭喜通关！' : '差一点，再来一局';
@@ -608,12 +830,13 @@ function renderResult(force = false) {
     button.onclick=()=>{ if(run.buy(id)){sfx.gate();save();renderResult(true);updateHud(0);arcadeToast(`${u.name}改装完成！`);$('shop-tab-upgrades').focus({preventScroll:true});} };
     card.append(icon,title,level,desc,button); cards.append(card);
   }
+  renderPicks();
   if(force) return;
   requestAnimationFrame(()=>$('next-round').focus({preventScroll:true}));
 }
 function finishRound() {
   if(!run.active||!run.reached) return;
-  run.finish(); holding=false; sfx.levelUp(); confettiBurst(140); save(); renderResult(true); updateHud(0);
+  run.finish(); releaseLaunchers(lanes); sfx.levelUp(); confettiBurst(140); save(); renderResult(true); updateHud(0);
 }
 $('round-action').onclick=finishRound;
 $('reroll-shop').onclick=()=>{if(run.reroll()){sfx.tick();save();renderResult(true);arcadeToast('新一批宝贝上架啦');$('reroll-shop').focus({preventScroll:true});}};
@@ -621,9 +844,10 @@ $('next-round').onclick=()=>{
   if(run.phase==='shop') {
     if(!run.next()) return;
     coins.forEach(c=>c.p=c.body.translation());tokens.startStage(run.round,coins,specialAdapter);flushTokens();
+    spawnRoundPrizes();
     // Preserve the physical field and outstanding slot rewards; buffs restart each stage.
     wallT=run.level('guard')*6; pushT=0; feverT=0; partyT=0; combo=0; lastWin=-100; winTimes.length=0; sfx.fast=1;
-    holding=false; resultPhase=''; $('score-formula').textContent='基础分 × 构筑倍率 × 连击 × FEVER';
+    releaseLaunchers(lanes); resultPhase=''; $('score-formula').textContent='基础分 × 构筑倍率 × 连击 × FEVER';
     $('run-modal').hidden=true; state.coins=run.shots; sfx.levelUp(); cv.focus({preventScroll:true});
     banner(`第 ${run.round} 关<small>目标 ${run.target.toLocaleString()} 分 · ${run.shots} 次投币</small>`,'lv',2000);
     save(); updateHud(0);
@@ -639,37 +863,89 @@ $('run-modal').addEventListener('keydown',e=>{
 });
 
 // ================== 输入 ==================
-const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -DROP_Z), hit = new THREE.Vector3();
-function aimFrom(cx, cy) {
-  const r=cv.getBoundingClientRect();
-  ndc.set((cx-r.left) / r.width * 2 - 1, -(cy-r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera);
-  if (ray.ray.intersectPlane(aimPlane, hit)) aimX = THREE.MathUtils.clamp(hit.x, -4.3, 4.3);
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pointRay(cx, cy) {
+  const r = cv.getBoundingClientRect();
+  ndc.set((cx - r.left) / r.width * 2 - 1, -(cy - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera);
 }
 const cv = renderer.domElement;
-cv.tabIndex=0; cv.setAttribute('aria-label','推币机投币区域：空格投币，左右方向键瞄准，轻触大肥鱼互动');
-cv.addEventListener('pointermove', e => aimFrom(e.clientX, e.clientY));
-cv.addEventListener('pointerdown', e => { aimFrom(e.clientX, e.clientY); if(inputOpen()&&mascot.hitTest(ray)){holding=false;mascot.react('happy',1.8);say('pet');sfx.gate();return;} holding = true; dropCd = 0; cv.setPointerCapture(e.pointerId); });
-addEventListener('pointerup', () => holding = false);
-addEventListener('pointercancel', () => holding = false);
-addEventListener('blur', () => holding = false);
-document.addEventListener('visibilitychange', () => { holding=false; clock.getDelta(); });
-addEventListener('keydown', e => {
-  if (e.key === 'Escape' && $('help').classList.contains('show')) { $('help').classList.remove('show'); holding=false; cv.focus({preventScroll:true}); }
-  if (e.code === 'Space' && (e.target === document.body || e.target === cv || e.target === dropBtn)) { holding = inputOpen(); e.preventDefault(); }
-  if(e.code==='KeyQ'&&inputOpen()){const ids=['coin',...Object.keys(tokens.bag).filter(k=>tokens.bag[k]>0)];tokens.select(ids[(ids.indexOf(tokens.selected)+1)%ids.length]);holding=false;tokenUI.refresh(true);save();}
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') aimX = Math.max(-4.3, aimX - 0.4);
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') aimX = Math.min(4.3, aimX + 0.4);
+const keySide = { KeyQ: 'left', KeyW: 'middle', KeyE: 'right' };
+function releasePointer(e) {
+  const source = 'ptr:' + e.pointerId;
+  for (const lane of Object.values(lanes)) disengage(lane, source);
+}
+cv.tabIndex = 0;
+cv.setAttribute('aria-label', '推币机：Q 左槽，W 或空格中槽，E 右槽。鼠标左键、中键、右键对应三槽。轻触大肥鱼互动。');
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => {
+  pointRay(e.clientX, e.clientY);
+  if (inputOpen() && mascot.hitTest(ray)) { mascot.react('happy', 1.8); say('pet'); sfx.gate(); return; }
+  if (e.pointerType === 'touch' || !inputOpen() || e.button > 2) return;
+  const side = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
+  e.preventDefault();
+  engage(lanes[side], 'ptr:' + e.pointerId, { immediate: false });
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointers have no capture id */ }
 });
-addEventListener('keyup', e => { if (e.code === 'Space') holding = false; });
-const dropBtn = $('dropbtn');
-dropBtn.addEventListener('pointerdown', e => { e.preventDefault(); if(!inputOpen())return; holding=true;dropCoin();dropCd=feverT>0?.14:.2; });
-dropBtn.addEventListener('pointerup', () => holding = false);
-// Enter / assistive activation should work without a pointer; Space keeps hold-to-drop.
-dropBtn.addEventListener('click', e => { if(e.detail===0){dropCoin();updateHud(0);} });
-dropBtn.addEventListener('pointerleave', () => holding = false);
+addEventListener('pointerup', releasePointer);
+addEventListener('pointercancel', releasePointer);
+addEventListener('blur', () => releaseLaunchers(lanes));
+document.addEventListener('visibilitychange', () => { releaseLaunchers(lanes); clock.getDelta(); });
+addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('help').classList.contains('show')) { $('help').classList.remove('show'); releaseLaunchers(lanes); cv.focus({ preventScroll: true }); }
+  const chuteButtons = [$('chute-left'), $('dropbtn'), $('chute-right')];
+  if (e.code === 'Space' && (e.target === document.body || e.target === cv || chuteButtons.includes(e.target))) {
+    if (inputOpen() && !e.repeat) engage(lanes.middle, 'key:Space', { immediate: false });
+    e.preventDefault();
+  }
+  if (keySide[e.code] && inputOpen()) {
+    if (!e.repeat) engage(lanes[keySide[e.code]], 'key:' + e.code, { immediate: false });
+    e.preventDefault();
+  }
+  if (e.code === 'KeyR' && inputOpen() && !e.repeat) {
+    const ids = ['coin', ...Object.keys(tokens.bag).filter(k => tokens.bag[k] > 0)];
+    tokens.select(ids[(ids.indexOf(tokens.selected) + 1) % ids.length]);
+    releaseLaunchers(lanes); tokenUI.refresh(true); save();
+  }
+});
+addEventListener('keyup', e => {
+  if (e.code === 'Space') disengage(lanes.middle, 'key:Space');
+  if (keySide[e.code]) disengage(lanes[keySide[e.code]], 'key:' + e.code);
+});
+function bindChute(id, side) {
+  const button = $(id);
+  button.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    if (!inputOpen()) return;
+    const result = engage(lanes[side], 'ptr:' + e.pointerId, { immediate: true });
+    if (result.fired) dropCoin(side);
+    try { button.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointers have no capture id */ }
+  });
+  if (side === 'middle') button.addEventListener('click', e => { if (e.detail === 0) { dropCoin('middle'); updateHud(0); } });
+}
+bindChute('chute-left', 'left');
+bindChute('dropbtn', 'middle');
+bindChute('chute-right', 'right');
+$('exchange-btn').onclick = () => {
+  if (!run.exchange()) return;
+  sfx.gate(); bumpCoinHud(); arcadeToast(`兑到 ${EXCHANGE_GRANT} 枚投币`); save(); updateHud(0);
+};
+$('shake-btn').onclick = () => { if (!run.shake()) return; blastField('shake'); sfx.gate(); save(); updateHud(0); };
+function toggleDock(id, label) {
+  const panel = $(id); if (!panel) return;
+  panel.classList.toggle('is-docked');
+  const button = panel.querySelector('[data-dock]');
+  if (button) button.textContent = panel.classList.contains('is-docked') ? `展开${label}` : '收起';
+}
+$('dock-shop').onclick = () => toggleDock('run-modal', '补给');
+$('dock-help').onclick = () => toggleDock('help', '说明');
+$('dock-tokens').onclick = () => toggleDock('token-modal', '币仓');
+$('lottery-dock').onclick = () => toggleDock('lottery', '转盘');
+$('pick-reroll').onclick = () => { if (rerollPicks(run, pickOptions())) { sfx.tick(); save(); renderResult(true); } };
 $('btn-sound').onclick = e => { sfx.setEnabled(!sfx.enabled); e.currentTarget.classList.toggle('off', !sfx.enabled); };
 $('btn-music').onclick = e => { sfx.setMusic(!sfx.musicOn); e.currentTarget.classList.toggle('off', !sfx.musicOn); };
-$('btn-help').onclick = () => { holding=false; $('help').classList.toggle('show'); };
+$('btn-help').onclick = () => { releaseLaunchers(lanes); $('help').classList.toggle('show'); };
 $('art-credits').addEventListener('click', e => e.stopPropagation());
 $('help').onclick = () => { $('help').classList.remove('show'); cv.focus({preventScroll:true}); };
 $('btn-reset').onclick = () => { if (confirm('重置存档并重新开始？')) { resetting=true; localStorage.removeItem(SAVE_KEY); location.reload(); } };
@@ -724,7 +1000,7 @@ addEventListener('resize',queueResize);
 const hudObserver=new ResizeObserver(queueResize);hudObserver.observe($('hud-top'));hudObserver.observe($('hud-bottom'));hudObserver.observe(app);
 $('detail-toggle').onclick=()=>{
   const button=$('detail-toggle'), open=button.getAttribute('aria-expanded')!=='true';
-  button.setAttribute('aria-expanded',String(open));button.title=open?'收起计分详情':'展开计分详情';$('score-formula').hidden=!open;holding=false;resize();
+  button.setAttribute('aria-expanded',String(open));button.title=open?'收起计分详情':'展开计分详情';$('score-formula').hidden=!open;releaseLaunchers(lanes);resize();
 };
 resize();
 addEventListener('beforeunload', save);
@@ -741,20 +1017,22 @@ function frame() {
   composer.render();
 }
 function update(dt) {
-  if (!started || !run.active || $('help').classList.contains('show') || tokenUI?.isOpen() || mobileCabinet?.isMenuOpen() || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
+  if (!started || !run.active || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
 
-  // 投币器跟随
-  dropper.position.x += (aimX - dropper.position.x) * Math.min(1, dt * 14);
-  dropper.scale.y += (1 - dropper.scale.y) * Math.min(1, dt * 12);
-  dropCd -= dt;
-  if (holding && dropCd <= 0) { dropCoin(); dropCd = feverT > 0 ? 0.14 : 0.2; }
-  // 幸运门
+  for (const rig of Object.values(chuteRig)) rig.scale.y += (1 - rig.scale.y) * Math.min(1, dt * 12);
+  const swingScale = 1 + (run.relics.swing || 0) * 0.28;
+  const swingX = pendulumOffset(time, swingScale);
+  pendulum.position.x = swingX;
+  pendulum.rotation.z = swingX / 9;
+  const forward = pusherMovingForward(pushPhase);
+  chuteMat.side.emissiveIntensity = forward ? 0.9 : 0.18;
+  chuteMat.mid.emissiveIntensity = tokens.selected !== 'coin' ? 1.15 : forward ? 0.22 : 0.85;
+  if (inputOpen()) for (const side of stepLaunchers(lanes, dt)) dropCoin(side);
+  stepSlides(dt);
   gate.position.x = Math.sin(time * 1.05) * 3.3 + Math.sin(time * 2.3) * 0.5;
   const gateHalfWidth = GATE_HW + run.level('lucky') * 0.1;
   gate.scale.x = gateHalfWidth / GATE_HW;
-  const aligned = Math.abs(dropper.position.x - gate.position.x) < gateHalfWidth - 0.25;
-  laserMat.color.set(aligned ? '#3dff8a' : '#ff3d6e');
   gateMat.emissiveIntensity = 1.6 + Math.sin(time * 6) * 0.6 + (gate.userData.hitT > 0 ? 4 : 0);
   gate.userData.hitT = (gate.userData.hitT || 0) - dt;
 
@@ -840,12 +1118,12 @@ function update(dt) {
   // 相机：轻微呼吸 + 震动
   shake = Math.max(0, shake - dt * 1.5);
   const sx = (Math.random() - 0.5) * shake * 0.6, sy = (Math.random() - 0.5) * shake * 0.6;
-  camera.position.set(CAM_POS.x + Math.sin(time * 0.3) * 0.25 + aimX * 0.06 + sx, CAM_POS.y + Math.sin(time * 0.4) * 0.1 + sy, CAM_POS.z);
-  camera.lookAt(CAM_TARGET.x + aimX * 0.03, CAM_TARGET.y, CAM_TARGET.z);
+  camera.position.set(CAM_POS.x + Math.sin(time * 0.3) * 0.25 + sx, CAM_POS.y + Math.sin(time * 0.4) * 0.1 + sy, CAM_POS.z);
+  camera.lookAt(CAM_TARGET.x, CAM_TARGET.y, CAM_TARGET.z);
 
-  if (run.tick(dt, slot.spinning || slot.queue > 0 || showerQueue.length > 0 || slot.msgT > 0)) { holding=false; save(); }
+  if (run.tick(dt, slot.spinning || slot.queue > 0 || showerQueue.length > 0 || slot.msgT > 0)) { releaseLaunchers(lanes); save(); }
   updateHud(dt);
 }
 frame();
-tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>{holding=false;},sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,slotViewport:(mobileCabinet.mobile?slot.canvas.getBoundingClientRect().toJSON():null),environment:'whale-bay-pavilion',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, start: () => $('start-button').click() };
+tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>releaseLaunchers(lanes),sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
+window.__game = { get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,slotViewport:(mobileCabinet.mobile?slot.canvas.getBoundingClientRect().toJSON():null),environment:'whale-bay-pavilion',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };

@@ -10,7 +10,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:
 /* The game has its own viewport. HUD panels never sit on top of the cabinet. */
 :root{--rail-width:272px;--top-reserve:144px;--bottom-reserve:100px}
 #app{position:fixed;left:0;top:0;right:var(--rail-width);bottom:0;overflow:hidden;background:#10071e}
-#app canvas{display:block;cursor:crosshair;outline:none}#app canvas:focus-visible{outline:2px solid #6da6c7;outline-offset:-2px}
+#app canvas{display:block;cursor:default;outline:none}#app canvas:focus-visible{outline:2px solid #6da6c7;outline-offset:-2px}
 #hud{position:fixed;inset:0 0 0 auto;width:var(--rail-width);z-index:3;display:flex;flex-direction:column;gap:24px;padding:24px 20px;overflow-y:auto;touch-action:pan-y;pointer-events:auto;opacity:0;transition:opacity .4s;background:linear-gradient(180deg,#20122e,#140b21);border-left:1px solid #594366}
 #hud.show{opacity:1}
 #hud-top,#hud-bottom{flex-shrink:0}
@@ -42,8 +42,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:
 #hint{position:static;transform:none;background:none;padding:0;white-space:normal;color:#d1bedf;font-size:14px;line-height:1.6;text-align:left}
 #save-status{display:block;color:#bfe7ce;margin-top:4px}
 .mobile-instruction{display:none}
-#dropbtn{display:none;position:static;width:100%;min-height:48px;border:1px solid #ffda83;border-radius:8px;background:#ffda83;color:#2b173e;font-size:18px;font-weight:800;pointer-events:auto;box-shadow:none;text-shadow:none}
-@media(pointer:coarse) and (min-width:761px){#dropbtn{display:block}}
+#chute-pad{display:flex;flex-direction:column;gap:8px}#timing-lamp{margin:0;font-size:12px;line-height:1.45;color:#eadff3;text-align:center}#chute-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}#chute-row button,#play-actions button{font-family:inherit;cursor:pointer;touch-action:none}#chute-row button{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;min-height:56px;padding:4px;border:1px solid #ffda83;border-radius:14px;background:#ffda83;color:#2b173e;font-size:15px;font-weight:800;line-height:1.15}#chute-left,#chute-right{background:#d5f0ea;border-color:#8ec9c0;color:#14384a}#chute-row small,#play-actions small{font-size:10px;font-weight:700;letter-spacing:0;opacity:.75}#chute-row button.is-locked{outline:2px solid #ffe08a;outline-offset:1px}#play-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}#play-actions button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:42px;border-radius:10px;border:1px solid #8fb8c4;background:#17394c;color:#fff6d8;font-size:14px;font-weight:800}#play-actions button:disabled,#chute-row button:disabled{opacity:.55;cursor:default}
+#dropbtn{display:flex;position:static;width:100%;min-height:56px;border:1px solid #ffda83;border-radius:14px;background:#ffda83;color:#2b173e;font-size:15px;font-weight:800;pointer-events:auto;box-shadow:none;text-shadow:none}
 @media(max-width:760px){
   #app{right:0;top:var(--top-reserve);bottom:var(--bottom-reserve)}
   #hud{inset:0;width:auto;display:block;padding:0;background:none;border:0;overflow:visible;pointer-events:none}
@@ -59,7 +59,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#120722;font-family:
   .stat-label{display:inline;margin:0;font-size:14px}.num,#cash{font-size:18px;line-height:24px;display:inline}
   #total-score{display:flex;align-items:center;gap:6px;margin:0 0 0 auto;font-size:14px;line-height:24px;white-space:nowrap}
   #btns{display:grid;gap:4px;grid-template-columns:repeat(4,44px);grid-column:1;grid-row:1}#btns button{width:44px;min-width:44px;height:44px;font-size:18px}
-  #dropbtn{display:block;grid-column:2;grid-row:1;min-height:44px;font-size:18px}
+  #chute-pad{grid-column:1/3;grid-row:1}#dropbtn{min-height:48px;font-size:15px}
   #round-action{grid-column:1/3;grid-row:2;min-height:44px;padding:10px;font-size:16px}
   #hint{grid-column:1/3;text-align:center;font-size:14px;line-height:20px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
   .desktop-instruction{display:none}.mobile-instruction{display:inline}#save-status{display:inline;margin:0;font-size:14px}
@@ -174,6 +174,26 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 @media(max-width:760px){#token-controls{margin-top:6px}.token-toolbar{display:flex;gap:8px;align-items:center}#token-open{width:auto;flex:1;min-width:0}#token-field-status{margin:0;width:128px;font-size:14px;line-height:20px}#token-latest{display:none}#token-modal{padding:12px}.token-dialog{max-height:calc(100dvh - 24px);padding:16px}.token-dialog h2{font-size:22px}#token-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.token-card{padding:12px}.token-card h3{font-size:16px}#token-shop-cards{grid-template-columns:1fr}.token-tabs{gap:6px}.token-tabs button{padding:8px;font-size:14px}}
 @media(max-width:359px){#token-field-status{width:116px}#token-open{font-size:14px}#token-cards{grid-template-columns:1fr}}
 @media(max-height:580px) and (min-width:761px){#token-latest{display:none}#token-controls{margin-top:8px}#token-field-status{margin-top:4px}}
+#resources{flex-wrap:wrap}#energy-box{display:flex;align-items:center;gap:6px;flex:1 0 100%;min-width:0}#energy-count{font:700 12px Arial;color:#ffe7a8}.energy-track{flex:1;height:8px;border-radius:99px;background:#10283a;overflow:hidden;min-width:36px}#energy-bar{display:block;height:100%;width:0;background:linear-gradient(90deg,#7de0c2,#ffe08a);transition:width .2s ease}
+#coin-clip{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.clip-slot{min-width:44px;min-height:36px;padding:0 8px;border-radius:10px;border:1px solid #8fb8c4;background:#14384c;color:#fff6d8;font-weight:800;cursor:pointer}.clip-slot.armed{background:#ffe3a1;color:#1a3344;outline:2px solid #ffe08a}
+#pick-section{margin:0 0 14px}.pick-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;min-height:92px;padding:10px;border-radius:12px;border:1px solid #8fb8c4;background:#14344a;color:#f4efe2;cursor:pointer}#pick-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pick-card small{color:#9fd8c8}.pick-card strong{font-size:15px}.pick-card span{font-size:12px;line-height:1.45;color:#d5e6ea}.pick-card.chosen{outline:2px solid #ffe08a}.pick-card.rarity-rare{border-color:#e7c56d}.dock-handle{min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid #d7ebe4;background:#173e52;color:#fff6d8;font-weight:800;cursor:pointer}
+.result-header{position:relative}.result-header .dock-handle{position:absolute;right:0;top:0}
+#run-modal,#token-modal,#help,#lottery{transition:background .25s ease}
+.run-card,.token-dialog,#help .card,.lottery-card{transition:max-height .28s ease,transform .28s ease}
+#run-modal.is-docked{background:transparent;backdrop-filter:none;pointer-events:none;align-items:flex-end;justify-content:flex-start}
+#run-modal.is-docked .run-card{pointer-events:auto;max-height:72px;overflow:hidden;width:min(260px,86vw);margin:12px}
+#token-modal.is-docked{background:transparent;backdrop-filter:none;pointer-events:none;align-items:flex-start;justify-content:flex-end}
+#token-modal.is-docked .token-dialog{pointer-events:auto;max-height:64px;overflow:hidden;width:min(240px,80vw)}
+#help.show.is-docked{background:transparent;backdrop-filter:none;pointer-events:none;align-items:flex-start;justify-content:flex-end}
+#help.show.is-docked .card{pointer-events:auto;max-height:56px;overflow:hidden;width:min(220px,80vw)}
+#lottery{position:fixed;left:50%;top:14%;transform:translateX(-50%);z-index:8;width:min(320px,92vw);pointer-events:none}
+.lottery-card{pointer-events:auto;background:#10283bcc;border:2px solid #e7c56d;border-radius:16px;padding:12px 14px;color:#fff6d8;backdrop-filter:blur(8px)}
+#lottery-wheel{display:flex;gap:4px;margin:8px 0;font-size:11px}#lottery-wheel span{flex:1;padding:8px 2px;border-radius:8px;background:#1d4c62;text-align:center}
+#lottery-wheel.spin{animation:wheel-nudge .8s ease}
+@keyframes wheel-nudge{50%{transform:translateX(8px)}}
+#lottery.is-docked{top:auto;bottom:16px;left:12px;transform:none;width:168px}
+#lottery.is-docked .lottery-card{max-height:46px;overflow:hidden}
+@media(max-width:760px){#pick-cards{grid-template-columns:1fr}#run-modal.is-docked,#token-modal.is-docked,#help.show.is-docked{align-items:flex-start;justify-content:flex-end}#lottery{top:8%}}
 </style>
 <!--ARCADE_STYLE-->
 <!--MOBILE_STYLE-->
@@ -198,15 +218,27 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
       <div class="panel" id="coinbox"><span class="stat-label">◉ 可投</span><strong class="num" id="coins">0</strong></div>
       <div class="panel" id="colbox"><span class="stat-label">◒ 贝壳</span><strong id="cash">0</strong></div>
       <div id="total-score"><span>总分</span><b id="won">0</b></div>
+      <div id="energy-box" aria-label="能量抽奖"><span class="stat-label">能量</span><span class="energy-track"><i id="energy-bar"></i></span><b id="energy-count">0/8</b></div>
     </div>
-    <section id="token-controls" aria-label="代币选择与台面状态"><div class="token-toolbar"><button id="token-open" aria-haspopup="dialog">鲸 普通金币 · ∞ · 选择</button><small id="token-field-status">台面坏币 0 · 环境 ×1.00</small></div><p id="token-latest">首批代币已放入币仓 · 点此选择</p></section>
+    <section id="token-controls" aria-label="代币选择与台面状态"><div class="token-toolbar"><button id="token-open" aria-haspopup="dialog">鲸 普通金币 · ∞ · 选择</button><small id="token-field-status">台面坏币 0 · 环境 ×1.00</small></div><div id="coin-clip" aria-label="特殊币槽"></div><p id="token-latest">首批代币已放入币仓 · 点此选择</p></section>
   </div>
   <figure id="hud-character" aria-label="大肥鱼角色装饰"><img data-character="idle" alt="蓝发鲸尾女仆大肥鱼" draggable="false"><figcaption>今天也要满载而归</figcaption></figure>
   <div id="hud-bottom">
     <div id="btns"><button id="btn-sound" title="音效" aria-label="切换音效">🔊</button><button id="btn-music" title="音乐" aria-label="切换音乐">🎵</button><button id="btn-help" title="玩法" aria-label="玩法说明">❓</button><button id="btn-reset" title="重置" aria-label="重置本局">🔄</button></div>
-    <button id="dropbtn" aria-label="投一枚硬币"><span>投一枚幸运</span><small>DROP COIN · SPACE</small></button>
+    <div id="chute-pad">
+      <p id="timing-lamp">推板收回 · 左右槽落到中间</p>
+      <div id="chute-row" role="group" aria-label="投币槽">
+        <button id="chute-left" type="button" aria-label="左槽投币，长按连投并锁定"><span>左槽</span><small>Q · 左键</small></button>
+        <button id="dropbtn" type="button" aria-label="中槽投币，长按连投并锁定"><span>中槽</span><small>W · 空格</small></button>
+        <button id="chute-right" type="button" aria-label="右槽投币，长按连投并锁定"><span>右槽</span><small>E · 右键</small></button>
+      </div>
+      <div id="play-actions">
+        <button id="exchange-btn" type="button" aria-label="用入账票兑换投币"><span>兑币 +8</span><small>12票</small></button>
+        <button id="shake-btn" type="button" aria-label="摇动机台，每局一次"><span>摇台</span><small>本局 1 次</small></button>
+      </div>
+    </div>
     <button id="round-action" hidden disabled>达到目标分后可结算</button>
-    <div id="hint"><span class="desktop-instruction">移动瞄准 · 点击 / 长按 / 空格投币</span><span class="mobile-instruction">拖动瞄准 · 长按投币</span><span id="save-status">进度自动保存</span></div>
+    <div id="hint"><span class="desktop-instruction">Q 左槽 · W / 空格中槽 · E 右槽 · 长按锁定连投</span><span class="mobile-instruction">按住左、中、右槽 · 点按比长按更快</span><span id="save-status">进度自动保存</span></div>
   </div>
 </aside>
 <div id="start"><span class="start-orbit orbit-a" aria-hidden="true"></span><span class="start-orbit orbit-b" aria-hidden="true"></span><p class="start-eyebrow">WHALE ARCADE · 海边的幸运机台</p>
@@ -215,7 +247,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   <h2>DAFEIYU COIN PUSHER</h2>
   <button class="go" id="start-button">出海寻宝 · 开始 / 继续</button>
   <ul>
-    <li>01　有限投币，冲刺每关目标分</li>
+    <li>01　左右槽看推板，中槽稳落中间</li>
     <li>02　金币基础分 × 构筑倍率 × 连击加成</li>
     <li>03　19 种特殊币，组合种植与捕食流</li>
     <li>04　清除坏币，关间补给，挑战 8 关</li>
@@ -223,8 +255,9 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   <p class="fan-label">非官方同人 · 角色素材署名见玩法说明</p>
 </div>
 <div id="help"><div class="card">
+  <button id="dock-help" class="dock-handle" type="button" data-dock>收起</button>
   <h3>玩法说明</h3>
-  <p>投币器把硬币投到上层推板上；上层硬币被挡板刮落到下层，再被推板推向前沿。从<b>前沿</b>掉进出币口的硬币归你，从<b>两侧</b>漏掉的就没了。</p>
+  <p>左右两个投币槽会让硬币横向滑过推板：左槽向右滑，右槽向左滑。推板<b>向前</b>时硬币落在投入的那一侧；推板<b>收回</b>时滑到中间。同时按左右槽，两枚在中间相遇。中槽、W、空格或鼠标中键直接落在中间。从<b>前沿</b>掉进出币口的硬币归你，从<b>两侧</b>漏掉的就没了。</p>
   <table style="margin-top:10px">
     <tr><td>🐋🐋🐋</td><td>JACKPOT：40 枚金币雨 + 大肥鱼立牌 + 宝石</td></tr>
     <tr><td>777</td><td>20 枚金币雨</td></tr>
@@ -236,13 +269,17 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   </table>
   <p class="rules-note">普通币 / 大金币 / 宝石 / 玩偶分别为 10 / 100 / 200 / 300 基础分。普通币可被“金币抛光”强化。</p>
   <p class="rules-note">得分 = 基础分 × 构筑倍率 × 连击倍率 × FEVER。0.7 秒内连续进币，连击每次 +0.1，最高 ×1.5；FEVER ×2。</p>
-  <p class="rules-note">每关初始 50 次投币，赢币只加分、不返还投币次数，无免费投币额度补给。用完后等候落币；达标可提前结算。商店与说明界面暂停游戏。</p>
+  <p class="rules-note">每关初始 50 次投币，赢币只加分、不返还次数。按住约半秒锁定该槽并持续投出，再点一下解除；连续点按比按住更快。用完后等候落币；达标可提前结算。商店与说明界面暂停游戏。</p>
+  <p class="rules-note">每枚入账硬币给 1 张兑币票。每关可兑 2 次，先 12 票再 18 票，每次 +8 次投币；落币结算时也能兑，用来把额度补回来。每局另有 1 次免费摇台，把台面硬币抖向前沿。</p>
   <p class="rules-note">通关贝壳 = 8 + 关卡 ×2；每剩 5 次投币额外 +1（最多 +6），超额得分最多 +4。商店每次可刷新一次。</p>
   <p class="rules-note">每关保留台面和未完成抽奖，清除临时增益，再应用开局护墙。新模式单独存档，旧版存档保留。</p>
-  <p class="rules-note">特殊代币：点击「普通金币 · 选择」打开币仓，点击币面预览，再按「装填」替换下一次投币，仍消耗 1 次投币额度；Q 切换现有币。图鉴内可查看 19 种特殊币和 3 种坏币。打开币仓时暂停游戏。</p>
+  <p class="rules-note">特殊代币放进币槽，从中间摆槽射出。摆槽一直左右摇，硬币从它当下的位置落下，所以要卡时机。仍消耗 1 次投币额度。R 键轮换现有币。商店可以扩币槽。打开币仓时可以收起面板看台面。</p>
   <p class="rules-note">联动：种子 + 水滴长成摇钱树；虾米喂鱼、猫猫吃鱼鼠；母鸡跨关产蛋、蛋在下一关孵化；闪电充能，电池吸能；倍率印记不重复叠乘。跨关保留币仓、币值与净化次数。</p>
   <p class="rules-note">第 2 关起坏币入侵，之后每 12 次手动投币再来 1 枚，台面最多 8 枚坏币。锈蚀降低环境倍率；盗壳偷贝壳；腐蚀吞普通币。坏币进前沿扣分，最低 0 分，不触发连击。杀手币最多清 6 枚，每枚 +1 贝壳，清满后消耗。</p>
-  <p class="rules-note">每间商店可免费领 1 份代币补给，另可购买各一份；下一关自动补充 1 枚杀手币。特殊币的复制、产蛋与掉币不返还投币额度；台面总量上限 420 枚，爆破连锁单次最多 16 次。</p>
+  <p class="rules-note">商店的「松台销」每投入 20 枚就自动摇一次，不消耗免费摇台。已买推板改装时，摇台和爆破币的全场轰击更有力。爆破币投入时先把全场硬币轰向前沿，入账时再炸开周围的币。</p>
+  <p class="rules-note">每 8 枚入账硬币攒满能量，转动海湾转盘：金币雨、兑币票、贝壳、礼品、特殊币或币塔。海贝、小鲸玩偶和宝箱会落在台面上，被推进出币口才发奖。</p>
+  <p class="rules-note">过关后先从三张航路牌里选一张（芯片、特殊币或被动遗物），可以免费重抽一次。不选也能进入下一关，等于放弃。补给站、币仓和说明都能收成小标签，让出机台。</p>
+  <p class="rules-note">每间商店可免费领 1 份代币补给，另可购买各一份；下一关自动补充 1 枚杀手币，并在台面放一件礼品。特殊币的复制、产蛋与掉币不返还投币额度；台面总量上限 420 枚，爆破连锁单次最多 16 次。</p>
   <details id="art-credits"><summary>角色素材与同人声明</summary>
     <p>本游戏是非官方同人作品，与 DeepSeek 无关联、无官方背书。角色原型「溟月」：上善无形；深蓝女仆鲸鱼娘设定：ZipZipPipe；本作使用的 Q 版立绘：CrossPet（AI 辅助绘制）。本作仅作缩放压缩、裁切与游戏整合。</p>
     <p>角色美术及其改编部分按 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> 分享：署名、非商业、相同方式共享。代码单独采用 MIT；代码许可不覆盖角色美术、既有角色权利或商标。</p>
@@ -251,15 +288,16 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 </div></div>
 <div id="token-modal" hidden>
   <section class="token-dialog" role="dialog" aria-modal="true" aria-labelledby="token-title" aria-describedby="token-subtitle">
-    <header class="hold-header"><div><p class="eyebrow">THE WHALE'S TREASURE · NO. 019</p><h2 id="token-title">鲸鱼的百宝舱</h2><p id="token-subtitle"></p></div><div class="hold-header-right"><span id="bag-total">珍藏代币</span><button id="token-close" aria-label="关闭代币仓">×</button></div></header>
+    <header class="hold-header"><div><p class="eyebrow">THE WHALE'S TREASURE · NO. 019</p><h2 id="token-title">鲸鱼的百宝舱</h2><p id="token-subtitle"></p></div><div class="hold-header-right"><span id="bag-total">珍藏代币</span><button id="dock-tokens" class="dock-handle" type="button" data-dock>收起</button><button id="token-close" aria-label="关闭代币仓">×</button></div></header>
     <div class="hold-deck"><aside id="token-preview" class="token-preview"><span id="preview-group" class="eyebrow"></span><div class="porthole"><i class="orbit orbit-one"></i><i class="orbit orbit-two"></i><div id="preview-art"></div><span class="porthole-star star-a" aria-hidden="true"></span><span class="porthole-star star-b" aria-hidden="true"></span></div><h3 id="preview-name"></h3><div class="coin-stat"><strong id="preview-points"></strong><span>基础分</span><small id="preview-stock"></small></div><p id="preview-desc"></p><div class="recipe-label"><span>联动灵感</span><i></i></div><div id="preview-route" aria-label="相关代币示意"></div><p id="preview-tip"></p><button id="token-equip" class="arcade-primary">装填代币 →</button><p id="preview-atlas-note" hidden>图鉴模式 · 切回百宝舱即可装填</p></aside>
     <div class="hold-collection"><div class="token-tabs" role="tablist" aria-label="代币信息"><button id="token-tab-bag" role="tab" aria-selected="true">我的百宝舱</button><button id="token-tab-atlas" role="tab" aria-selected="false">联动图鉴 <span>22</span></button></div><div id="token-filters" aria-label="按构筑筛选"></div><div class="tray-heading"><span>挑选你的下一枚幸运</span><small>点击代币查看</small></div><div id="token-cards"></div><p id="token-event-log" role="status"></p></div></div>
   </section>
 </div>
 <div id="run-modal" hidden>
   <section class="run-card" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-describedby="result-target">
-    <header class="result-header"><span class="harbor-stamp" aria-hidden="true">⚓<small>PORT 08</small></span><p id="result-kicker">挑战完成</p><h2 id="result-title">大肥鱼补给站</h2></header>
+    <header class="result-header"><span class="harbor-stamp" aria-hidden="true">⚓<small>PORT 08</small></span><p id="result-kicker">挑战完成</p><h2 id="result-title">大肥鱼补给站</h2><button id="dock-shop" class="dock-handle" type="button" data-dock>收起</button></header>
     <div class="result-summary"><div><strong id="result-score">0</strong><p id="result-target"></p></div><p id="result-rewards"></p></div>
+    <section id="pick-section" hidden><div class="shop-heading"><h3>航路三选一</h3><button id="pick-reroll" type="button">重抽一次</button></div><div id="pick-cards"></div></section>
     <div class="harbor-layout"><aside class="harbor-vendor"><span class="eyebrow">DAFEIYU'S LITTLE DOCK</span><h3>满载靠港，<br>补点好东西！</h3><div class="vendor-scene"><span class="vendor-ring"></span><img data-character="happy" alt="大肥鱼在港口欢迎你" draggable="false"></div><p>「给下一场冒险，<br>准备一点小惊喜吧。」</p><span class="harbor-open"><i></i> 补给站营业中</span></aside><section id="shop-section">
       <div class="shop-heading"><h3>靠港补给</h3><div class="shell-wallet">◒ 贝壳 <strong id="shop-wallet">0</strong></div></div><div class="harbor-tabs" role="tablist" aria-label="补给站货架"><button id="shop-tab-upgrades" role="tab" aria-selected="true">机台改装</button><button id="shop-tab-supplies" role="tab" aria-selected="false">代币补给 <span id="free-pack-badge">免费 ×1</span></button></div>
       <div id="shop-cards"></div>
@@ -268,6 +306,14 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
     </section></div>
     <div class="build-summary"><span>当前构筑</span><p id="build-list"></p></div>
     <footer class="result-footer"><p id="next-preview"></p><button id="next-round" class="primary-action">下一关 →</button></footer>
+  </section>
+</div>
+<div id="lottery" hidden>
+  <section class="lottery-card" aria-live="polite">
+    <button id="lottery-dock" class="dock-handle" type="button" data-dock>收起</button>
+    <h3>能量转盘</h3>
+    <div id="lottery-wheel" aria-hidden="true"><span>金币雨</span><span>兑币票</span><span>贝壳</span><span>礼品</span><span>特殊币</span><span>币塔</span></div>
+    <p id="lottery-result">能量攒满，转盘启动</p>
   </section>
 </div>
 <div id="arcade-toast" role="status" aria-live="polite"></div>

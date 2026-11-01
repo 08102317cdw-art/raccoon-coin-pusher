@@ -16,7 +16,7 @@ export const TOKENS=Object.freeze({
  lightning:def('闪电币','雷','#e9d66c',25,'充能','触碰好币使其充能，币值额外 ×1.25；最多释放 6 次。'),
  battery:def('蓄电池币','电','#97ccdc',30,'充能','吸收附近币的充能，每次自身基础分 +20；最多 6 次。'),
  magnet:def('磁铁币','磁','#bd9bdf',30,'物理','每秒轻拉附近好币向自己聚拢；不吸坏币，可帮种植与充能接触。'),
- bomb:def('爆破币','爆','#e3a07b',40,'物理','从前沿入账时炸开周围币，向出币口助推；可引爆附近爆破币。'),
+ bomb:def('爆破币','爆','#e3a07b',40,'物理','投入时把全场硬币轰向前沿；从前沿入账时再炸开周围币，并可引爆附近爆破币。'),
  echo:def('回响币','回','#91c6e3',25,'增幅','入账时复制上一个入账的非回响特殊好币；没有记录则复制普通币。复制品不返还投币额度。'),
  relic:def('遗迹币','古','#d8c487',30,'成长','在台面上跨过每一关，自身基础分永久 +20，最多累积 +140。'),
  shrimp:def('虾米币','虾','#ecb6b2',20,'捕食','鱼鱼的食物。与鱼鱼接触会被吃掉，让鱼鱼基础分 +40。'),
@@ -50,16 +50,22 @@ const good=e=>!isBad(e.kind);
 export class TokenSystem {
  constructor(saved) {
   this.bag={...starter};this.selected='coin';this.uid=0;this.roundStamp=1;this.dropCount=0;this.lastGood='coin';this.claimed=false;this.packBought=[];this.shopStamp=0;this.shopOffers=[];this.eventLog=[];
+  this.clip=[];this.clipSize=2;
   if(saved&&typeof saved==='object') {
    this.bag={};for(const id of SPECIAL_IDS)if(id!=='tree')this.bag[id]=n(saved.bag?.[id],99);
    this.selected=saved.selected==='coin'||this.bag[saved.selected]>0?saved.selected:'coin';
    this.uid=n(saved.uid);this.roundStamp=n(saved.roundStamp,8)||1;this.dropCount=n(saved.dropCount,1000);this.lastGood=SPECIAL_IDS.includes(saved.lastGood)&&!['echo','tree','killer'].includes(saved.lastGood)?saved.lastGood:'coin';
    this.claimed=!!saved.claimed;this.shopStamp=n(saved.shopStamp,8);this.shopOffers=(saved.shopOffers||[]).filter(k=>PACKS[k]).slice(0,3);this.packBought=(saved.packBought||[]).filter(k=>PACKS[k]);
+   this.clipSize=Math.min(4,Math.max(2,n(saved.clipSize,4)||2));
+   this.clip=(Array.isArray(saved.clip)?saved.clip:[]).filter(id=>SPECIAL_IDS.includes(id)&&id!=='tree'&&this.bag[id]>0).slice(0,this.clipSize);
+   if(!this.clip.length&&this.selected!=='coin')this.clip=[this.selected];
   }
  }
  get remaining(){return Object.values(this.bag).reduce((a,b)=>a+b,0);}
- select(id){if(id!=='coin'&&!(this.bag[id]>0))return false;this.selected=id;return true;}
- consume(){let id=this.selected;if(id!=='coin'&&!(this.bag[id]>0))id='coin';if(id!=='coin'){this.bag[id]--;if(!this.bag[id])this.selected='coin';}this.dropCount++;return id;}
+ select(id){if(id!=='coin'&&!(this.bag[id]>0))return false;this.selected=id;if(id!=='coin'&&!this.clip.includes(id)){if(this.clip.length<this.clipSize)this.clip.push(id);else this.clip[this.clip.length-1]=id;}return true;}
+ armClip(index){const id=this.clip[index];if(!id)return false;return this.select(id);}
+ setClipSize(size){this.clipSize=Math.max(2,Math.min(4,size|0));this.clip=this.clip.filter(id=>this.bag[id]>0).slice(0,this.clipSize);}
+ consume(){let id=this.selected;if(id!=='coin'&&!(this.bag[id]>0))id='coin';if(id!=='coin'){this.bag[id]--;if(!this.bag[id]){this.selected='coin';this.clip=this.clip.filter(k=>k!==id);}}this.dropCount++;return id;}
  grant(items){for(const [k,v]of Object.entries(items))if(SPECIAL_IDS.includes(k)&&k!=='tree')this.bag[k]=Math.min(99,(this.bag[k]||0)+n(v,20));}
  prepareShop(round){if(this.shopStamp===round)return;const ids=Object.keys(PACKS).filter(k=>k!=='clean'),offset=(round-1)*2%ids.length;this.shopOffers=[ids[offset],ids[(offset+1)%ids.length],'clean'];this.shopStamp=round;this.claimed=false;this.packBought=[];}
  buyPack(id,run){if(run.phase!=='shop'||!this.shopOffers.includes(id)||this.packBought.includes(id)||run.cash<PACKS[id].cost)return false;run.cash-=PACKS[id].cost;this.grant(PACKS[id].items);this.packBought.push(id);return true;}
@@ -136,5 +142,5 @@ export class TokenSystem {
    for(const t of entities.filter(field))if(t!==e&&!t.tokenDead&&dist(e,t)<3.6){const dx=t.p.x-e.p.x;a.push(t,{x:dx*.22,y:.35,z:.85});if(t.kind==='bomb'&&!seen.has(t)&&seen.size<16){seen.add(t);queue.push(t);t.tokenDead=true;a.remove(t);}}
   }
  }
- serialize(){return {bag:this.bag,selected:this.selected,uid:this.uid,roundStamp:this.roundStamp,dropCount:this.dropCount,lastGood:this.lastGood,claimed:this.claimed,shopStamp:this.shopStamp,shopOffers:this.shopOffers,packBought:this.packBought};}
+ serialize(){return {bag:this.bag,selected:this.selected,uid:this.uid,roundStamp:this.roundStamp,dropCount:this.dropCount,lastGood:this.lastGood,claimed:this.claimed,shopStamp:this.shopStamp,shopOffers:this.shopOffers,packBought:this.packBought,clip:this.clip,clipSize:this.clipSize};}
 }
