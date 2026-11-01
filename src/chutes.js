@@ -18,19 +18,27 @@ export function pusherMovingForward(phase) {
   return Math.cos(phase) > 0;
 }
 
-export function planInsertion({ side = 'middle', phase = 0, pushMax = -0.5, special = false, both = false, jitter = 0 } = {}) {
+export function pendulumOffset(time, scale = 1) {
+  const spread = Number.isFinite(scale) ? Math.max(0.65, Math.min(1.8, scale)) : 1;
+  return Math.sin(time * 1.35) * 2.35 * spread;
+}
+
+export function planInsertion({ side = 'middle', phase = 0, pushMax = -0.5, special = false, both = false, jitter = 0, swing = null } = {}) {
   const front = pusherFrontZ(phase, pushMax);
   const forward = pusherMovingForward(phase);
   if (special) {
-    const x = Math.max(-1.1, Math.min(1.1, Math.sin(phase) * 0.45 + jitter));
+    const x = swing == null
+      ? Math.max(-1.1, Math.min(1.1, Math.sin(phase) * 0.45 + jitter))
+      : Math.max(-2.7, Math.min(2.7, swing + jitter));
     return {
       tier: 2,
       chute: 'pendulum',
       forward,
       travel: 1,
-      spawn: { x: Math.sin(phase) * 1.35, y: 4.4, z: -5.1 },
-      land: { x, y: 1.45, z: 1.05 },
-      duration: 0.48,
+      swing: x,
+      spawn: { x, y: 3.85, z: -3.55 },
+      land: { x, y: 1.42, z: 0.95 },
+      duration: 0.42,
     };
   }
   const resolved = both || side === 'middle' ? 'middle' : side === 'right' ? 'right' : side === 'left' ? 'left' : 'middle';

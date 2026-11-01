@@ -20,6 +20,12 @@ const assert = require('node:assert/strict');
     const paired = planInsertion({ side: 'left', phase, both: true });
     check(Math.abs(middle.land.x) < 0.05 && Math.abs(paired.land.x) < 0.05, 'middle and paired drops ignore pusher timing at ' + phase);
   }
+  const swung = planInsertion({ special: true, swing: 2.2 });
+  const centered = planInsertion({ special: true, swing: 0 });
+  check(Math.abs(swung.spawn.x - 2.2) < 0.05 && swung.land.x > 1.8 && swung.tier === 2, 'specials drop from the swinging chute position');
+  check(Math.abs(centered.land.x) < 0.05 && centered.land.z > 0.4, 'a centered pendulum lands on the lower middle');
+  const { pendulumOffset } = api;
+  check(pendulumOffset(Math.PI / 2 / 1.35) > 2 && Math.abs(pendulumOffset(Math.PI / 1.35)) < 0.05, 'the chute swings through both sides');
   const special = planInsertion({ special: true, phase: 0.4, side: 'left' });
   check(special.tier === 2 && special.chute === 'pendulum' && special.land.z > 0.4 && Math.abs(special.land.x) <= 1.1, 'specials leave the pendulum on the lower tier');
   check(special.land.z > 0, 'special landing stays in front of the pusher');

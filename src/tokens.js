@@ -50,16 +50,22 @@ const good=e=>!isBad(e.kind);
 export class TokenSystem {
  constructor(saved) {
   this.bag={...starter};this.selected='coin';this.uid=0;this.roundStamp=1;this.dropCount=0;this.lastGood='coin';this.claimed=false;this.packBought=[];this.shopStamp=0;this.shopOffers=[];this.eventLog=[];
+  this.clip=[];this.clipSize=2;
   if(saved&&typeof saved==='object') {
    this.bag={};for(const id of SPECIAL_IDS)if(id!=='tree')this.bag[id]=n(saved.bag?.[id],99);
    this.selected=saved.selected==='coin'||this.bag[saved.selected]>0?saved.selected:'coin';
    this.uid=n(saved.uid);this.roundStamp=n(saved.roundStamp,8)||1;this.dropCount=n(saved.dropCount,1000);this.lastGood=SPECIAL_IDS.includes(saved.lastGood)&&!['echo','tree','killer'].includes(saved.lastGood)?saved.lastGood:'coin';
    this.claimed=!!saved.claimed;this.shopStamp=n(saved.shopStamp,8);this.shopOffers=(saved.shopOffers||[]).filter(k=>PACKS[k]).slice(0,3);this.packBought=(saved.packBought||[]).filter(k=>PACKS[k]);
+   this.clipSize=Math.min(4,Math.max(2,n(saved.clipSize,4)||2));
+   this.clip=(Array.isArray(saved.clip)?saved.clip:[]).filter(id=>SPECIAL_IDS.includes(id)&&id!=='tree'&&this.bag[id]>0).slice(0,this.clipSize);
+   if(!this.clip.length&&this.selected!=='coin')this.clip=[this.selected];
   }
  }
  get remaining(){return Object.values(this.bag).reduce((a,b)=>a+b,0);}
- select(id){if(id!=='coin'&&!(this.bag[id]>0))return false;this.selected=id;return true;}
- consume(){let id=this.selected;if(id!=='coin'&&!(this.bag[id]>0))id='coin';if(id!=='coin'){this.bag[id]--;if(!this.bag[id])this.selected='coin';}this.dropCount++;return id;}
+ select(id){if(id!=='coin'&&!(this.bag[id]>0))return false;this.selected=id;if(id!=='coin'&&!this.clip.includes(id)){if(this.clip.length<this.clipSize)this.clip.push(id);else this.clip[this.clip.length-1]=id;}return true;}
+ armClip(index){const id=this.clip[index];if(!id)return false;return this.select(id);}
+ setClipSize(size){this.clipSize=Math.max(2,Math.min(4,size|0));this.clip=this.clip.filter(id=>this.bag[id]>0).slice(0,this.clipSize);}
+ consume(){let id=this.selected;if(id!=='coin'&&!(this.bag[id]>0))id='coin';if(id!=='coin'){this.bag[id]--;if(!this.bag[id]){this.selected='coin';this.clip=this.clip.filter(k=>k!==id);}}this.dropCount++;return id;}
  grant(items){for(const [k,v]of Object.entries(items))if(SPECIAL_IDS.includes(k)&&k!=='tree')this.bag[k]=Math.min(99,(this.bag[k]||0)+n(v,20));}
  prepareShop(round){if(this.shopStamp===round)return;const ids=Object.keys(PACKS).filter(k=>k!=='clean'),offset=(round-1)*2%ids.length;this.shopOffers=[ids[offset],ids[(offset+1)%ids.length],'clean'];this.shopStamp=round;this.claimed=false;this.packBought=[];}
  buyPack(id,run){if(run.phase!=='shop'||!this.shopOffers.includes(id)||this.packBought.includes(id)||run.cash<PACKS[id].cost)return false;run.cash-=PACKS[id].cost;this.grant(PACKS[id].items);this.packBought.push(id);return true;}
@@ -136,5 +142,5 @@ export class TokenSystem {
    for(const t of entities.filter(field))if(t!==e&&!t.tokenDead&&dist(e,t)<3.6){const dx=t.p.x-e.p.x;a.push(t,{x:dx*.22,y:.35,z:.85});if(t.kind==='bomb'&&!seen.has(t)&&seen.size<16){seen.add(t);queue.push(t);t.tokenDead=true;a.remove(t);}}
   }
  }
- serialize(){return {bag:this.bag,selected:this.selected,uid:this.uid,roundStamp:this.roundStamp,dropCount:this.dropCount,lastGood:this.lastGood,claimed:this.claimed,shopStamp:this.shopStamp,shopOffers:this.shopOffers,packBought:this.packBought};}
+ serialize(){return {bag:this.bag,selected:this.selected,uid:this.uid,roundStamp:this.roundStamp,dropCount:this.dropCount,lastGood:this.lastGood,claimed:this.claimed,shopStamp:this.shopStamp,shopOffers:this.shopOffers,packBought:this.packBought,clip:this.clip,clipSize:this.clipSize};}
 }
