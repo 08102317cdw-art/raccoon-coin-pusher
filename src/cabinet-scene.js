@@ -3,14 +3,12 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=3.2.0';
 import { buildDafeiyu } from './mascot.js?v=2.4.1';
-import { Sfx } from './audio.js';
-import { Slot } from './slot.js?v=3.2.0';
 import { dressCabinet } from './cabinet-details.js?v=2.4.1';
 import { finishCabinet } from './cabinet-finish.js?v=3.2.0';
 
 // Cabinet presentation stays separate from run rules and the simulation loop.
 // Factories are invoked at the original initialization points; no timing changes.
-export function createCabinetBase({ scene, world, staticBox, HALF_W, FRONT_Z, BACK_Z, GAP_Z, WALL_Z, PUSH_H, PUSH_BACK, PUSH_D, F_PUSH, chrome, orange, brown, darkMat, glass, onSlot }) {
+export function createCabinetBase({ scene, world, staticBox, HALF_W, FRONT_Z, BACK_Z, GAP_Z, WALL_Z, PUSH_H, PUSH_BACK, PUSH_D, F_PUSH, chrome, orange, brown, darkMat, glass }) {
   function meshBox(w, h, d, mat, x, y, z, rounded = 0, parent = scene) {
     const geo = rounded ? new RoundedBoxGeometry(w, h, d, 3, rounded) : new THREE.BoxGeometry(w, h, d);
     const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m;
@@ -55,17 +53,7 @@ export function createCabinetBase({ scene, world, staticBox, HALF_W, FRONT_Z, BA
   staticBox(HALF_W, 3.2, 0.15, 0, PUSH_H + 0.035 + 3.2, WALL_Z - 0.15, 0.1);
   const wt = wallTexture();
   meshBox(HALF_W * 2 + 0.3, 7.6, 0.3, new THREE.MeshStandardMaterial({ map: wt, roughness: 0.6, metalness: 0.2 }), 0, PUSH_H + 0.035 + 3.8, WALL_Z - 0.15,0,backboardGroup);
-  const slotSfx = new Sfx();
-  const slot = new Slot(slotSfx, o => onSlot(o));
   const SCREEN_W = 6.4, SCREEN_H = 3.6, SCREEN_Y = 5.55;
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN_W, SCREEN_H), new THREE.MeshBasicMaterial({ map: slot.texture, toneMapped: false }));
-  screen.position.set(0, SCREEN_Y, WALL_Z + 0.02); backboardGroup.add(screen);
-  screen.material.color.setScalar(0.92);
-  const frameMat = new THREE.MeshStandardMaterial({ color: '#ffc93c', metalness: 0.9, roughness: 0.25 });
-  meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y + SCREEN_H / 2 + 0.12, WALL_Z + 0.05, 0.1,backboardGroup);
-  meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y - SCREEN_H / 2 - 0.12, WALL_Z + 0.05, 0.1,backboardGroup);
-  meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, -SCREEN_W / 2 - 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1,backboardGroup);
-  meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, SCREEN_W / 2 + 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1,backboardGroup);
   // 顶部招牌
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.5), new THREE.MeshBasicMaterial({ map: textTexture('大肥鱼推币机', 1024, 170, { color: '#fff0a8', strokeColor: '#15547d', stroke: 22, font: '900 105px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif' }), transparent: true, toneMapped: false }));
   sign.position.set(0, SCREEN_Y + SCREEN_H / 2 + 1.05, WALL_Z + 0.1); backboardGroup.add(sign);
@@ -80,7 +68,7 @@ export function createCabinetBase({ scene, world, staticBox, HALF_W, FRONT_Z, BA
   const pusherMats = [chrome, chrome, new THREE.MeshStandardMaterial({ map: ptop, metalness: 0.85, roughness: 0.28 }), chrome, new THREE.MeshStandardMaterial({ map: stripeTexture('#ff7a18', '#ffc53d', 'PUSH'), metalness: 0.3, roughness: 0.35 }), chrome];
   const pusherMesh = new THREE.Mesh(new THREE.BoxGeometry((HALF_W - 0.03) * 2, PUSH_H, PUSH_D), pusherMats);
   pusherMesh.castShadow = pusherMesh.receiveShadow = true; scene.add(pusherMesh);
-  return { meshBox, guards, backboardGroup, slotSfx, slot, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh };
+  return { meshBox, guards, backboardGroup, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh };
 }
 
 export function createCabinetAccents({ scene, staticBox, meshBox, HALF_W, FRONT_Z, WALL_Z, GATE_Y, DROP_Z, TRAY_Y, SCREEN_W, SCREEN_H, SCREEN_Y, chrome, darkMat, coinFaceMat, getEffects }) {
@@ -110,17 +98,6 @@ export function createCabinetAccents({ scene, staticBox, meshBox, HALF_W, FRONT_
   const basket = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.28, 0.9), chuteMat.mid); basket.castShadow = true; pendulum.add(basket);
   const chuteLip = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.1, 0.18), chrome); chuteLip.position.set(0, -0.1, 0.42); pendulum.add(chuteLip);
   pendulum.position.set(0, 4.05, -3.55); scene.add(pendulum);
-
-  const gate = new THREE.Group(); scene.add(gate);
-  const GATE_HW = 0.62;
-  const gatePath = new THREE.CatmullRomCurve3([[-GATE_HW, 0, -0.5], [GATE_HW, 0, -0.5], [GATE_HW, 0, 0.5], [-GATE_HW, 0, 0.5]].map(a => new THREE.Vector3(...a)), true, 'catmullrom', 0.05);
-  const gateMat = new THREE.MeshStandardMaterial({ color: '#a0d5c4', emissive: '#65c1ad', emissiveIntensity: 1.0, roughness: 0.3 });
-  gate.add(new THREE.Mesh(new THREE.TubeGeometry(gatePath, 64, 0.06, 10, true), gateMat));
-  const gateLabel = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), new THREE.MeshBasicMaterial({ map: textTexture('LUCKY', 256, 64, { color: '#b6ffcb', strokeColor: '#0a4020', stroke: 8 }), transparent: true, toneMapped: false, depthWrite: false }));
-  gateLabel.position.set(0, 0.32, -0.5); gate.add(gateLabel);
-  const gateArm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8), chrome); gateArm.rotation.x = Math.PI / 2; gateArm.position.set(0, 0, -0.95); gate.add(gateArm);
-  const gateRail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, HALF_W * 2, 12), chrome); gateRail.rotation.z = Math.PI / 2; gateRail.position.set(0, GATE_Y, WALL_Z + 0.08); scene.add(gateRail);
-  gate.position.set(0, GATE_Y, DROP_Z);
 
   // ================== LED 灯泡 ==================
   const ledPos = [];
@@ -165,7 +142,7 @@ export function createCabinetAccents({ scene, staticBox, meshBox, HALF_W, FRONT_
   mascot.root.position.set(-HALF_W - 1.55, 2.73, -1.2); mascot.root.scale.setScalar(1.25); mascot.root.rotation.y = 0.55;
   mascot.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(mascot.root);
-  return { chuteMat, chuteRig, pendulum, gate, GATE_HW, gateMat, ledPos, leds, updateLeds, mascot };
+  return { chuteMat, chuteRig, pendulum, ledPos, leds, updateLeds, mascot };
 }
 
 export function createCabinetParticles(scene) {
