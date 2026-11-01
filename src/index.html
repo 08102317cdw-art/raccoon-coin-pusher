@@ -197,6 +197,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 </style>
 <!--ARCADE_STYLE-->
 <!--MOBILE_STYLE-->
+<!--POCKET_STYLE-->
 </head>
 <body>
 <div id="app"></div>
@@ -218,7 +219,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
       <div class="panel" id="coinbox"><span class="stat-label">◉ 可投</span><strong class="num" id="coins">0</strong></div>
       <div class="panel" id="colbox"><span class="stat-label">◒ 贝壳</span><strong id="cash">0</strong></div>
       <div id="total-score"><span>总分</span><b id="won">0</b></div>
-      <div id="energy-box" aria-label="能量抽奖"><span class="stat-label">能量</span><span class="energy-track"><i id="energy-bar"></i></span><b id="energy-count">0/8</b></div>
+      <div id="energy-box" aria-label="连击奖励蓄能"><span class="stat-label">连击蓄能</span><span class="energy-track"><i id="energy-bar"></i></span><b id="energy-count">0/8</b></div>
     </div>
     <section id="token-controls" aria-label="代币选择与台面状态"><div class="token-toolbar"><button id="token-open" aria-haspopup="dialog">鲸 普通金币 · ∞ · 选择</button><small id="token-field-status">台面坏币 0 · 环境 ×1.00</small></div><div id="coin-clip" aria-label="特殊币槽"></div><p id="token-latest">首批代币已放入币仓 · 点此选择</p></section>
   </div>
@@ -258,15 +259,6 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   <button id="dock-help" class="dock-handle" type="button" data-dock>收起</button>
   <h3>玩法说明</h3>
   <p>左右两个投币槽会让硬币横向滑过推板：左槽向右滑，右槽向左滑。推板<b>向前</b>时硬币落在投入的那一侧；推板<b>收回</b>时滑到中间。同时按左右槽，两枚在中间相遇。中槽、W、空格或鼠标中键直接落在中间。从<b>前沿</b>掉进出币口的硬币归你，从<b>两侧</b>漏掉的就没了。</p>
-  <table style="margin-top:10px">
-    <tr><td>🐋🐋🐋</td><td>JACKPOT：40 枚金币雨 + 大肥鱼立牌 + 宝石</td></tr>
-    <tr><td>777</td><td>20 枚金币雨</td></tr>
-    <tr><td>$$$</td><td>10 枚金币</td></tr>
-    <tr><td>⭐⭐⭐</td><td>护墙升起 30 秒，两侧不漏币</td></tr>
-    <tr><td>🔔🔔🔔</td><td>掉落大金币 / 宝石奖品</td></tr>
-    <tr><td>🍒🍒🍒</td><td>超级推板 18 秒，推程加长</td></tr>
-    <tr><td>FEVER</td><td>4 秒内连续赢 9 枚触发，得分翻倍</td></tr>
-  </table>
   <p class="rules-note">普通币 / 大金币 / 宝石 / 玩偶分别为 10 / 100 / 200 / 300 基础分。普通币可被“金币抛光”强化。</p>
   <p class="rules-note">得分 = 基础分 × 构筑倍率 × 连击倍率 × FEVER。0.7 秒内连续进币，连击每次 +0.1，最高 ×1.5；FEVER ×2。</p>
   <p class="rules-note">每关初始 50 次投币，赢币只加分、不返还次数。按住约半秒锁定该槽并持续投出，再点一下解除；连续点按比按住更快。用完后等候落币；达标可提前结算。商店与说明界面暂停游戏。</p>
@@ -277,8 +269,8 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   <p class="rules-note">联动：种子 + 水滴长成摇钱树；虾米喂鱼、猫猫吃鱼鼠；母鸡跨关产蛋、蛋在下一关孵化；闪电充能，电池吸能；倍率印记不重复叠乘。跨关保留币仓、币值与净化次数。</p>
   <p class="rules-note">第 2 关起坏币入侵，之后每 12 次手动投币再来 1 枚，台面最多 8 枚坏币。锈蚀降低环境倍率；盗壳偷贝壳；腐蚀吞普通币。坏币进前沿扣分，最低 0 分，不触发连击。杀手币最多清 6 枚，每枚 +1 贝壳，清满后消耗。</p>
   <p class="rules-note">商店的「松台销」每投入 20 枚就自动摇一次，不消耗免费摇台。已买推板改装时，摇台和爆破币的全场轰击更有力。爆破币投入时先把全场硬币轰向前沿，入账时再炸开周围的币。</p>
-  <p class="rules-note">每 8 枚入账硬币攒满能量，转动海湾转盘：金币雨、兑币票、贝壳、礼品、特殊币或币塔。海贝、小鲸玩偶和宝箱会落在台面上，被推进出币口才发奖。</p>
-  <p class="rules-note">过关后先从三张航路牌里选一张（芯片、特殊币或被动遗物），可以免费重抽一次。不选也能进入下一关，等于放弃。补给站、币仓和说明都能收成小标签，让出机台。</p>
+  <p class="rules-note">连续入账积攒连击，断连后吊绳轮盘降下开奖，结束后自动收回。当前奖励与精确数值仍在对照原版核验：金币雨、兑币票、贝壳、礼品、特殊币或币塔。海贝、小鲸玩偶和宝箱会落在台面上，被推进出币口才发奖。</p>
+  <p class="rules-note">过关后先从三张航路牌里选一张（芯片、特殊币或被动遗物），可以免费重抽一次。不选也能进入下一关，等于放弃。补给站和币仓都是机台内的舱门，可收回查看台面。</p>
   <p class="rules-note">每间商店可免费领 1 份代币补给，另可购买各一份；下一关自动补充 1 枚杀手币，并在台面放一件礼品。特殊币的复制、产蛋与掉币不返还投币额度；台面总量上限 420 枚，爆破连锁单次最多 16 次。</p>
   <details id="art-credits"><summary>角色素材与同人声明</summary>
     <p>本游戏是非官方同人作品，与 DeepSeek 无关联、无官方背书。角色原型「溟月」：上善无形；深蓝女仆鲸鱼娘设定：ZipZipPipe；本作使用的 Q 版立绘：CrossPet（AI 辅助绘制）。本作仅作缩放压缩、裁切与游戏整合。</p>
@@ -288,7 +280,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 </div></div>
 <div id="token-modal" hidden>
   <section class="token-dialog" role="dialog" aria-modal="true" aria-labelledby="token-title" aria-describedby="token-subtitle">
-    <header class="hold-header"><div><p class="eyebrow">THE WHALE'S TREASURE · NO. 019</p><h2 id="token-title">鲸鱼的百宝舱</h2><p id="token-subtitle"></p></div><div class="hold-header-right"><span id="bag-total">珍藏代币</span><button id="dock-tokens" class="dock-handle" type="button" data-dock>收起</button><button id="token-close" aria-label="关闭代币仓">×</button></div></header>
+    <header class="hold-header"><div><p class="eyebrow">THE WHALE'S TREASURE · NO. 019</p><h2 id="token-title">代币装填舱</h2><p id="token-subtitle"></p></div><div class="hold-header-right"><span id="bag-total">珍藏代币</span><button id="dock-tokens" class="dock-handle" type="button" data-dock>收起</button><button id="token-close" aria-label="关闭代币仓">×</button></div></header>
     <div class="hold-deck"><aside id="token-preview" class="token-preview"><span id="preview-group" class="eyebrow"></span><div class="porthole"><i class="orbit orbit-one"></i><i class="orbit orbit-two"></i><div id="preview-art"></div><span class="porthole-star star-a" aria-hidden="true"></span><span class="porthole-star star-b" aria-hidden="true"></span></div><h3 id="preview-name"></h3><div class="coin-stat"><strong id="preview-points"></strong><span>基础分</span><small id="preview-stock"></small></div><p id="preview-desc"></p><div class="recipe-label"><span>联动灵感</span><i></i></div><div id="preview-route" aria-label="相关代币示意"></div><p id="preview-tip"></p><button id="token-equip" class="arcade-primary">装填代币 →</button><p id="preview-atlas-note" hidden>图鉴模式 · 切回百宝舱即可装填</p></aside>
     <div class="hold-collection"><div class="token-tabs" role="tablist" aria-label="代币信息"><button id="token-tab-bag" role="tab" aria-selected="true">我的百宝舱</button><button id="token-tab-atlas" role="tab" aria-selected="false">联动图鉴 <span>22</span></button></div><div id="token-filters" aria-label="按构筑筛选"></div><div class="tray-heading"><span>挑选你的下一枚幸运</span><small>点击代币查看</small></div><div id="token-cards"></div><p id="token-event-log" role="status"></p></div></div>
   </section>
@@ -299,9 +291,9 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
     <div class="result-summary"><div><strong id="result-score">0</strong><p id="result-target"></p></div><p id="result-rewards"></p></div>
     <section id="pick-section" hidden><div class="shop-heading"><h3>航路三选一</h3><button id="pick-reroll" type="button">重抽一次</button></div><div id="pick-cards"></div></section>
     <div class="harbor-layout"><aside class="harbor-vendor"><span class="eyebrow">DAFEIYU'S LITTLE DOCK</span><h3>满载靠港，<br>补点好东西！</h3><div class="vendor-scene"><span class="vendor-ring"></span><img data-character="happy" alt="大肥鱼在港口欢迎你" draggable="false"></div><p>「给下一场冒险，<br>准备一点小惊喜吧。」</p><span class="harbor-open"><i></i> 补给站营业中</span></aside><section id="shop-section">
-      <div class="shop-heading"><h3>靠港补给</h3><div class="shell-wallet">◒ 贝壳 <strong id="shop-wallet">0</strong></div></div><div class="harbor-tabs" role="tablist" aria-label="补给站货架"><button id="shop-tab-upgrades" role="tab" aria-selected="true">机台改装</button><button id="shop-tab-supplies" role="tab" aria-selected="false">代币补给 <span id="free-pack-badge">免费 ×1</span></button></div>
+      <div class="shop-heading"><h3>补给货架</h3><div class="shell-wallet">◒ 贝壳 <strong id="shop-wallet">0</strong></div></div><div class="harbor-tabs" role="tablist" aria-label="补给站货架"><button id="shop-tab-upgrades" role="tab" aria-selected="true">机台改装</button><button id="shop-tab-supplies" role="tab" aria-selected="false">代币补给 <span id="free-pack-badge">免费 ×1</span></button></div>
       <div id="shop-cards"></div>
-      <section id="token-shop" hidden><h3>鲸鱼邮局 · 组合补给包</h3><p id="token-shop-note"></p><div id="token-shop-cards"></div></section>
+      <section id="token-shop" hidden><h3>特殊币补给匣</h3><p id="token-shop-note"></p><div id="token-shop-cards"></div></section>
       <div class="shop-tools" id="shop-tools"><span>每件商品每次货架限购一件</span><button id="reroll-shop">刷新货架 · 3 贝壳</button></div>
     </section></div>
     <div class="build-summary"><span>当前构筑</span><p id="build-list"></p></div>
@@ -311,9 +303,9 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 <div id="lottery" hidden>
   <section class="lottery-card" aria-live="polite">
     <button id="lottery-dock" class="dock-handle" type="button" data-dock>收起</button>
-    <h3>能量转盘</h3>
+    <h3>连击奖励轮</h3>
     <div id="lottery-wheel" aria-hidden="true"><span>金币雨</span><span>兑币票</span><span>贝壳</span><span>礼品</span><span>特殊币</span><span>币塔</span></div>
-    <p id="lottery-result">能量攒满，转盘启动</p>
+    <p id="lottery-result">连击结束后开奖</p>
   </section>
 </div>
 <div id="arcade-toast" role="status" aria-live="polite"></div>

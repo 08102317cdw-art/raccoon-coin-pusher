@@ -7,7 +7,7 @@ export const UPGRADES = Object.freeze({
   reserve: { name: '扩容币仓', icon: '▤', desc: '之后每关的投币额度 +8', cost: 10, step: 5, max: 5, color: 'cyan' },
   push: { name: '推板改装', icon: '→', desc: '永久增加推板行程 0.12', cost: 10, step: 5, max: 5, color: 'gold' },
   guard: { name: '开局护墙', icon: '◇', desc: '每关开局护墙 +6 秒', cost: 8, step: 4, max: 5, color: 'cyan' },
-  lucky: { name: '幸运门扩展', icon: '♧', desc: 'LUCKY 门有效宽度 +0.20', cost: 10, step: 5, max: 4, color: 'pink' },
+  lucky: { name: '轮盘加码', icon: '♧', desc: '金币雨每级额外落下 4 枚金币', cost: 10, step: 5, max: 4, color: 'pink' },
   fever: { name: '狂热电池', icon: 'ϟ', desc: '每次 FEVER 持续时间 +3 秒', cost: 8, step: 4, max: 4, color: 'pink' },
   supply: { name: '应急币袋', icon: '+', desc: '仅下一关额外获得 12 次投币', cost: 5, step: 0, max: 1, color: 'gold' },
   pin: { name: '松台销', icon: '⌁', desc: '每投入 20 枚，机台自动摇晃一次，不消耗本局仅有的一次手动摇台。已有推板改装时，摇动和全场轰击更有力。', cost: 8, step: 0, max: 1, color: 'cyan' },
@@ -75,8 +75,7 @@ export class Run {
     const points = Math.round(base * factor);
     this.score = Math.min(1e9, this.score + points); this.total = Math.min(1e9, this.total + points);
     this.tickets = Math.min(9999, this.tickets + 1 + (this.relics?.purse || 0));
-    this.energy += 1 + (this.relics?.tide || 0);
-    while (this.energy >= 8 && this.pendingSpin < 4) { this.energy -= 8; this.pendingSpin++; }
+    // Wheel energy belongs to a continuous combo, not cumulative banked coins.
     return { base, factor, points };
   }
   penalize(amount) {
