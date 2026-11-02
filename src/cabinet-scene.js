@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=4.0.0';
-import { buildDafeiyu } from './mascot.js?v=4.0.0';
-import { dressCabinet } from './cabinet-details.js?v=4.0.0';
-import { finishCabinet } from './cabinet-finish.js?v=4.0.0';
+import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=4.2.0';
+import { buildDafeiyu } from './mascot.js?v=4.2.0';
+import { dressCabinet } from './cabinet-details.js?v=4.2.0';
+import { loadCabinetModel } from './cabinet-model.js?v=4.2.0';
+import { finishCabinet } from './cabinet-finish.js?v=4.2.0';
 
 // Cabinet presentation stays separate from run rules and the simulation loop.
 // Factories are invoked at the original initialization points; no timing changes.
@@ -65,40 +66,17 @@ export function createCabinetBase({ scene, world, staticBox, HALF_W, FRONT_Z, BA
   const pusherBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, PUSH_H / 2, PUSH_BACK - PUSH_D / 2));
   world.createCollider(RAPIER.ColliderDesc.cuboid(HALF_W - 0.03, PUSH_H / 2, PUSH_D / 2).setFriction(F_PUSH).setRestitution(0), pusherBody);
   const ptop = plateTexture(); ptop.repeat.set(4, 2.4);
-  const pusherMats = [chrome, chrome, new THREE.MeshStandardMaterial({ map: ptop, metalness: 0.85, roughness: 0.28 }), chrome, new THREE.MeshStandardMaterial({ map: stripeTexture('#ff7a18', '#ffc53d', 'PUSH'), metalness: 0.3, roughness: 0.35 }), chrome];
+  const pusherMats = [chrome, chrome, new THREE.MeshStandardMaterial({ map: ptop, metalness: 0.65, roughness: 0.4 }), chrome, new THREE.MeshStandardMaterial({ map: stripeTexture('#ff7a18', '#ffc53d', 'PUSH'), metalness: 0.3, roughness: 0.35 }), chrome];
   const pusherMesh = new THREE.Mesh(new THREE.BoxGeometry((HALF_W - 0.03) * 2, PUSH_H, PUSH_D), pusherMats);
   pusherMesh.castShadow = pusherMesh.receiveShadow = true; scene.add(pusherMesh);
   return { meshBox, guards, backboardGroup, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh };
 }
 
-export function createCabinetAccents({ scene, staticBox, meshBox, HALF_W, FRONT_Z, WALL_Z, GATE_Y, DROP_Z, TRAY_Y, SCREEN_W, SCREEN_H, SCREEN_Y, chrome, darkMat, coinFaceMat, getEffects }) {
+export async function createCabinetAccents({ scene, staticBox, meshBox, HALF_W, FRONT_Z, WALL_Z, GATE_Y, DROP_Z, TRAY_Y, SCREEN_W, SCREEN_H, SCREEN_Y, chrome, darkMat, coinFaceMat, getEffects }) {
   const tmpM = new THREE.Matrix4();
   // ================== 固定投币槽 + 幸运门 ==================
-  const chuteMat = {
-    side: new THREE.MeshStandardMaterial({ color: '#9fd8cf', emissive: '#1c6f68', emissiveIntensity: 0.25, metalness: 0.48, roughness: 0.34 }),
-    mid: new THREE.MeshStandardMaterial({ color: '#e8c56d', emissive: '#a07820', emissiveIntensity: 0.4, metalness: 0.58, roughness: 0.3 }),
-  };
-  const chuteRig = {};
-  function buildChute(side) {
-    const g = new THREE.Group();
-    const mat = chuteMat.side;
-    const tray = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.14, 0.8), mat);
-    tray.castShadow = tray.receiveShadow = true; g.add(tray);
-    const lipMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.13, 0.08), chrome);
-    lipMesh.position.z = 0.42; g.add(lipMesh);
-    const backLip=lipMesh.clone();backLip.position.z=-.42;g.add(backLip);
-    const mouthX = side === 'left' ? -4.9 : 4.9;
-    g.position.set(mouthX, 1.46, -4.7);
-    g.rotation.z=side==='left'?-.12:.12;
-    scene.add(g); chuteRig[side] = g; return g;
-  }
-  // 两个侧向普通币滑槽，中间没有固定普通投币口。
-  buildChute('left'); buildChute('right');
-  const pendulum = new THREE.Group();
-  const hanger = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.2, 8), chuteMat.mid); hanger.position.y = 0.6; pendulum.add(hanger);
-  const basket = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.16, 0.64), chuteMat.mid); basket.castShadow = true; pendulum.add(basket);
-  const chuteLip = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.08, 0.12), chrome); chuteLip.position.set(0, -0.06, 0.32); pendulum.add(chuteLip);
-  pendulum.position.set(0, 4.05, .85); scene.add(pendulum);
+  const model=await loadCabinetModel(scene);
+  const {chuteMat,chuteRig,pendulum}=model;
 
   // ================== LED 灯泡 ==================
   const ledPos = [];
@@ -133,17 +111,12 @@ export function createCabinetAccents({ scene, staticBox, meshBox, HALF_W, FRONT_
   // 出币托盘
   staticBox(HALF_W, 0.2, 1.3, 0, TRAY_Y - 0.2, FRONT_Z + 1.4);
   staticBox(HALF_W, 0.8, 0.1, 0, TRAY_Y + 0.5, FRONT_Z + 2.75);
-  meshBox(HALF_W * 2 + 0.3, 0.4, 2.8, new THREE.MeshStandardMaterial({ color: '#123047', metalness: 0.6, roughness: 0.3 }), 0, TRAY_Y - 0.2, FRONT_Z + 1.4);
-  const trayFront = meshBox(HALF_W * 2 + 2.4, 1.8, 0.3, new THREE.MeshStandardMaterial({ map: stripeTexture('#4389b5', '#d3eef5', 'WIN!'), roughness: 0.4, metalness: 0.2 }), 0, TRAY_Y + 0.1, FRONT_Z + 2.9, 0.1);
-  meshBox(HALF_W * 2 + 2.4, 3, 0.3, darkMat, 0, TRAY_Y - 2.4, FRONT_Z + 2.9);
-  meshBox(HALF_W * 2 + 0.2, 2.6, 0.2, darkMat, 0, -1.6, FRONT_Z + 0.05);
-
   // ================== 吉祥物 ==================
   const mascot = buildDafeiyu(coinFaceMat);
   mascot.root.position.set(-HALF_W - 1.55, 2.73, -1.2); mascot.root.scale.setScalar(1.25); mascot.root.rotation.y = 0.55;
   mascot.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(mascot.root);
-  return { chuteMat, chuteRig, pendulum, ledPos, leds, updateLeds, mascot };
+  return { model, chuteMat, chuteRig, pendulum, ledPos, leds, updateLeds, mascot };
 }
 
 export function createCabinetParticles(scene) {

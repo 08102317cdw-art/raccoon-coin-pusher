@@ -139,10 +139,10 @@ export class Sfx {
     if(tier>=2)this.tone('triangle',196,98,.16,.12);
     if(tier===3){this.duckMusic(.65);this.tone('sine',65,40,.27,.18);}
   }
-  duckMusic(amount=.6) {
+  duckMusic(amount=.6,seconds=.3) {
     if(!this.music)return;
     const t=this.t,g=this.music.gain;
-    g.cancelScheduledValues(t);g.setTargetAtTime(.16*(1-amount),t,.025);g.setTargetAtTime(.16,t+.3,.16);
+    g.cancelScheduledValues(t);g.setTargetAtTime(.16*(1-amount),t,.025);g.setTargetAtTime(.16,t+seconds,.16);
   }
 
   // ---------- 背景音乐：轻快的循环 ----------

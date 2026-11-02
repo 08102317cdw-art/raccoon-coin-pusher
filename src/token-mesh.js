@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { TOKENS, isBad } from './tokens.js?v=4.0.0';
-import { paintEmblem } from './token-art.js?v=4.0.0';
+import { TOKENS, isBad } from './tokens.js?v=4.2.0';
+import { paintEmblem } from './token-art.js?v=4.2.0';
 const cache=new Map(),geometries=new Map();
 const chargeGeo=new THREE.TorusGeometry(.555,.028,6,32),multiGeo=new THREE.TorusGeometry(.485,.023,6,32);
 const chargeMat=new THREE.MeshBasicMaterial({color:'#79d5d2',toneMapped:false}),multiMat=new THREE.MeshBasicMaterial({color:'#f3b3df',toneMapped:false});

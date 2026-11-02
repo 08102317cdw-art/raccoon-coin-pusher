@@ -1,5 +1,5 @@
-import { coinArt } from './token-art.js?v=4.0.0';
-import { TOKENS } from './tokens.js?v=4.0.0';
+import { coinArt } from './token-art.js?v=4.2.0';
+import { TOKENS } from './tokens.js?v=4.2.0';
 
 // 航路选择、收藏与战报共用真实局内数据，不重建物理画布。
 export function createVoyageUI({crew,difficulties,journal,resume,getRun,getTokens,onEndless}) {

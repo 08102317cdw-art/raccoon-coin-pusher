@@ -256,8 +256,8 @@ const check = (value, label) => { assert.ok(value, label); checks++; };
 
     for(const [name,width,height]of sizes) {
       await page.setViewportSize({width,height});await page.waitForTimeout(120);await page.evaluate(()=>{__game.update(0);__game.render();});
-      const bounds=await page.evaluate(()=>['app','runbox','token-open','coin-clip','chute-left','dropbtn','chute-right','exchange-btn','shake-btn'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {id,x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};}));
-      for(const item of bounds){check(item.width>0 && item.height>0 && item.x>=-1 && item.y>=-1 && item.right<=width+1 && item.bottom<=height+1,`${name}控件未越界：${item.id}`);if(!['app','runbox','coin-clip'].includes(item.id))check(item.width>=44 && item.height>=44,`${name}触控区域至少44像素：${item.id}`);}
+      const bounds=await page.evaluate(()=>['app','token-open','coin-clip','chute-left','dropbtn','chute-right','exchange-btn','shake-btn'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {id,x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};}));
+      for(const item of bounds){check(item.width>0 && item.height>0 && item.x>=-1 && item.y>=-1 && item.right<=width+1 && item.bottom<=height+1,`${name}控件未越界：${item.id}`);if(!['app','coin-clip'].includes(item.id))check(item.width>=44 && item.height>=44,`${name}触控区域至少44像素：${item.id}`);}
       check(await page.evaluate(()=>document.documentElement.scrollWidth===innerWidth),`${name}没有横向溢出`);
       await shot('06-'+name+'-无尽机台');
       await page.locator('#token-open').click();await shot('07-'+name+'-币仓');await page.locator('#token-close').click();

@@ -6,6 +6,7 @@ export const TIMING = Object.freeze({
   unlockTap: 0.28,
   pairWindow: 0.08,
 });
+export const SPECIAL_OUTLET = Object.freeze({ y: 2.45, z: .6 });
 export const PUSHER = Object.freeze({ back: -3, depth: 6 });
 
 export function pusherFrontZ(phase, pushMax = -0.5) {
@@ -28,13 +29,13 @@ export function planInsertion({ side = 'left', phase = 0, special = false, both 
   if (special) {
     const x = swing == null
       ? Math.max(-1.1, Math.min(1.1, Math.sin(phase) * 0.45 + jitter))
-      : Math.max(-2.7, Math.min(2.7, swing + jitter));
+      : Math.max(-4.25, Math.min(4.25, swing + jitter));
     return {
       tier: 2,
       chute: 'pendulum',
       forward,
       swing: x,
-      spawn: { x, y: 3.8, z: 0.85 },
+      spawn: { x, y: SPECIAL_OUTLET.y, z: SPECIAL_OUTLET.z },
       velocity: { x: 0, y: -0.3, z: 0 },
     };
   }
