@@ -1,4 +1,4 @@
-// Original vector emblems for the arcade UI. No external assets or fonts.
+// 原创海湾徽章：币仓、快捷槽和台面币面共用同一套图案。
 const shapes={
  coin:'<path d="M12 30c2-9 10-13 19-8 8 4 12 1 15-5v13c0 12-13 19-25 12-5-3-8-6-9-12Z" fill="currentColor"/><path d="m46 27 9-4-2 10-7 3M23 22l-1-6 9 5"/><circle cx="20" cy="29" r="1.8" fill="#112e43"/><path d="M30 39q7 2 11-4"/>',
  seed:'<path d="M32 51V28M32 33C13 35 11 21 13 14c14-1 23 6 19 19Zm0-8c-1-15 11-20 21-17 1 14-9 21-21 17Z" fill="currentColor"/><path d="M19 53h27"/>',
@@ -27,6 +27,23 @@ const shapes={
  gear:'<path d="m26 5 12 0 3 9 9 1 6 10-6 8 3 9-10 7-9-4-8 9-10-6 1-11-9-6 3-12 11-2Z" fill="currentColor"/><circle cx="32" cy="30" r="10" fill="#fff1cc"/>',
 };
 export function emblem(id){return `<svg viewBox="0 0 64 64" fill="none" stroke="#183a4d" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shapes[id]||shapes.coin}</svg>`;}
+// 同步绘制 SVG 的基础形状，避免等待图片解码造成首帧空白。
+export function paintEmblem(ctx,id,color='#f1c96c'){
+ const svg=new DOMParser().parseFromString(emblem(id),'image/svg+xml').documentElement;
+ ctx.save();ctx.lineWidth=2.8;ctx.lineCap='round';ctx.lineJoin='round';
+ for(const shape of svg.children){
+  let path;const number=name=>Number(shape.getAttribute(name)||0);
+  if(shape.tagName==='path')path=new Path2D(shape.getAttribute('d'));
+  else if(shape.tagName==='circle'){path=new Path2D();path.arc(number('cx'),number('cy'),number('r'),0,Math.PI*2);}
+  else if(shape.tagName==='rect'){path=new Path2D();path.roundRect(number('x'),number('y'),number('width'),number('height'),number('rx'));}
+  if(!path)continue;
+  const fill=shape.getAttribute('fill')||'none',stroke=shape.getAttribute('stroke')||'#183a4d';
+  ctx.lineWidth=Number(shape.getAttribute('stroke-width')||2.8);
+  if(fill!=='none'){ctx.fillStyle=fill==='currentColor'?color:fill;ctx.fill(path);}
+  if(stroke!=='none'){ctx.strokeStyle=stroke==='currentColor'?color:stroke;ctx.stroke(path);}
+ }
+ ctx.restore();
+}
 export function coinArt(id,color='#f1c96c',extra=''){return `<span class="coin-art ${extra}" style="--coin:${color}">${emblem(id)}</span>`;}
-export function upgradeArt(id){return coinArt(({mult:'multi',value:'coin',reserve:'relic',push:'magnet',guard:'killer',lucky:'clover',fever:'lightning',supply:'shell',pin:'gear'})[id]||'gear',({mult:'#e5a0b8',value:'#f6c96d',reserve:'#91d3d7',push:'#e7b77b',guard:'#a4dbc8',lucky:'#b6d794',fever:'#efb2c9',supply:'#e6c68a',pin:'#d7c48a'})[id]||'#d7c48a');}
+export function upgradeArt(id){return coinArt(({mult:'multi',value:'coin',reserve:'relic',push:'magnet',guard:'killer',lucky:'clover',fever:'lightning',supply:'shell',pin:'gear',irrigation:'seed',predator:'cat',capacitor:'lightning'})[id]||'gear',({mult:'#e5a0b8',value:'#f6c96d',reserve:'#91d3d7',push:'#e7b77b',guard:'#a4dbc8',lucky:'#b6d794',fever:'#efb2c9',supply:'#e6c68a',pin:'#d7c48a',irrigation:'#79bd72',predator:'#d69cd7',capacitor:'#e9d66c'})[id]||'#d7c48a');}
 export function arcadeToast(text){const box=document.getElementById('arcade-toast');if(!box)return;box.textContent=text;box.classList.remove('show');void box.offsetWidth;box.classList.add('show');clearTimeout(box._timer);box._timer=setTimeout(()=>box.classList.remove('show'),2200);}

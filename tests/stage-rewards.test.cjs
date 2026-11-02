@@ -35,5 +35,13 @@ const assert = require('node:assert/strict');
   check(old.clip[0] === 'seed' && old.clipSize === 2, 'older saves arm the selected coin into a slot');
   const saved = new Run(JSON.parse(JSON.stringify(run.serialize())));
   check(saved.energy === run.energy && saved.relics.tide === 1 && saved.pendingSpin === run.pendingSpin, 'energy and relics survive a reload');
+  for(const [character,signature]of [['gardener','irrigation'],['keeper','predator'],['engineer','capacitor']]) {
+    const characterRun=new Run(null,()=>.95,{character});
+    const cards=rollPicks(characterRun,{random:()=>.95,coinIds:['seed','water','shrimp','fish','cat','lightning','battery','bomb'],upgrades:UPGRADES});
+    check(cards.some(card=>card.kind==='upgrade'&&card.id===signature),'角色奖励池提供可成型核心：'+character);
+    check(new Set(cards.map(card=>card.kind+card.id)).size===cards.length,'角色优先奖励不造成重复卡片：'+character);
+  }
+  const endless=new Run();endless.endless=true;endless.round=10;endless.levels.mult=8;
+  check(applyPick(endless,{kind:'upgrade',id:'mult',max:8})&&endless.level('mult')===9,'三选一使用无尽开放上限而非旧卡片上限');
   console.log(`PASS: ${checks} stage-reward assertions`);
 })().catch(e => { console.error(e); process.exitCode = 1; });

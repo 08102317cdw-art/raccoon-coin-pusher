@@ -1,5 +1,5 @@
-// Fixed-chute insertion. Side chutes cross-slide; pusher direction
-// chooses a short side landing or a long slide into the middle.
+// 普通币从左右侧入口进入上层，用真实刚体横滑、碰撞，再自然跌落。
+// 中键 / W 是两侧同投；摆槽只服务特殊币。速度是本项目调校值。
 export const TIMING = Object.freeze({
   holdInterval: 0.2,
   lockAfter: 0.55,
@@ -23,8 +23,7 @@ export function pendulumOffset(time, scale = 1) {
   return Math.sin(time * 1.35) * 2.35 * spread;
 }
 
-export function planInsertion({ side = 'middle', phase = 0, pushMax = -0.5, special = false, both = false, jitter = 0, swing = null } = {}) {
-  const front = pusherFrontZ(phase, pushMax);
+export function planInsertion({ side = 'left', phase = 0, special = false, both = false, jitter = 0, swing = null } = {}) {
   const forward = pusherMovingForward(phase);
   if (special) {
     const x = swing == null
@@ -34,26 +33,24 @@ export function planInsertion({ side = 'middle', phase = 0, pushMax = -0.5, spec
       tier: 2,
       chute: 'pendulum',
       forward,
-      travel: 1,
       swing: x,
-      spawn: { x, y: 3.85, z: -3.55 },
-      land: { x, y: 1.42, z: 0.95 },
-      duration: 0.42,
+      spawn: { x, y: 3.8, z: 0.85 },
+      velocity: { x: 0, y: -0.3, z: 0 },
     };
   }
-  const resolved = both || side === 'middle' ? 'middle' : side === 'right' ? 'right' : side === 'left' ? 'left' : 'middle';
-  const mouthX = resolved === 'left' ? -3.9 : resolved === 'right' ? 3.9 : 0;
-  // Forward pusher: the lip arrives early, so the coin barely crosses.
-  // Retract: the lip moves away and the coin slides to the middle.
-  const travel = resolved === 'middle' ? 1 : forward ? 0.1 : 0.96;
+  if (both || side === 'both' || side === 'middle') return {
+    tier: 1, chute: 'both', forward,
+    launches: ['left','right'].map(chute => planInsertion({side:chute,phase,jitter})),
+  };
+  const resolved = side === 'right' ? 'right' : 'left';
+  const direction = resolved === 'left' ? 1 : -1;
+  const offset = Number.isFinite(jitter) ? Math.max(-.12, Math.min(.12, jitter)) : 0;
   return {
     tier: 1,
     chute: resolved,
     forward,
-    travel,
-    spawn: { x: mouthX, y: 3.02, z: -5.55 },
-    land: { x: mouthX * (1 - travel) + jitter, y: 1.72, z: front + 0.28 },
-    duration: resolved === 'middle' ? 0.2 : 0.18 + travel * 0.16,
+    spawn: { x: -direction * 4.3, y: 1.65, z: -4.7 + offset },
+    velocity: { x: direction * 9, y: 0, z: 0 },
   };
 }
 
@@ -74,7 +71,7 @@ export function createLane() {
 }
 
 export function createLaunchers() {
-  return { left: createLane(), middle: createLane(), right: createLane() };
+  return { left: createLane(), both: createLane(), right: createLane() };
 }
 
 export function engage(lane, source, opts = {}) {

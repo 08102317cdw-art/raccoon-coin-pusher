@@ -109,6 +109,42 @@ export class Sfx {
   prize() { if (!this.ok()) return; [12, 16, 19, 24, 28].forEach((n, i) => this.tone('sine', 523 * Math.pow(2, n / 12), null, 0.5, 0.08, i * 0.06, 0, 0.7)); }
   button() { if (!this.ok()) return; this.tone('sine', 900, 1300, 0.06, 0.08); }
 
+  // 联动各有声音身份；同类触发限频，避免密集构筑挤满音频节点。
+  synergy(type, pan = 0) {
+    if (!this.ok()) return;
+    this.eventTimes ||= {};
+    const now = performance.now();
+    if (now - (this.eventTimes[type] || -1000) < 110) return;
+    this.eventTimes[type] = now;
+    if (type === 'grow') {
+      [0, 7, 12].forEach((n,i)=>this.tone('triangle',440*Math.pow(2,n/12),null,.18,.075,i*.07,pan,.22));
+    } else if (type === 'hunt') {
+      this.noise(.055,.14,'bandpass',750,0,pan,2,1700);
+      this.tone('triangle',220,660,.14,.1,.06,pan);
+    } else if (type === 'charge') {
+      this.noise(.045,.08,'highpass',4200,0,pan);
+      this.tone('sawtooth',620,1600,.1,.035,0,pan,.08);
+    } else if (type === 'explode') {
+      this.noise(.35,.28,'lowpass',1100,0,pan,1,100);
+      this.tone('sine',105,32,.42,.26,0,pan,.1);
+      this.duckMusic(.4);
+    } else if (type === 'purify') {
+      this.tone('sine',880,1760,.22,.09,0,pan,.4);
+    } else this.clink(.6,pan);
+  }
+  bank({count=1,points=0,combo=0,tier=1}) {
+    if (!this.ok()) return;
+    this.win(Math.min(10,combo),0);
+    if(count>=3)this.noise(.09,.08,'bandpass',1400,0,0,1,750);
+    if(tier>=2)this.tone('triangle',196,98,.16,.12);
+    if(tier===3){this.duckMusic(.65);this.tone('sine',65,40,.27,.18);}
+  }
+  duckMusic(amount=.6) {
+    if(!this.music)return;
+    const t=this.t,g=this.music.gain;
+    g.cancelScheduledValues(t);g.setTargetAtTime(.16*(1-amount),t,.025);g.setTargetAtTime(.16,t+.3,.16);
+  }
+
   // ---------- 背景音乐：轻快的循环 ----------
   startMusic() {
     const ctx = this.ctx, bpm = 116, step = 60 / bpm / 2;

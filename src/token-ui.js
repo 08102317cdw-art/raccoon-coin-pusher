@@ -1,7 +1,7 @@
-import { TOKENS, SPECIAL_IDS, BAD_IDS, PACKS } from './tokens.js?v=2.2.0';
-import { coinArt, arcadeToast } from './token-art.js?v=2.3.0';
+import { TOKENS, SPECIAL_IDS, BAD_IDS, PACKS } from './tokens.js?v=4.0.0';
+import { coinArt, arcadeToast } from './token-art.js?v=4.0.0';
 const el=id=>document.getElementById(id);
-const NORMAL={name:'普通金币',base:10,group:'基础',color:'#efc46a',desc:'鲸鱼纹的幸运金币。币仓不限量，每投一枚仍消耗 1 次关卡额度。'};
+const NORMAL={name:'普通金币',base:10,group:'基础',color:'#efc46a',desc:'左右入口各投一枚普通金币，每枚消耗 1 次额度；双侧同投会同时投入两枚。特殊币夹独立投放。'};
 const routes={coin:['coin','multi','coin'],seed:['seed','water','tree'],water:['seed','water','tree'],tree:['seed','water','tree'],fish:['shrimp','fish','cat'],shrimp:['shrimp','fish','cat'],cat:['rat','cat','shell'],rat:['coin','rat','cat'],hen:['hen','rooster','egg'],rooster:['hen','rooster','egg'],egg:['egg','hen','egg'],clover:['clover','coin','multi'],multi:['multi','coin','multi'],lightning:['lightning','water','battery'],battery:['lightning','battery','relic'],magnet:['magnet','seed','water'],bomb:['bomb','bomb','coin'],echo:['fish','echo','fish'],relic:['relic','relic','relic'],killer:['rust','killer','shell'],rust:['rust','killer','shell'],thief:['thief','killer','shell'],decay:['decay','killer','shell']};
 const hints={种植:'让种子与水滴在台面相遇。',捕食:'沿着食物链，把小币喂成高分币。',孵化:'把蛋留到下一关，开启鸡生蛋循环。',充能:'先充能，再传导，或让电池吸收。',增幅:'用印记或台面加成强化你的币。',物理:'吸拢或助推，让好币靠近出币口。',成长:'留在台面跨关，积攒更高币值。',净化:'坏币来袭时，把杀手币放到附近。',坏币:'危险代币！投放杀手币清除它。',基础:'搭配倍率币，让普通币也能高分入账。'};
 export function createTokenUI({kit,run,entities,save,pauseInput,sfx,changed}) {
@@ -10,6 +10,18 @@ export function createTokenUI({kit,run,entities,save,pauseInput,sfx,changed}) {
  const close=()=>{modal.hidden=true;pauseInput();el('token-open').focus({preventScroll:true});};
  const button=(text,fn,cls='')=>{const b=document.createElement('button');b.type='button';b.textContent=text;b.className=cls;b.onclick=fn;return b;};
  const def=id=>TOKENS[id]||NORMAL;
+ function equip(){
+  const source=el('preview-art').getBoundingClientRect();
+  if(!kit().select(preview))return;
+  sfx();save();close();refresh(true);arcadeToast(preview==='coin'?'普通金币使用左右入口投放':`${def(preview).name}已装入币夹 · 点击币面投放`);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  document.querySelector('.equip-flight')?.remove();
+  const flying=document.createElement('span'),d=def(preview);flying.className='equip-flight';flying.innerHTML=coinArt(preview,d.color);document.body.append(flying);
+  const dest=(el('coin-clip')||el('token-open')).getBoundingClientRect(),sx=source.left+source.width/2,sy=source.top+source.height/2;
+  flying.style.left=sx+'px';flying.style.top=sy+'px';
+  const animation=flying.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(${dest.left+22-sx-24}px,${dest.top+dest.height/2-sy-24}px) scale(.55)`,opacity:.2}],{duration:360,easing:'cubic-bezier(.3,.1,.3,1)'});
+  animation.onfinish=()=>flying.remove();
+ }
  function paintPreview(){
   const t=kit(),d=def(preview),count=t.bag[preview]||0;
   el('token-preview').dataset.kind=preview;el('preview-art').innerHTML=coinArt(preview,d.color,'hero-coin');
@@ -19,11 +31,12 @@ export function createTokenUI({kit,run,entities,save,pauseInput,sfx,changed}) {
   el('preview-route').innerHTML=(routes[preview]||routes.coin).map((id,i)=>`${i?'<span class="route-arrow" aria-hidden="true">→</span>':''}<span class="route-node">${coinArt(id,def(id).color)}<small>${id==='shell'?'贝壳':def(id).name.replace('币','')}</small></span>`).join('');
   el('preview-stock').textContent=tab==='atlas'?(BAD_IDS.includes(preview)?'危险 · 不可装填':'图鉴预览 · 不消耗代币'):`币仓存量 ${preview==='coin'?'∞':count} 枚`;
   const b=el('token-equip');b.hidden=tab==='atlas';b.disabled=preview!=='coin'&&count===0;
-  b.textContent=preview==='tree'?'需要种子 + 水滴合成':b.disabled?'库存不足 · 去港口补给':`装填${d.name} →`;
+  b.textContent=preview==='coin'?'返回机台 · 左右入口投币':preview==='tree'?'需要种子 + 水滴合成':b.disabled?'库存不足 · 去港口补给':`装入币夹并返回 →`;
   el('preview-atlas-note').hidden=tab!=='atlas';
  }
  function paint(){
   const t=kit(),cards=el('token-cards');const focused=document.activeElement?.dataset?.preview;
+  modal.dataset.tab=tab;
   el('token-tab-bag').setAttribute('aria-selected',tab==='bag');el('token-tab-atlas').setAttribute('aria-selected',tab==='atlas');
   el('token-title').textContent=tab==='bag'?'代币装填舱':'代币联动图鉴';
   el('token-subtitle').textContent=tab==='bag'?'挑一枚幸运，投进下一场冒险。':'收集灵感，把台面变成你的连锁乐园。';
@@ -36,23 +49,23 @@ export function createTokenUI({kit,run,entities,save,pauseInput,sfx,changed}) {
   cards.replaceChildren();
   ids.forEach((id,i)=>{const d=def(id),count=t.bag[id]||0,card=document.createElement('article');card.className='token-card'+(d.group==='坏币'?' bad':'')+(preview===id?' inspected':'')+(t.selected===id?' loaded':'');card.dataset.kind=id;card.style.setProperty('--i',i);card.style.setProperty('--accent',d.color);
    const b=button('',()=>{preview=id;sfx();paint();cards.querySelector(`[data-preview="${id}"]`)?.focus({preventScroll:true});},'token-peek');b.dataset.preview=id;b.setAttribute('aria-label',`查看${d.name}${tab==='bag'?`，库存 ${id==='coin'?'无限':count}`:''}`);b.setAttribute('aria-pressed',preview===id);
-   b.innerHTML=`<span class="coin-stock">${tab==='atlas'?d.group:id==='coin'?'∞':id==='tree'?'合成':'×'+count}</span>${coinArt(id,d.color)}<h3>${d.name}</h3><small>${d.base} 基础分</small>${t.selected===id&&tab==='bag'?'<span class="loaded-marker">已装填</span>':''}`;card.append(b);cards.append(card);
+   b.innerHTML=`<span class="coin-stock">${tab==='atlas'?d.group:id==='coin'?'左右入口':id==='tree'?'合成':'×'+count}</span>${coinArt(id,d.color)}<h3>${d.name}</h3><small>${d.base} 基础分</small>${id!=='coin'&&t.clip.includes(id)&&tab==='bag'?'<span class="loaded-marker">已装夹</span>':''}`;card.append(b);cards.append(card);
   });
-  paintPreview();el('token-event-log').textContent=t.eventLog[0]||'选中代币查看联动 · 装填后回到机台投币';
+  paintPreview();el('token-event-log').textContent=t.eventLog[0]||'特殊币装入币夹后，点击币面从摆槽投放';
   if(focused)cards.querySelector(`[data-preview="${focused}"]`)?.focus({preventScroll:true});
  }
- el('token-equip').onclick=()=>{if(kit().select(preview)){sfx();save();close();refresh(true);arcadeToast(`${def(preview).name}已装填 · 瞄准后投币！`);}};
+ el('token-equip').onclick=equip;
  function refresh(force=false){
   const t=kit(),r=run(),field=entities().filter(e=>e.state==='field'&&!e.tokenDead),bad=field.filter(e=>BAD_IDS.includes(e.kind)).length;
   const next=JSON.stringify([t.selected,t.remaining,bad,t.globalFactor(field).toFixed(2),r.shots,t.eventLog[0]]);
   if(!force&&next===signature)return;signature=next;
-  const d=def(t.selected);el('token-open').innerHTML=`${coinArt(t.selected,d.color)}<span><small>下一枚 · 点击换币</small><b>${d.name}</b></span><span class="load-count">${t.selected==='coin'?'∞':'×'+t.bag[t.selected]}</span><span aria-hidden="true">›</span>`;
-  el('token-open').setAttribute('aria-label',`打开代币仓，当前${d.name}`);
+  const d=def(t.selected);el('token-open').innerHTML=`${coinArt(t.selected,d.color)}<span><small>特殊币仓 · 点击装夹</small><b>${t.selected==='coin'?'装填特殊币':d.name+'备妥'}</b></span><span class="load-count">${t.selected==='coin'?t.remaining+'枚':'×'+t.bag[t.selected]}</span><span aria-hidden="true">›</span>`;
+  el('token-open').setAttribute('aria-label',`打开特殊币仓${t.selected==='coin'?'':`，已选${d.name}`}；普通金币由左右入口独立投放`);
   el('token-field-status').textContent=`坏币 ${bad} · 环境 ×${t.globalFactor(field).toFixed(2)}`;el('token-field-status').classList.toggle('danger',bad>0);
   el('token-latest').textContent=t.eventLog[0]||'种子遇见水滴，会发生什么？';
   if(!modal.hidden)paint();
  }
- el('token-open').onclick=()=>{pauseInput();tab='bag';category='全部';preview=kit().selected==='coin'?'seed':kit().selected;modal.hidden=false;paint();el('token-close').focus();};
+ el('token-open').onclick=()=>{pauseInput();tab='bag';category='全部';const t=kit();preview=t.selected==='coin'?(t.clip.find(id=>t.bag[id]>0)||SPECIAL_IDS.find(id=>t.bag[id]>0)||'coin'):t.selected;modal.hidden=false;paint();el('token-close').focus();};
  el('token-close').onclick=close;
  for(const name of ['bag','atlas'])el('token-tab-'+name).onclick=()=>{tab=name;category='全部';paint();};
  modal.onclick=e=>{if(e.target===modal)close();};
@@ -62,7 +75,12 @@ export function createTokenUI({kit,run,entities,save,pauseInput,sfx,changed}) {
  function shop(force=false){
   const t=kit(),r=run();if(r.phase!=='shop')return;t.prepareShop(r.round);
   if(shopRound!==r.round){shopRound=r.round;shopTab='upgrades';}switchShop(shopTab);
-  const sig=JSON.stringify([r.round,r.cash,t.packBought,t.claimed,t.remaining]);if(!force&&sig===shopSignature)return;shopSignature=sig;
+  const sig=JSON.stringify([r.round,r.cash,t.packBought,t.claimed,t.remaining,t.selected]);if(!force&&sig===shopSignature)return;shopSignature=sig;
+  const info=t.buildInfo?.();let route=el('harbor-route');
+  if(!route){route=document.createElement('aside');route.id='harbor-route';route.setAttribute('aria-label','本局构筑建议');el('shop-section').querySelector('.harbor-tabs').before(route);}
+  const missing=info?.missing?.length?`还缺：${info.missing.slice(0,3).join('、')}`:'';
+  route.innerHTML=`<div class="route-heading"><span>本局航路</span><strong>${info?.name||'海湾探索'}</strong><small>${t.claimed?'免费补给已入舱':'还有 1 包免费补给'}</small></div><p>${info?.hint||'先补齐一组能互相联动的币，再选择机台改装。'}${missing?`<span>${missing}</span>`:''}</p>`;
+  const nav=el('harbor-supplies-link');if(nav)nav.textContent=t.claimed?'逛补给货架':'逛货架 · 免费补给';
   el('free-pack-badge').textContent=t.claimed?'已领取':'免费 ×1';el('token-shop-note').textContent=t.claimed?'补给已送入百宝舱。想多备一点？也可以用贝壳购买。':'靠港礼物：任选 1 包免费带走，还可另购每包各一份。';
   const list=el('token-shop-cards');list.replaceChildren();
   for(const id of t.shopOffers){const pack=PACKS[id],claimed=t.claimed,bought=t.packBought.includes(id),card=document.createElement('article');card.className='token-pack'+(bought?' purchased':'');card.dataset.pack=id;
@@ -71,7 +89,9 @@ export function createTokenUI({kit,run,entities,save,pauseInput,sfx,changed}) {
    const transact=(free)=>{const ok=free?t.claimPack(id,r):t.buyPack(id,r);if(!ok)return;sfx();save();changed?.();shop(true);refresh(true);el('shop-wallet').textContent=r.cash;arcadeToast(`${pack.name}已入舱！`);const target=list.querySelector(`[data-pack="${id}"]`);target?.classList.add('just-delivered');const focus=list.querySelector(`[data-pack="${id}"] button:not(:disabled)`)||el('shop-tab-supplies');focus.focus({preventScroll:true});};
    const claim=button(claimed?'已领免费补给':'免费领取',()=>transact(true),'claim-pack');claim.disabled=claimed;
    const buy=button(bought?'✓ 已购买':`购买 · ${pack.cost} 贝壳`,()=>transact(false),'buy-pack');buy.disabled=bought||r.cash<pack.cost;
-   actions.append(claim,buy);card.append(art,title,desc,actions);list.append(card);
+   actions.append(claim,buy);card.append(art,title,desc);
+   const why=t.recommendPack?.(id);if(why){const reason=document.createElement('p');reason.className='pack-reason';reason.textContent=why;card.classList.add('recommended');card.append(reason);}
+   card.append(actions);list.append(card);
   }
  }
  return {refresh,shop,close,isOpen:()=>!modal.hidden};

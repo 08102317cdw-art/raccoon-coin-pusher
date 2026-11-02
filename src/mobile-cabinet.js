@@ -3,9 +3,9 @@ export function createMobileCabinet(onResize) {
  const by=id=>document.getElementById(id),mq=matchMedia('(max-width:760px), (max-height:480px) and (max-width:1100px)');
  const root=document.createElement('section');root.id='mobile-cabinet';root.setAttribute('aria-label','大肥鱼推币机');
  root.innerHTML=`<header class="machine-crown"><div class="cabinet-wordmark"><span class="maker-symbol" aria-hidden="true">◒</span><strong>大肥鱼<span>推币机</span></strong><small>THE LUCKY WHALE · No. 019</small></div><div class="crown-right"><span class="cabinet-live">● 营业中</span><button id="machine-menu" type="button" aria-label="打开机台设置" aria-expanded="false" aria-controls="machine-hatch">设置</button></div></header>
- <section id="machine-upper" aria-label="机台计分屏"><div id="machine-score"></div><div id="machine-energy"></div><span class="meter-hint">断连开奖 · 最高 ×5</span></section>
+ <section id="machine-upper" aria-label="机台计分屏"><div id="machine-score"></div><div id="machine-energy"></div><span class="meter-hint">轮盘奖励 · 最高 ×5</span></section>
  <section id="machine-window" aria-label="3D 推币台"><span class="glass-corner corner-left" aria-hidden="true"></span><span class="glass-corner corner-right" aria-hidden="true"></span><span class="glass-label" aria-hidden="true">THE LUCKY WHALE · COIN PUSHER</span><div id="combo-signal" role="status" aria-live="polite"></div></section>
- <aside id="machine-right" aria-label="币舱"><div class="module-heading"><span>COIN RESERVE</span><b>机台币舱</b></div><div id="machine-wallet"></div><div id="machine-load-slot"></div><div class="cabinet-serial">一枚硬币，一点好运。<br>INSERT COIN. MAKE WAVES.</div></aside>
+ <aside id="machine-right" aria-label="币舱"><div class="module-heading"><span>COIN RESERVE</span><b>普通投币 · 特殊币夹</b></div><div id="machine-wallet"></div><div id="machine-load-slot"></div><div class="cabinet-serial">左右投普通币。<br>点币夹，从摆槽投特殊币。</div></aside>
  <footer id="machine-console"><div class="console-id"><span>THE LUCKY WHALE</span><strong>再推一枚。</strong></div><div id="machine-drop-slot"></div><div id="machine-clear-slot"></div><div class="console-etching"><span id="machine-save-lamp">● 自动保存</span><span>长按连投 · 再点解锁</span></div></footer>
  <div id="wheel-host"></div><div id="machine-fx" aria-hidden="true"></div>
  <div id="machine-hatch" hidden><header><strong>机台设置</strong><button id="hatch-close" aria-label="关闭设置">×</button></header><div id="machine-tool-slot"></div><p>音效 / 音乐 / 玩法 / 重置</p></div>`;
@@ -18,6 +18,15 @@ export function createMobileCabinet(onResize) {
  const receipt=document.createElement('details');receipt.className='receipt-roll';
  const receiptLabel=document.createElement('summary');receiptLabel.textContent='本关结算 · 展开明细';receipt.append(receiptLabel);
  const summary=card.querySelector('.result-summary');summary.before(receipt);receipt.append(summary);
+ // 航路牌与货架有独立入口，长列表中也能直接跳到免费补给。
+ const harborNav=document.createElement('nav');harborNav.className='harbor-nav';harborNav.setAttribute('aria-label','靠港事项');
+ harborNav.innerHTML='<button id="harbor-reward-link" type="button">领取航路奖励</button><button id="harbor-supplies-link" type="button">逛货架 · 免费补给</button>';
+ scroll.querySelector('#pick-section').before(harborNav);
+ for(const [button,target]of [['harbor-reward-link','pick-section'],['harbor-supplies-link','shop-section']])by(button).onclick=()=>{
+  const node=by(target),top=scroll.scrollTop+node.getBoundingClientRect().top-scroll.getBoundingClientRect().top-harborNav.offsetHeight-8;
+  scroll.scrollTo({top,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+  if(target==='shop-section'&&by('free-pack-badge').textContent.includes('免费'))by('shop-tab-supplies').click();
+ };
  let settings=false,wheel=false,shopClosed=false,previousFocus=null;
  function sync(){
   const shop=!by('run-modal').hidden,catalog=!by('token-modal').hidden,help=by('help').classList.contains('show');

@@ -5,23 +5,26 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { Sfx } from './audio.js';
-import { coinTextures } from './textures.js?v=3.2.0';
-import { buildDafeiyu } from './mascot.js?v=2.4.1';
-import { loadCharacterArt, characterSources } from './character-art.js?v=2.1.1';
-import { Run, UPGRADES, TARGETS, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=3.3.0';
-import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=3.1.0';
-import { TOKENS, TokenSystem, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=3.1.0';
-import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=3.3.0';
-import { makeTokenMesh } from './token-mesh.js?v=2.2.0';
-import { createTokenUI } from './token-ui.js?v=3.3.0';
-import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=2.3.0';
-import { createMobileCabinet } from './mobile-cabinet.js?v=3.3.0';
-import { createSeasideRoom } from './arcade-room.js?v=3.2.0';
-import { createPrizeWheel } from './prize-wheel.js?v=3.3.0';
-import { ComboWheel } from './combo-wheel.js?v=3.3.0';
-import { createMachineJuice } from './machine-juice.js?v=3.3.0';
-import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=3.3.0';
+import { Sfx } from './audio.js?v=4.0.0';
+import { coinTextures } from './textures.js?v=4.0.0';
+import { buildDafeiyu } from './mascot.js?v=4.0.0';
+import { loadCharacterArt, characterSources } from './character-art.js?v=4.0.0';
+import { Run, UPGRADES, DIFFICULTIES, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=4.0.0';
+import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=4.0.0';
+import { TOKENS, TokenSystem, CREW, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=4.0.0';
+import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=4.0.0';
+import { makeTokenMesh } from './token-mesh.js?v=4.0.0';
+import { createTokenUI } from './token-ui.js?v=4.0.0';
+import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=4.0.0';
+import { createMobileCabinet } from './mobile-cabinet.js?v=4.0.0';
+import { createSeasideRoom } from './arcade-room.js?v=4.0.0';
+import { createPrizeWheel } from './prize-wheel.js?v=4.0.0';
+import { ComboWheel } from './combo-wheel.js?v=4.0.0';
+import { createMachineJuice } from './machine-juice.js?v=4.0.0';
+import { createTableEffects } from './table-effects.js?v=4.0.0';
+import { VoyageLog } from './voyage-log.js?v=4.0.0';
+import { createVoyageUI } from './voyage-ui.js?v=4.0.0';
+import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=4.0.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -34,6 +37,7 @@ const GAP_Z = -0.6;                // 侧墙在此结束，之后两侧为漏币
 const DROP_Y = 3.3, DROP_Z = -4.75, GATE_Y = 2.35;
 const TRAY_Y = -2.8, MAX_COINS = 420;
 const SAVE_KEY = 'raccoon-pusher-run-v2'; // v1 arcade save is intentionally untouched
+const LOG_KEY = 'dafeiyu-voyage-log-v1';
 const motionReduced = matchMedia('(prefers-reduced-motion: reduce)');
 const isTouch = matchMedia('(pointer: coarse)').matches;
 
@@ -74,6 +78,7 @@ scene.add(key);
 const pinkL = new THREE.PointLight('#b9cbeb', 2.4, 14, 1.8); pinkL.position.set(-6, 4, 1); scene.add(pinkL);
 const cyanL = new THREE.PointLight('#a3d9d1', 3.5, 14, 1.8); cyanL.position.set(6, 4, 1); scene.add(cyanL);
 const screenL = new THREE.PointLight('#ffb54a', 5, 9, 1.8); screenL.position.set(0, 5, -4.5); scene.add(screenL);
+const tableFX = createTableEffects(scene, motionReduced);
 
 // ================== 材质 ==================
 const ct = coinTextures();
@@ -172,7 +177,7 @@ function spawn(kind, x, y, z, q, vel) {
   world.createCollider((SHAPES[kind] || SHAPES.coin)().setFriction(F_COIN).setRestitution(0.08), body);
   const c = { p: { x, y, z }, body, kind, state: 'field', t: 0, scale: 1, prevY: y, gated: false, fromDrop: false, pv: { x: 0, y: vel ? vel.y : 0, z: 0 } };
   if (kind !== 'coin') { c.mesh = makeSpecialMesh(kind); scene.add(c.mesh); }
-  tokens.meta(c); coins.push(c);
+  tokens.meta(c); coins.push(c);journal.discover(kind);
   return c;
 }
 function removeCoin(i) {
@@ -211,27 +216,30 @@ const sfx = new Sfx();
 const comboWheel = new ComboWheel();
 let run = new Run();
 let tokens = new TokenSystem();
-let tokenUI, mobileCabinet, prizeWheel, juice, restoredWheelQueue = [], tokenAcc=0, tokenNotifyAt=-10;
+function readLog(){try{return JSON.parse(localStorage.getItem(LOG_KEY));}catch{return null;}}
+const journal=new VoyageLog(readLog());
+let tokenUI, mobileCabinet, prizeWheel, juice, voyageUI, restoredWheelQueue = [], tokenAcc=0, tokenNotifyAt=-10;
 const tokenRemovals=new Set();
 const state = { coins: 50, won: 0, col: { big: 0, gem: 0, plush: 0 }, jackpots: 0 };
 let wallT = 0, pushT = 0, feverT = 0, partyT = 0, shake = 0, started = false;
 const lanes = createLaunchers();
-const recentDrops = [];
 let dropStreak = 0, dropStreakAt = -10;
 let resultPhase = '', resetting = false; 
 const stats = { lost: 0 }; const winTimes = []; let combo = 0, lastWin = -100, showerQueue = [];
 const catalogBlocking = () => !!tokenUI?.isOpen() && !$('token-modal').classList.contains('is-docked');
 const helpBlocking = () => $('help').classList.contains('show') && !$('help').classList.contains('is-docked');
-const inputOpen = () => started && run.phase === 'playing' && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !prizeWheel?.active && !document.hidden;
+const controlsOpen = () => started && run.active && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !prizeWheel?.active && !document.hidden;
+const inputOpen = () => controlsOpen() && run.phase === 'playing';
 
 // ---------- HUD ----------
 const $ = id => document.getElementById(id);
 const hud = { coins: $('coins'), won: $('won') };
 function updateHud(dt) {
+  tokens.configure(run);
   state.coins = run.shots;
   hud.coins.textContent = run.shots;
   hud.won.textContent = run.total.toLocaleString();
-  $('round-number').textContent = `${run.round} / 8`;
+  $('round-number').textContent = run.endless ? `${run.round} · 无尽` : `${run.round} / 8`;
   $('round-score').textContent = run.score.toLocaleString();
   $('round-target').textContent = run.target.toLocaleString();
   $('scorebar').style.width = `${Math.min(100, run.score / run.target * 100)}%`;
@@ -244,15 +252,15 @@ function updateHud(dt) {
   action.disabled = run.active && !run.reached;
   action.textContent = !run.active ? '拉开补给舱 →' : run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
   const canDrop = inputOpen() && run.shots > 0;
-  for (const [id, side] of [['chute-left', 'left'], ['dropbtn', 'middle'], ['chute-right', 'right']]) {
+  for (const [id, side] of [['chute-left', 'left'], ['dropbtn', 'both'], ['chute-right', 'right']]) {
     const button = $(id); if (!button) continue;
-    button.disabled = !canDrop;
+    button.disabled = !canDrop || (side==='both' && run.shots<2);
     button.classList.toggle('is-locked', !!lanes[side]?.locked);
     button.setAttribute('aria-pressed', String(!!lanes[side]?.locked));
   }
   const forward = pusherMovingForward(pushPhase);
   const lamp = $('timing-lamp');
-  if (lamp) lamp.textContent = `${forward ? '推板前进 · 左右槽落到两侧' : '推板收回 · 左右槽落到中间'}${run.level('pin') ? ` · 松台销 ${run.inserts % 20}/20` : ''}`;
+  if (lamp) lamp.textContent = `${forward ? '推板前进 · 留意上层币堆' : '推板收回 · 双侧投币可在中间相撞'}${run.level('pin') ? ` · 松台销 ${run.inserts % 20}/20` : ''}`;
   const exchange = $('exchange-btn'), shakeBtn = $('shake-btn');
   if (exchange) {
     const live = started && (run.phase === 'playing' || run.phase === 'settling') && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !prizeWheel?.active;
@@ -267,7 +275,7 @@ function updateHud(dt) {
   tokens.setClipSize(2 + run.level('clip'));
   const clipHost = $('coin-clip');
   if (clipHost) {
-    const sig = `${tokens.clipSize}|${tokens.selected}|${tokens.clip.join(',')}`;
+    const sig = `${tokens.clipSize}|${tokens.selected}|${tokens.clip.map(id=>id+':'+tokens.bag[id]).join(',')}`;
     if (clipHost.dataset.sig !== sig) {
       clipHost.dataset.sig = sig; clipHost.replaceChildren();
       for (let i = 0; i < tokens.clipSize; i++) {
@@ -275,9 +283,11 @@ function updateHud(dt) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'clip-slot' + (id && id === tokens.selected ? ' armed' : '');
-        button.textContent = id ? (TOKENS[id].glyph || '币') : '空';
+        button.innerHTML = id ? coinArt(id,TOKENS[id].color)+`<small>${tokens.bag[id]}</small>` : '<span aria-hidden="true">＋</span>';
         button.setAttribute('aria-label', id ? `币槽 ${TOKENS[id].name}` : '空币槽');
-        button.onclick = () => { if (tokens.armClip(i)) { tokenUI?.refresh(true); save(); updateHud(0); } };
+        button.setAttribute('aria-pressed',String(!!id&&tokens.selected===id));
+        button.title=id?'点击从摆槽投放特殊币':'打开币仓装填';
+        button.onclick = () => { if(id){dropSpecialCoin(i);tokenUI?.refresh(true);save();updateHud(0);}else $('token-open').click(); };
         clipHost.append(button);
       }
     }
@@ -287,7 +297,7 @@ function updateHud(dt) {
     energyCount.textContent = comboWheel.level ? '×'+comboWheel.level : comboWheel.count+'/8';
     const bar = $('energy-bar'); if (bar) bar.style.width = Math.min(100,comboWheel.count/8*100)+'%';
   }
-  tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update();prizeWheel?.update();
+  tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update();prizeWheel?.update();voyageUI?.update();
   renderResult();
 }
 function bumpCoinHud() { const el = $('coinbox'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
@@ -306,7 +316,7 @@ function banner(text, cls = '', dur = 1800) {
 function flash(color = '#fff') { const el = $('flash'); el.style.background = color; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
 const lines = {
   win: ['好耶！', '叮叮叮~', '再来再来！', '发财啦！'], big: ['大奖！！', '开饭开饭！', '哇哦哦哦！'], miss: ['可惜~', '差一点！', '下次一定！'],
-  idle: ['看推板再投～', '左槽右槽～', '中间也行！', '饭钱要来啦！'], reach: ['听牌了！！', '来啊来啊！', '大鱼要开饭啦！'], poor: ['票够的话可以兑币！', '试试摇一下台面？'], pet:['在这儿陪你呀！','一起推个满载而归～','摸摸头，一起加油！'],
+  idle: ['看推板再投～', '左边右边～', '两侧一起试试！', '饭钱要来啦！'], reach: ['连起来了！！', '来啊来啊！', '大鱼要开饭啦！'], poor: ['票够的话可以兑币！', '试试摇一下台面？'], pet:['在这儿陪你呀！','一起推个满载而归～','摸摸头，一起加油！'],
 };
 let bubbleT = 0, idleTalk = 6;
 function say(kind) {
@@ -328,17 +338,15 @@ function onWin(c) {
   }
   state.won += VALUES[c.kind]||0;
   const now = time;
-  combo = now - lastWin < 0.7 ? combo + 1 : 0; lastWin = now;
+  combo = now - lastWin < comboWheel.window ? combo + 1 : 0; lastWin = now;
   winTimes.push(now); while (winTimes.length && now - winTimes[0] > 4) winTimes.shift();
   const base=tokens.scoreBase(c,(BASE_POINTS[c.kind]||10)+(c.kind==='coin'?run.level('value')*2:0));
   const scored=run.awardBase(base,combo,feverT>0,tokens.globalFactor(coins));
   $('score-formula').textContent = `${scored.base} 币值 × ${scored.factor.toFixed(2)} = +${scored.points}`;
   if (winTimes.length >= 9 && feverT <= 0) startFever();
-  sfx.win(combo,p.x/6);
   burst(p.x,.1,FRONT_Z+.2,c.kind==='coin'?10:30,TOKENS[c.kind]?.color||'#ffd34d',3,3);
-  floatText('+'+scored.points+' 分',p.x,.4,FRONT_Z+.3,c.kind==='coin'?(feverT>0?'fever':''):'big');
   bumpCoinHud();
-  { const [x,y]=toScreen(p.x,.4,FRONT_Z+.3);juice?.score({x,y,points:scored.points,combo}); }
+  { const [x,y]=toScreen(p.x,.4,FRONT_Z+.3);juice?.score({x,y,points:scored.points,combo,special:c.kind!=='coin'}); }
   if(TOKENS[c.kind]) {sfx.prize();mascot.react('happy',1);}
   else if(c.kind!=='coin'){
     state.col[c.kind]=(state.col[c.kind]||0)+1;sfx.prize();mascot.react('happy',2);say('big');shake=.25;
@@ -348,6 +356,7 @@ function onWin(c) {
 }
 function rewardPrize(c) {
   const spec = PRIZES[c.kind];
+  combo=time-lastWin<comboWheel.window?combo+1:0;lastWin=time;
   const scored = run.awardBase(spec.points, combo, feverT > 0, tokens.globalFactor(coins));
   if (!scored) return;
   run.tickets = Math.min(9999, run.tickets + spec.tickets);
@@ -358,6 +367,7 @@ function rewardPrize(c) {
     tokens.grant({ [id]: 1 }); tokens.select(id);
   }
   $('score-formula').textContent = `${spec.name} +${scored.points} 分`;
+  {const [x,y]=toScreen(c.p.x,.5,FRONT_Z);juice?.score({x,y,points:scored.points,combo,special:true});}
   sfx.prize(); mascot.react('happy', 1.4); say('big'); shake = Math.max(shake, 0.28);
   banner(`${spec.name}入手！<small>+${scored.points} 分</small>`, 'prize', 1600);
   const before=comboWheel.level;comboWheel.score(time,1+(run.relics.tide||0));if(comboWheel.level>before)juice?.combo(comboWheel.level);
@@ -390,18 +400,21 @@ function spawnCoinTower(height=6) {
   const layer=Math.floor(i/7),ring=i%7,a=ring*Math.PI/3;
   spawn('coin',ring===6?0:Math.cos(a)*1.22,1.6+layer*(COIN_H+.012),ring===6?.6:.6+Math.sin(a)*1.22,randQ(0));
  }
- if(!limit)run.tickets=Math.min(9999,run.tickets+8);
+ const missing=layers*7-limit;
+ if(missing){run.tickets=Math.min(9999,run.tickets+missing);juice?.event(`币塔余量 ${missing} 枚已兑换为兑币票`);}
+ tableFX.emit({type:'tower',from:{x:0,y:.4,z:.6}});
 }
 function showLottery(item) {
   prizeWheel?.enqueue(item);
 }
 const PRIZE_ORDER = ['shell', 'plushie', 'chest'];
 let prizeCursor = 0;
-function spawnTablePrize(kind, x) {
+function spawnTablePrize(kind, x, defer = true) {
   const id = PRIZES[kind] ? kind : PRIZE_ORDER[prizeCursor++ % PRIZE_ORDER.length];
   const px = Number.isFinite(x) ? x : (Math.random() - 0.5) * 3.2;
   const c = spawn(id, px, 1.45, 1.2, randQ(0.25), V(0, -0.3, 0.15));
   if (c) burst(px, 1.6, 1.2, 14, '#ffe7a8', 1.6, 1.2);
+  else if(defer) queueDelivery({t:0,kind:id,prize:true,table:true,x:px});
   return c;
 }
 function spawnRoundPrizes() {
@@ -416,7 +429,11 @@ const specialAdapter={
  change(c,kind){if(c.mesh)scene.remove(c.mesh);c.kind=kind;c.mesh=makeSpecialMesh(kind);scene.add(c.mesh);},
  shells(delta){run.cash=Math.max(0,Math.min(1e9,run.cash+delta));},
  push(c,v){if(c.state==='field'&&!c.tokenDead)c.body.applyImpulse(v,true);},
- notify(text,p){if(time-tokenNotifyAt<.5)return;tokenNotifyAt=time;floatText(text,p.x,p.y+.7,p.z,'lucky');burst(p.x,p.y+.2,p.z,8,'#92e7ff',1,.8);sfx.gate();}
+ notify(text,p,event={}){
+   const type=event.type||(/爆|引爆/.test(text)?'explode':/种子|长成/.test(text)?'grow':/充能|传导|电池/.test(text)?'charge':/吃|捕|藏币/.test(text)?'hunt':/净化/.test(text)?'purify':/复制/.test(text)?'echo':'produce');
+   tableFX.emit({...event,type,from:event.from||p});sfx.synergy(type,p.x/6);
+   if(time-tokenNotifyAt>.18){tokenNotifyAt=time;juice?.event(text,type);}
+ }
 };
 function flushTokens(){for(let i=coins.length-1;i>=0;i--)if(tokenRemovals.has(coins[i]))removeCoin(i);tokenRemovals.clear();}
 function stepTokens(dt){coins.forEach(c=>c.p=c.body.translation());tokens.tick(dt,coins,specialAdapter);flushTokens();}
@@ -426,11 +443,16 @@ function startFever() {
 }
 function dropPrize(kind) {
   const x = (Math.random() - 0.5) * 6;
-  spawn(kind, x, DROP_Y, DROP_Z + 0.3, randQ(0.3), V(0, -2, 0));
-  burst(x, DROP_Y, DROP_Z, 30, '#ffffff', 2, 2);
+  const c=spawn(kind, x, DROP_Y, DROP_Z + 0.3, randQ(0.3), V(0, -2, 0));
+  if(c)burst(x, DROP_Y, DROP_Z, 30, '#ffffff', 2, 2);return c;
+}
+function queueDelivery(item){
+  if(showerQueue.length>=1000){run.tickets=Math.min(9999,run.tickets+(item.prize?8:1));return;}
+  const entry={...item,blocked:0},at=showerQueue.findIndex(s=>s.t>entry.t);
+  if(at<0)showerQueue.push(entry);else showerQueue.splice(at,0,entry);
 }
 function shower(n, kind = 'coin', delay = 0.05) {
-  for (let i = 0; i < n; i++) showerQueue.push({ t: i * delay, kind });
+  for (let i = 0; i < n; i++) queueDelivery({ t: i * delay, kind });
 }
 // ---------- 投币 ----------
 
@@ -440,55 +462,44 @@ function blastField(mode) {
   const list = coins.filter(c => c.state === 'field' && !c.slide && !c.body.isKinematic());
   list.forEach((c, i) => { c.body.applyImpulse(fieldImpulse(mode, i, power), true); c.body.wakeUp(); });
   shake = Math.max(shake, mode === 'nuke' ? 0.85 : 0.62);
-  sfx.whoosh(); flash(mode === 'nuke' ? '#ffb15a' : '#fff6d2');
+  tableFX.emit({type:'explode',from:{x:0,y:.4,z:1}});sfx.synergy('explode');flash(mode === 'nuke' ? '#ffb15a' : '#fff6d2');
   banner(mode === 'nuke' ? '全场轰出！<small>爆破币把硬币推向出币口</small>' : '机台摇晃！<small>台面硬币被抖向前沿</small>', mode === 'nuke' ? 'jp' : 'win', 1400);
   mascot.react('excited', 1.2);
 }
-function dropCoin(side = 'middle') {
-  if (!inputOpen() || coins.length >= MAX_COINS || !run.spendShot()) return false;
-  state.coins = run.shots;
-  const kind = tokens.consume();
-  const now = time;
-  const resolved = kind === 'coin' ? (side === 'left' || side === 'right' ? side : 'middle') : 'middle';
-  recentDrops.push({ side: resolved, time: now });
-  for (let i = recentDrops.length - 1; i >= 0; i--) if (now - recentDrops[i].time > 0.08) recentDrops.splice(i, 1);
-  const paired = kind === 'coin' && recentDrops.some(d => d.side === 'left') && recentDrops.some(d => d.side === 'right');
-  const swingScale = 1 + (run.relics.swing || 0) * 0.28;
-  const plan = planInsertion({ side: resolved, phase: pushPhase, pushMax, special: kind !== 'coin', both: paired, jitter: (Math.random() - 0.5) * 0.08, swing: kind === 'coin' ? null : pendulumOffset(time, swingScale) });
-  const flat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.04, Math.random() * 0.4, 0));
-  const c = spawn(kind, plan.spawn.x, plan.spawn.y, plan.spawn.z, flat, null);
-  if (c) {
-    c.fromDrop = true;
-    c.slide = { t: 0, dur: plan.duration, from: plan.spawn, to: { ...plan.land }, tier: plan.tier, born: now };
-    c.body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
-    c.body.setNextKinematicTranslation(plan.spawn);
-    if (paired) for (const coin of coins) if (coin.slide && coin.slide.tier === 1 && now - coin.slide.born < 0.08) coin.slide.to.x = Math.sign(coin.slide.from.x) * 0.18;
-  }
-  dropStreak = now - dropStreakAt < 0.45 ? dropStreak + 1 : 0; dropStreakAt = now;
-  sfx.drop((plan.land.x || 0) / 6, dropStreak);
+function launchPhysicalCoin(kind,plan) {
+  const c=spawn(kind,plan.spawn.x,plan.spawn.y,plan.spawn.z,randQ(.025),plan.velocity);
+  if(!c)return null;
+  c.fromDrop=true;c.launchSide=plan.chute;
+  dropStreak=time-dropStreakAt<.45?dropStreak+1:0;dropStreakAt=time;
+  sfx.drop(plan.spawn.x/6,dropStreak);
   buzz(Math.min(28, 10 + dropStreak * 3));
-  shake = Math.min(0.18, shake + 0.06);
-  burst(plan.spawn.x, plan.spawn.y, plan.spawn.z, 10, kind === 'coin' ? '#ffe08a' : (TOKENS[kind]?.color || '#9fd8ff'), 2.2, 1.4);
-  const rig = chuteRig[resolved] || chuteRig.middle; if (rig) rig.scale.y = 0.82;
+  shake=Math.min(.12,shake+.035);
+  burst(plan.spawn.x,plan.spawn.y,plan.spawn.z,4,kind==='coin'?'#ffe08a':TOKENS[kind].color,.8,.5);
+  const rig=chuteRig[plan.chute];if(rig)rig.scale.y=.9;
+  return c;
+}
+function dropCoin(side='both') {
+  const plan=planInsertion({side,phase:pushPhase,jitter:(Math.random()-.5)*.04}),launches=plan.launches||[plan];
+  if(!inputOpen()||run.shots<launches.length||coins.length+launches.length>MAX_COINS)return false;
+  for(const entry of launches){
+    if(!launchPhysicalCoin('coin',entry))return false;
+    run.spendShot();tokens.dropCount++;
+    if(run.noteInsert())blastField('shake');
+    tokens.afterDrop(run.round,coins,specialAdapter);
+  }
+  state.coins=run.shots;return true;
+}
+function dropSpecialCoin(index=null) {
+  const id=Number.isInteger(index)?tokens.clip[index]:tokens.selected!=='coin'?tokens.selected:tokens.clip[0];
+  if(!controlsOpen()||coins.length>=MAX_COINS||!TOKENS[id]||!(tokens.bag[id]>0))return false;
+  const swingScale=1+(run.relics.swing||0)*.28;
+  const plan=planInsertion({special:true,phase:pushPhase,swing:pendulumOffset(time,swingScale)});
+  if(!launchPhysicalCoin(id,plan))return false;
+  tokens.select(id);const kind=tokens.consume();
   if (kind === 'bomb') blastField('nuke');
   if (run.noteInsert()) blastField('shake');
   tokens.afterDrop(run.round, coins, specialAdapter);
-  return true;
-}
-function stepSlides(dt) {
-  for (const c of coins) if (c.slide) {
-    c.slide.t += dt;
-    const u = Math.min(1, c.slide.t / c.slide.dur), e = u * u * (3 - 2 * u);
-    const p = { x: c.slide.from.x + (c.slide.to.x - c.slide.from.x) * e, y: c.slide.from.y + (c.slide.to.y - c.slide.from.y) * e, z: c.slide.from.z + (c.slide.to.z - c.slide.from.z) * e };
-    c.body.setNextKinematicTranslation(p);
-    if (u >= 1) {
-      const dx = c.slide.to.x - c.slide.from.x, dz = c.slide.to.z - c.slide.from.z;
-      c.body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
-      c.body.setLinvel({ x: dx * 0.35, y: c.slide.tier === 2 ? -0.6 : -0.9, z: Math.max(c.slide.tier === 2 ? 0.35 : 1.1, dz * 0.45) }, true);
-      c.body.enableCcd(true);
-      c.slide = null;
-    }
-  }
+  state.coins=run.shots;return true;
 }
 
 // ================== 存档 ==================
@@ -499,16 +510,19 @@ function save() {
     const p = c.body.translation(), q = c.body.rotation(), v = c.body.linvel(), a = c.body.angvel();
     return { kind:c.kind, p, q, v, a, fromDrop:c.fromDrop, gated:c.gated, prevY:c.prevY, token:cleanMeta(c.token) };
   });
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:5, run:run.serialize(), wheelQueue:prizeWheel?.pending||[], tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue,  combo, lastWin, winTimes, lost:stats.lost })); }
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ version:6, run:run.serialize(), wheelQueue:prizeWheel?.pending||[], tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue, combo, lastWin, winTimes, lost:stats.lost }));
+    journal.discover(tokens.discovered);localStorage.setItem(LOG_KEY,JSON.stringify(journal.serialize()));
+  }
   catch (e) { $('save-status').textContent = '无法保存：请检查浏览器存储空间'; }
 }
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!d || ![2,3,4,5].includes(d.version) || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
+    if (!d || ![2,3,4,5,6].includes(d.version) || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
     const restored = new Run(d.run);
     if (d.bodies.some(b => (!SHAPES[b.kind] && !TOKENS[b.kind]) || !['x','y','z'].every(k => Number.isFinite(b.p?.[k])) || !['x','y','z','w'].every(k => Number.isFinite(b.q?.[k])))) return false;
-    run = restored; run.energy=0;run.pendingSpin=0;restoredWheelQueue=Array.isArray(d.wheelQueue)?d.wheelQueue:[]; tokens = new TokenSystem(d.tokens);
+    run = restored; run.energy=0;run.pendingSpin=0;restoredWheelQueue=Array.isArray(d.wheelQueue)?d.wheelQueue:[]; tokens = new TokenSystem(d.tokens);tokens.configure(run);
     state.coins = run.shots; state.won = d.state?.won || 0; state.col = d.state?.col || {big:0,gem:0,plush:0}; state.jackpots = d.state?.jackpots || 0;
     pushPhase = Number.isFinite(d.pushPhase) ? d.pushPhase : pushPhase;
     pushMax = Number.isFinite(d.pushMax) ? d.pushMax : -0.5;
@@ -519,7 +533,7 @@ function load() {
       if (c) { c.token={...cleanMeta(b.token),uid:c.token.uid}; tokens.uid=Math.max(tokens.uid,c.token.uid); c.fromDrop=!!b.fromDrop; c.gated=!!b.gated; c.prevY=Number.isFinite(b.prevY)?b.prevY:b.p.y; if(b.a) c.body.setAngvel(b.a,true); }
     }
       wallT=Math.max(0,d.wallT||0); pushT=Math.max(0,d.pushT||0); feverT=Math.max(0,d.feverT||0); partyT=Math.max(0,d.partyT||0);
-    showerQueue=Array.isArray(d.showerQueue)?d.showerQueue.filter(s=>(SHAPES[s.kind]||TOKENS[s.kind])&&Number.isFinite(s.t)).slice(0,100):[];
+    showerQueue=Array.isArray(d.showerQueue)?d.showerQueue.filter(s=>(SHAPES[s.kind]||TOKENS[s.kind])&&Number.isFinite(s.t)).slice(0,1000).map(s=>({...s,blocked:Number.isFinite(s.blocked)?Math.max(0,Math.min(6,s.blocked)):0})):[];
     restoredTime=Number.isFinite(d.time)?d.time:0; combo=d.combo||0; lastWin=Number.isFinite(d.lastWin)?d.lastWin:-100; winTimes.push(...(d.winTimes||[])); stats.lost=d.lost||0;
     sfx.fast=feverT>0?1.35:1;
     return true;
@@ -549,7 +563,7 @@ if (!loaded) initialFill();
 // 预热：让堆叠稳定
 if (!loaded) for (let i = 0; i < 150; i++) physicsStep();
 // 预热期间可能掉落的币不计入
-if (!loaded) for (let i = coins.length - 1; i >= 0; i--) if (coins[i].body.translation().y < -0.5) removeCoin(i);
+if (!loaded) for (let i = coins.length - 1; i >= 0; i--) if (coins[i].body.translation().y < -0.4) removeCoin(i);
 
 // ================== 关卡结算 / 商店 ==================
 function buildSummary() {
@@ -564,8 +578,8 @@ function pickOptions() {
 }
 function renderPicks() {
   const section = $('pick-section'); if (!section) return;
-  if ((run.phase === 'shop' || run.phase === 'victory') && !run.picks.length && !run.picked) run.picks = rollPicks(run, pickOptions());
-  const show = (run.phase === 'shop' || run.phase === 'victory') && run.picks.length > 0;
+  if (run.phase === 'shop' && !run.picks.length && !run.picked) run.picks = rollPicks(run, pickOptions());
+  const show = run.phase === 'shop' && run.picks.length > 0;
   section.hidden = !show;
   if (!show) return;
   const reroll = $('pick-reroll');
@@ -603,6 +617,8 @@ function renderResult(force = false) {
   $('run-modal').hidden=false;$('run-modal').dataset.phase=phase;
   if (resultPhase===phase && !force) return;
   resultPhase=phase; releaseLaunchers(lanes);
+  journal.record(run.summary(tokens.stats));journal.discover(tokens.discovered);
+  try{localStorage.setItem(LOG_KEY,JSON.stringify(journal.serialize()));}catch{}
   const shop=phase==='shop', won=phase!=='gameover', r=run.receipt;
   $('result-kicker').textContent = phase==='victory' ? '八关制霸 · RUN COMPLETE' : `第 ${run.round} 关 · ${won?'挑战完成':'本局结束'}`;
   $('result-title').textContent = shop ? '机台补给舱' : won ? '恭喜通关！' : '差一点，再来一局';
@@ -613,7 +629,7 @@ function renderResult(force = false) {
   $('shop-wallet').textContent=run.cash;
   $('build-list').textContent=buildSummary();
   $('next-round').textContent=shop?`进入第 ${run.round+1} 关 →`:'再开一局 →';
-  $('next-preview').textContent=shop?`下关目标 ${TARGETS[run.round].toLocaleString()} 分 · ${50+run.level('reserve')*8+run.pendingShots} 次投币 · 台面保留`:'重开将重置本局构筑与贝壳；旧版存档不受影响';
+  $('next-preview').textContent=shop?`下关目标 ${run.targetForRound(run.round+1).toLocaleString()} 分 · ${run.nextShots} 次投币 · 台面保留`:phase==='victory'?'八关完成。可保留币堆与构筑继续挑战，或选择新航路。':'收藏与战报已保存，下次出航可以选择新的船员与难度。';
   $('reroll-shop').disabled=run.cash<3||run.rerolls>=1;
   $('reroll-shop').textContent=run.rerolls?'本次已刷新':'刷新货架 · 3 贝壳';
   const cards=$('shop-cards'); cards.replaceChildren();
@@ -623,7 +639,7 @@ function renderResult(force = false) {
     card.className=`upgrade-card ${u.color}${bought?' purchased':''}`;card.dataset.upgrade=id;
     const icon=document.createElement('div'); icon.className='upgrade-icon'; icon.innerHTML=upgradeArt(id);
     const title=document.createElement('h4'); title.textContent=u.name;
-    const level=document.createElement('div'); level.className='upgrade-level'; level.textContent=id==='supply'?'一次性 · 下一关生效':`Lv.${run.level(id)} / ${u.max} · 整局生效`;
+    const level=document.createElement('div'); level.className='upgrade-level'; level.textContent=id==='supply'?'一次性 · 下一关生效':`Lv.${run.level(id)} / ${run.upgradeMax(id)} · 整局生效`;
     const desc=document.createElement('p'); desc.textContent=u.desc;
     const button=document.createElement('button'); button.className='buy-button'; button.disabled=bought||run.cash<price;
     button.textContent=bought?'✓ 已购买':run.cash<price?`贝壳不足 · 需要 ${price}`:`购买 · ${price} 贝壳`;
@@ -631,6 +647,7 @@ function renderResult(force = false) {
     card.append(icon,title,level,desc,button); cards.append(card);
   }
   renderPicks();
+  voyageUI?.update(true);
   if(force) return;
   requestAnimationFrame(()=>$('next-round').focus({preventScroll:true}));
 }
@@ -670,21 +687,22 @@ function pointRay(cx, cy) {
   ray.setFromCamera(ndc, camera);
 }
 const cv = renderer.domElement;
-const keySide = { KeyQ: 'left', KeyW: 'middle', KeyE: 'right' };
+const keySide = { KeyQ: 'left', KeyW: 'both', KeyE: 'right' };
 function releasePointer(e) {
   const source = 'ptr:' + e.pointerId;
   for (const lane of Object.values(lanes)) disengage(lane, source);
 }
 cv.tabIndex = 0;
-cv.setAttribute('aria-label', '推币机：Q 左槽，W 或空格中槽，E 右槽。鼠标左键、中键、右键对应三槽。轻触大肥鱼互动。');
+cv.setAttribute('aria-label', '推币机：Q左侧投币，E右侧投币，W或空格双侧同投。鼠标左右键对应两侧，中键双投。F投放特殊币，轻触大肥鱼互动。');
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('pointerdown', e => {
   pointRay(e.clientX, e.clientY);
   if (inputOpen() && mascot.hitTest(ray)) { mascot.react('happy', 1.8); say('pet'); sfx.gate(); return; }
   if (e.pointerType === 'touch' || !inputOpen() || e.button > 2) return;
-  const side = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
+  const side = e.button === 2 ? 'right' : e.button === 1 ? 'both' : 'left';
   e.preventDefault();
-  engage(lanes[side], 'ptr:' + e.pointerId, { immediate: false });
+  const action=engage(lanes[side], 'ptr:' + e.pointerId, { immediate: true });
+  if(action.fired)dropCoin(side);
   try { cv.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointers have no capture id */ }
 });
 addEventListener('pointerup', releasePointer);
@@ -695,11 +713,11 @@ addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('help').classList.contains('show')) { $('help').classList.remove('show'); releaseLaunchers(lanes); cv.focus({ preventScroll: true }); }
   const chuteButtons = [$('chute-left'), $('dropbtn'), $('chute-right')];
   if (e.code === 'Space' && (e.target === document.body || e.target === cv || chuteButtons.includes(e.target))) {
-    if (inputOpen() && !e.repeat) engage(lanes.middle, 'key:Space', { immediate: false });
+    if (inputOpen() && !e.repeat) {const action=engage(lanes.both,'key:Space',{immediate:true});if(action.fired)dropCoin('both');}
     e.preventDefault();
   }
   if (keySide[e.code] && inputOpen()) {
-    if (!e.repeat) engage(lanes[keySide[e.code]], 'key:' + e.code, { immediate: false });
+    if (!e.repeat) {const side=keySide[e.code],action=engage(lanes[side],'key:'+e.code,{immediate:true});if(action.fired)dropCoin(side);}
     e.preventDefault();
   }
   if (e.code === 'KeyR' && inputOpen() && !e.repeat) {
@@ -707,9 +725,10 @@ addEventListener('keydown', e => {
     tokens.select(ids[(ids.indexOf(tokens.selected) + 1) % ids.length]);
     releaseLaunchers(lanes); tokenUI.refresh(true); save();
   }
+  if(e.code==='KeyF'&&controlsOpen()&&!e.repeat){e.preventDefault();dropSpecialCoin();save();updateHud(0);}
 });
 addEventListener('keyup', e => {
-  if (e.code === 'Space') disengage(lanes.middle, 'key:Space');
+  if (e.code === 'Space') disengage(lanes.both, 'key:Space');
   if (keySide[e.code]) disengage(lanes[keySide[e.code]], 'key:' + e.code);
 });
 function bindChute(id, side) {
@@ -725,7 +744,7 @@ function bindChute(id, side) {
   if (side === 'middle') button.addEventListener('click', e => { if (e.detail === 0) { dropCoin('middle'); updateHud(0); } });
 }
 bindChute('chute-left', 'left');
-bindChute('dropbtn', 'middle');
+bindChute('dropbtn', 'both');
 bindChute('chute-right', 'right');
 $('exchange-btn').onclick = () => {
   if (!run.exchange()) return;
@@ -750,22 +769,25 @@ $('art-credits').addEventListener('click', e => e.stopPropagation());
 $('help').onclick = () => { $('help').classList.remove('show'); cv.focus({preventScroll:true}); };
 $('btn-reset').onclick = () => { if (confirm('重置存档并重新开始？')) { resetting=true; localStorage.removeItem(SAVE_KEY); location.reload(); } };
 $('start-button').onclick = () => {
+  if(!loaded){run=new Run(undefined,Math.random,voyageUI.options);tokens=new TokenSystem(undefined,{character:run.character});tokens.configure(run);coins.forEach(c=>tokens.meta(c));}
   sfx.init(); started = true; $('start').classList.add('hide'); $('start').inert=true; $('hud').classList.add('show'); cv.focus({preventScroll:true});
   mascot.react('happy', 1.5); say('idle'); sfx.levelUp();
   if (loaded) $('save-status').textContent = '已恢复本局进度';
-  renderResult(); save();
+  renderResult(); save();updateHud(0);
 };
 
 // Fit the complete playable cabinet to the actual canvas, not the browser window.
 // This also keeps aiming and projected reward text correct after HUD reflow.
 let resizeFrame = 0;
 mobileCabinet=createMobileCabinet(()=>queueResize());
-juice=createMachineJuice($('mobile-cabinet'));
+const eventLabel=document.createElement('div');eventLabel.id='machine-event';eventLabel.setAttribute('role','status');$('machine-window').append(eventLabel);
+juice=createMachineJuice($('mobile-cabinet'),{onBatch:b=>{sfx.bank(b);if(b.tier===3){shake=Math.max(shake,.25);mascot.react('excited',1);buzz(22);}}});
 prizeWheel=createPrizeWheel({
   canPresent: () => started && run.active && !helpBlocking() && !catalogBlocking() && !mobileCabinet.isMenuOpen(),
   onActive: active => { releaseLaunchers(lanes); mobileCabinet.setWheelActive(active); },
   onReveal: awardWheel,
   random:()=>run.random(),
+  onTick:()=>sfx.tick(),
   onChange: () => { if(started) save(); },
 });
 for (const item of restoredWheelQueue) prizeWheel.enqueue(item);
@@ -773,9 +795,9 @@ function resize() {
   resizeFrame = 0;
   const narrow=mobileCabinet.mobile;
   backboardGroup.visible=false;
-  mascot.root.position.set(-5.1,2.7,1.25);mascot.root.scale.setScalar(narrow?.78:.96);
-  CAM_DIR.set(0,narrow?.84:.601,narrow?.543:.799).normalize();
-  CAM_TARGET.set(0,narrow?.8:.55,narrow?-.7:-1.0);
+  mascot.root.position.set(narrow?-4.6:-5.1,2.7,1.25);mascot.root.scale.setScalar(narrow?.68:.96);
+  CAM_DIR.set(0,narrow?.96:.78,narrow?.28:.626).normalize();
+  CAM_TARGET.set(0,narrow?.15:.4,narrow?-.65:-.5);
   leds.instanceMatrix.needsUpdate=true;ledPos.forEach((p,i)=>{if(p[3]===2)tmpM.makeScale(0,0,0);else tmpM.makeTranslation(p[0],p[1],p[2]);leds.setMatrixAt(i,tmpM);});
   const r=app.getBoundingClientRect(), w=Math.max(1,r.width), h=Math.max(1,r.height);
   camera.aspect=w/h; camera.fov=narrow?49:46;
@@ -785,8 +807,8 @@ function resize() {
   // Separate real cabinet regions avoid fitting imaginary upper-front corners,
   // which would unnecessarily shrink the playfield, especially on phones.
   const regions=[
-    [[narrow?-5.2:-5.65,narrow?5.2:5.65],[-.1,2.75],[-6.3,4.25]],
-    [[-4.4,4.4],[3.2,4.2],[-5.8,-3.5]],
+    [[narrow?-4.9:-5.15,narrow?4.9:5.15],[-.05,1.8],[-5.9,4.1]],
+    [[-2.8,2.8],[3.05,3.7],[-5.55,-3.5]],
   ];
   for(const [xs,ys,zs] of regions) for(const x of xs) for(const y of ys) for(const z of zs) {
     const relative=new THREE.Vector3(x,y,z).sub(CAM_TARGET);
@@ -821,8 +843,10 @@ function frame() {
   composer.render();
 }
 function update(dt) {
+  tableFX.update(Math.min(dt,.05));
   if (!started || !run.active || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || prizeWheel?.active || document.hidden) { updateHud(dt); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
+  run.noteTime(dt);
 
   for (const rig of Object.values(chuteRig)) rig.scale.y += (1 - rig.scale.y) * Math.min(1, dt * 12);
   const swingScale = 1 + (run.relics.swing || 0) * 0.28;
@@ -833,7 +857,6 @@ function update(dt) {
   chuteMat.side.emissiveIntensity = forward ? 0.9 : 0.18;
   chuteMat.mid.emissiveIntensity = tokens.selected !== 'coin' ? 1.15 : forward ? 0.22 : 0.85;
   if (inputOpen()) for (const side of stepLaunchers(lanes, dt)) dropCoin(side);
-  stepSlides(dt);
   // 奖励计时
   wallT = Math.max(0, wallT - dt); pushT = Math.max(0, pushT - dt); partyT = Math.max(0, partyT - dt);
   if (feverT > 0) { feverT -= dt; if (feverT <= 0) sfx.fast = 1; }
@@ -845,14 +868,22 @@ function update(dt) {
   });
   // 金币雨
   if (showerQueue.length) {
-    showerQueue.forEach(s => s.t -= dt);
-    while (showerQueue.length && showerQueue[0].t <= 0) {
-      const s = showerQueue.shift();
+    showerQueue.forEach(s => {s.t-=dt;if(coins.length>=MAX_COINS)s.blocked=(s.blocked||0)+dt;});
+    let budget=12,converted=0;
+    while (budget-- > 0 && showerQueue.length && showerQueue[0].t <= 0) {
+      const s = showerQueue[0];
+      if(coins.length>=MAX_COINS){
+        if((s.blocked||0)<6)break;
+        run.tickets=Math.min(9999,run.tickets+(s.prize?8:1));converted++;showerQueue.shift();continue;
+      }
+      showerQueue.shift();
+      if(s.table){spawnTablePrize(s.kind,s.x,false);continue;}
       if (s.prize) { dropPrize(s.kind); continue; }
       const x = (Math.random() - 0.5) * 8.2, z = 0.2 + Math.random() * 3;
       const c = spawn(s.kind, x, 6 + Math.random(), z, randQ(0.6), V(0, -4, 0));
       if (c) burst(x, 6, z, 4, '#ffe680', 1, 0.5);
     }
+    if(converted)juice?.event('台面已满，待发奖励已兑换为兑币票','produce');
   }
   // No regenerating or returned ammo: the limited shot budget is a run rule.
 
@@ -871,7 +902,7 @@ function update(dt) {
       c.pv = v;
     }
     c.prevY = p.y;
-    if (c.ccd !== false && p.y < 1.9 && c.state === 'field') { c.ccd = false; c.body.enableCcd(false); }
+    if (c.ccd !== false && p.y < 1.9 && Math.abs(c.body.linvel().x)<4 && c.state === 'field') { c.ccd = false; c.body.enableCcd(false); }
     if (c.state === 'field' && p.y < -0.4) {
       if (p.z > FRONT_Z - 0.1 && Math.abs(p.x) < HALF_W + 0.3) { c.state = 'won'; onWin(c); }
       else { c.state = 'lost'; stats.lost++; sfx.lost(p.x / 6); if (c.kind !== 'coin') floatText('漏掉了…', p.x, 0, p.z, 'lost'); }
@@ -899,8 +930,8 @@ function update(dt) {
   if (spinLevel) presentLottery(spinLevel);
   updateLeds(time); updateSparkles(dt); updateConfetti(dt);
   if (partyT > 0 && Math.random() < 0.3) burst((Math.random() - 0.5) * 10, 3 + Math.random() * 3, -2 + Math.random() * 4, 6, `hsl(${Math.random() * 360},100%,65%)`, 3, 2);
-  pinkL.intensity = motionReduced.matches?3:6 + (partyT > 0 || feverT > 0 ? Math.sin(time * 20) * 5 : Math.sin(time * 2) * 1.5);
-  cyanL.intensity = motionReduced.matches?3:6 + (partyT > 0 || feverT > 0 ? Math.cos(time * 20) * 5 : Math.cos(time * 2) * 1.5);
+  pinkL.intensity = motionReduced.matches?2.8:2.8 + (partyT > 0 || feverT > 0 ? .8+Math.sin(time*6)*.7 : Math.sin(time*2)*.35);
+  cyanL.intensity = motionReduced.matches?3:3 + (partyT > 0 || feverT > 0 ? .8+Math.cos(time*6)*.7 : Math.cos(time*2)*.35);
 
   // 相机：轻微呼吸 + 震动
   shake = Math.max(0, shake - dt * 1.5);
@@ -911,6 +942,9 @@ function update(dt) {
   if (run.tick(dt, showerQueue.length > 0 || prizeWheel?.active || comboWheel.level > 0)) { releaseLaunchers(lanes); save(); }
   updateHud(dt);
 }
+voyageUI=createVoyageUI({crew:CREW,difficulties:DIFFICULTIES,journal:()=>journal,resume:loaded,getRun:()=>run,getTokens:()=>tokens,onEndless:()=>{
+  if(!run.continueEndless())return;tokens.configure(run);resultPhase='';renderResult(true);save();updateHud(0);
+}});
 frame();
 tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>releaseLaunchers(lanes),sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };
+window.__game = { experience:()=>({effects:tableFX.counts,activeEffects:tableFX.active,batches:juice.batches,pendingDeliveries:showerQueue.length,journal:journal.serialize()}), time:()=>time, get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, dropSpecialCoin, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };

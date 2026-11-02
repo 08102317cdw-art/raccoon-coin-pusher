@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=3.2.0';
-import { buildDafeiyu } from './mascot.js?v=2.4.1';
-import { dressCabinet } from './cabinet-details.js?v=2.4.1';
-import { finishCabinet } from './cabinet-finish.js?v=3.2.0';
+import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=4.0.0';
+import { buildDafeiyu } from './mascot.js?v=4.0.0';
+import { dressCabinet } from './cabinet-details.js?v=4.0.0';
+import { finishCabinet } from './cabinet-finish.js?v=4.0.0';
 
 // Cabinet presentation stays separate from run rules and the simulation loop.
 // Factories are invoked at the original initialization points; no timing changes.
@@ -81,23 +81,24 @@ export function createCabinetAccents({ scene, staticBox, meshBox, HALF_W, FRONT_
   const chuteRig = {};
   function buildChute(side) {
     const g = new THREE.Group();
-    const mat = side === 'middle' ? chuteMat.mid : chuteMat.side;
-    const tray = new THREE.Mesh(new THREE.BoxGeometry(side === 'middle' ? 0.72 : 0.82, 0.16, 1.65), mat);
+    const mat = chuteMat.side;
+    const tray = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.14, 0.8), mat);
     tray.castShadow = tray.receiveShadow = true; g.add(tray);
-    const lipMesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 0.16), chrome);
-    lipMesh.position.z = 0.78; g.add(lipMesh);
-    const mouthX = side === 'left' ? -3.9 : side === 'right' ? 3.9 : 0;
-    g.position.set(mouthX, side === 'middle' ? 3.35 : 3.15, -5.55);
-    if (side === 'left') { g.rotation.z = -0.42; g.rotation.y = 0.32; }
-    if (side === 'right') { g.rotation.z = 0.42; g.rotation.y = -0.32; }
+    const lipMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.13, 0.08), chrome);
+    lipMesh.position.z = 0.42; g.add(lipMesh);
+    const backLip=lipMesh.clone();backLip.position.z=-.42;g.add(backLip);
+    const mouthX = side === 'left' ? -4.9 : 4.9;
+    g.position.set(mouthX, 1.46, -4.7);
+    g.rotation.z=side==='left'?-.12:.12;
     scene.add(g); chuteRig[side] = g; return g;
   }
-  buildChute('left'); buildChute('right'); buildChute('middle');
+  // 两个侧向普通币滑槽，中间没有固定普通投币口。
+  buildChute('left'); buildChute('right');
   const pendulum = new THREE.Group();
-  const hanger = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.9, 8), chuteMat.mid); hanger.position.y = 0.95; pendulum.add(hanger);
-  const basket = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.28, 0.9), chuteMat.mid); basket.castShadow = true; pendulum.add(basket);
-  const chuteLip = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.1, 0.18), chrome); chuteLip.position.set(0, -0.1, 0.42); pendulum.add(chuteLip);
-  pendulum.position.set(0, 4.05, -3.55); scene.add(pendulum);
+  const hanger = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.2, 8), chuteMat.mid); hanger.position.y = 0.6; pendulum.add(hanger);
+  const basket = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.16, 0.64), chuteMat.mid); basket.castShadow = true; pendulum.add(basket);
+  const chuteLip = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.08, 0.12), chrome); chuteLip.position.set(0, -0.06, 0.32); pendulum.add(chuteLip);
+  pendulum.position.set(0, 4.05, .85); scene.add(pendulum);
 
   // ================== LED 灯泡 ==================
   const ledPos = [];

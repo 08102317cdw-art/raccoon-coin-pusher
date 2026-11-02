@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 (async()=>{
  const imp=p=>import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync(p)).toString('base64'));
- const {TOKENS,SPECIAL_IDS,BAD_IDS,TokenSystem,cleanMeta,PACKS}=await imp('src/tokens.js');const {Run}=await imp('src/roguelike.js');
+ const {TOKENS,SPECIAL_IDS,BAD_IDS,TokenSystem,cleanMeta,PACKS,CREW}=await imp('src/tokens.js');const {Run}=await imp('src/roguelike.js');
  let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const test=(fn)=>{const t=new TokenSystem(),entities=[],events=[],spawns=[],removed=[],pushes=[];let shells=10;
   const e=(kind,x=0,z=0,y=0)=>{const e={kind,state:'field',p:{x,y,z}};t.meta(e);entities.push(e);return e;};
@@ -30,5 +30,46 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
  r.score=300;r.finish();t.prepareShop(1);const id=t.shopOffers[0],before=t.remaining;ok(t.claimPack(id,r)&&t.remaining>before,'one free pack');ok(!t.claimPack(t.shopOffers[1],r),'cannot claim twice');r.cash=100;const cash=r.cash;ok(t.buyPack(id,r)&&r.cash===cash-PACKS[id].cost,'pack purchase uses shell wallet');ok(!t.buyPack(id,r),'pack cannot be bought twice');
  const copy=new TokenSystem(JSON.parse(JSON.stringify(t.serialize())));ok(JSON.stringify(copy.serialize())===JSON.stringify(t.serialize()),'bag/selection/pack-claim persistence');copy.prepareShop(1);ok(copy.claimed&&!copy.claimPack(id,r),'reload does not regrant free pack');
  ok(cleanMeta({kills:Infinity,bonus:-2,charged:true}).kills===0,'malformed metadata sanitized');
+ const garden=new TokenSystem(null,{character:'gardener'}),keeper=new TokenSystem(null,{character:'keeper'}),engineer=new TokenSystem(null,{character:'engineer'});
+ ok(Object.keys(CREW).length===3&&garden.bag.seed===3&&!garden.bag.cat&&keeper.bag.cat===2&&!keeper.bag.seed&&engineer.bag.bomb===3,'三角色有独立起手供给');
+ garden.bag.water=0;
+ ok(garden.buildInfo().missing.includes('水滴币')&&garden.recommendPack('garden').includes('水滴币'),'构筑提示指出缺失组件');
+ garden.prepareShop(2);ok(garden.shopOffers.includes('garden'),'角色供给货架持续提供本流派补给');
+ test(({t,entities,e,a,spawns})=>{
+  t.configure(new Run(null,Math.random,{character:'gardener'}));const tree=e('tree');
+  t.tick(6,entities,a);ok(tree.token.produced===1,'园丁六秒产币被动真实生效');
+  for(let i=0;i<12;i++)t.tick(6,entities,a);
+  ok(tree.token.produced===8,'园丁产量提高但保持有界');
+ });
+ test(({t,entities,e,a})=>{const tree=e('tree'),spawn=a.spawn;a.spawn=()=>null;t.tick(8,entities,a);ok(tree.token.produced===0,'台面满载不吞掉树的产出额度');a.spawn=spawn;t.tick(.2,entities,a);ok(tree.token.produced===1,'台面腾空后生产会重试');});
+ test(({t,entities,e,a,spawns})=>{
+  const r=new Run(null,Math.random,{character:'gardener'});r.levels.irrigation=3;t.configure(r);e('tree');
+  for(let i=0;i<3;i++)t.tick(3,entities,a);
+  ok(spawns.filter(c=>c.kind==='coin').length===3&&spawns.filter(c=>c.kind==='water').length===1,'水渠缩短产币间隔并回流物理水滴');
+  ok(t.stats.produced===4,'生产统计包含实际金币和回流水滴');
+ });
+ test(({t,entities,e,a,spawns})=>{
+  const r=new Run(null,Math.random,{character:'keeper'});r.levels.predator=3;t.configure(r);const cat=e('cat'),fish=e('fish',.7);fish.token.bonus=200;t.tick(1,entities,a);
+  ok(cat.token.bonus===260&&spawns.some(c=>c.kind==='shrimp'),'食物链继承猎物成长并补出虾米');
+ });
+ test(({t,entities,e,a})=>{
+  t.configure(new Run(null,Math.random,{character:'engineer'}));const coin=e('coin');coin.token.charged=true;
+  ok(t.scoreBase(coin,10)===15,'技师充能倍率真实生效');
+ });
+ test(({t,entities,e,a})=>{
+  const r=new Run(null,Math.random,{character:'engineer'});r.levels.capacitor=2;t.configure(r);e('lightning');const close=e('coin',.9),far=e('coin',2.2);t.tick(.2,entities,a);
+  ok(close.token.charged&&far.token.charged,'线圈通过邻币跳电而非扩大直接接触判定');
+  const bomb=e('bomb',2.8);t.explode(bomb,entities,a);
+  ok(!far.token.charged&&bomb.token.bonus>=30,'爆破收割充能转为自身币值');
+ });
+ test(({t,entities,e,a})=>{
+  const packets=[];a.notify=(text,p,event)=>packets.push(event);const seed=e('seed'),water=e('water',.8);t.tick(.2,entities,a);
+  const grow=packets.find(event=>event.type==='grow');
+  ok(grow.from.x===water.p.x&&grow.to.x===seed.p.x&&grow.sourceId===water.token.uid,'联动事件保留来源目标和稳定实体标识');
+  water.p.x=99;ok(grow.from.x===.8,'事件坐标使用快照');
+  t.tick(8,entities,a);ok(packets.some(event=>event.type==='produce')&&t.stats.grows===1,'成长和产币提供独立表现事件');
+  const copy=new TokenSystem(t.serialize());ok(copy.stats.grows===1&&copy.discovered.includes('tree'),'图鉴发现与联动统计读档保留');
+ });
+ test(({t,entities,e,a})=>{t.configure(new Run(null,Math.random,{character:'gardener'}));const initial=t.bag.seed;t.startStage(9,entities,a);ok(t.bag.seed===initial+1&&t.roundStamp===9,'角色跨关补给支持无尽');const saved=new TokenSystem(t.serialize());ok(saved.roundStamp===9,'第九关阶段标记读档不会回退');});
  console.log(`PASS: ${checks} token-rule assertions`);
 })().catch(e=>{console.error(e);process.exitCode=1;});

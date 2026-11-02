@@ -221,7 +221,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
       <div id="total-score"><span>总分</span><b id="won">0</b></div>
       <div id="energy-box" aria-label="连击奖励蓄能"><span class="stat-label">连击蓄能</span><span class="energy-track"><i id="energy-bar"></i></span><b id="energy-count">0/8</b></div>
     </div>
-    <section id="token-controls" aria-label="代币选择与台面状态"><div class="token-toolbar"><button id="token-open" aria-haspopup="dialog">鲸 普通金币 · ∞ · 选择</button><small id="token-field-status">台面坏币 0 · 环境 ×1.00</small></div><div id="coin-clip" aria-label="特殊币槽"></div><p id="token-latest">首批代币已放入币仓 · 点此选择</p></section>
+    <section id="token-controls" aria-label="特殊币装夹与台面状态"><div class="token-toolbar"><button id="token-open" aria-haspopup="dialog">打开特殊币仓 · 装填币夹</button><small id="token-field-status">台面坏币 0 · 环境 ×1.00</small></div><div id="coin-clip" aria-label="特殊币夹，点击币面从摆槽投放"></div><p id="token-latest">特殊币先装夹，再点币面投放</p></section>
   </div>
   <figure id="hud-character" aria-label="大肥鱼角色装饰"><img data-character="idle" alt="蓝发鲸尾女仆大肥鱼" draggable="false"><figcaption>今天也要满载而归</figcaption></figure>
   <div id="hud-bottom">
@@ -230,7 +230,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
       <p id="timing-lamp">推板收回 · 左右槽落到中间</p>
       <div id="chute-row" role="group" aria-label="投币槽">
         <button id="chute-left" type="button" aria-label="左槽投币，长按连投并锁定"><span>左槽</span><small>Q · 左键</small></button>
-        <button id="dropbtn" type="button" aria-label="中槽投币，长按连投并锁定"><span>中槽</span><small>W · 空格</small></button>
+        <button id="dropbtn" type="button" aria-label="双侧同投，同时投放两枚普通金币，消耗两次投币额度"><span>双侧同投 ×2</span><small>W · 空格 · 中键</small></button>
         <button id="chute-right" type="button" aria-label="右槽投币，长按连投并锁定"><span>右槽</span><small>E · 右键</small></button>
       </div>
       <div id="play-actions">
@@ -239,7 +239,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
       </div>
     </div>
     <button id="round-action" hidden disabled>达到目标分后可结算</button>
-    <div id="hint"><span class="desktop-instruction">Q 左槽 · W / 空格中槽 · E 右槽 · 长按锁定连投</span><span class="mobile-instruction">按住左、中、右槽 · 点按比长按更快</span><span id="save-status">进度自动保存</span></div>
+    <div id="hint"><span class="desktop-instruction">Q 左投 · E 右投 · W / 空格双侧同投 · R 选择特殊币 · F 投放特殊币</span><span class="mobile-instruction">左右投普通币 · 双侧同投两枚 · 点击币夹投特殊币</span><span id="save-status">进度自动保存</span></div>
   </div>
 </aside>
 <div id="start"><span class="start-orbit orbit-a" aria-hidden="true"></span><span class="start-orbit orbit-b" aria-hidden="true"></span><p class="start-eyebrow">THE LUCKY WHALE · 投币俱乐部</p>
@@ -248,7 +248,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   <h2>DAFEIYU COIN PUSHER</h2>
   <button class="go" id="start-button">投入好运 · 开始 / 继续</button>
   <ul>
-    <li>01　左右槽看推板，中槽稳落中间</li>
+    <li>01　左右入口投普通币，双侧同投两枚</li>
     <li>02　金币基础分 × 构筑倍率 × 连击加成</li>
     <li>03　19 种特殊币，组合种植与捕食流</li>
     <li>04　清除坏币，关间补给，挑战 8 关</li>
@@ -258,14 +258,14 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 <div id="help"><div class="card">
   <button id="dock-help" class="dock-handle" type="button" data-dock>收起</button>
   <h3>玩法说明</h3>
-  <p>左右两个投币槽会让硬币横向滑过推板：左槽向右滑，右槽向左滑。推板<b>向前</b>时硬币落在投入的那一侧；推板<b>收回</b>时滑到中间。同时按左右槽，两枚在中间相遇。中槽、W、空格或鼠标中键直接落在中间。从<b>前沿</b>掉进出币口的硬币归你，从<b>两侧</b>漏掉的就没了。</p>
+  <p>普通金币只有<b>左、右两个物理入口</b>：Q、左键或「左槽」投左侧；E、右键或「右槽」投右侧。金币沿机内导向运动，落点会受推板位置与碰撞影响。W、空格、鼠标中键或「双侧同投」会从左右各投一枚，消耗两次普通投币额度。从<b>前沿</b>掉进出币口的硬币归你，从<b>两侧</b>漏掉的就没了。</p>
   <p class="rules-note">普通币 / 大金币 / 宝石 / 玩偶分别为 10 / 100 / 200 / 300 基础分。普通币可被“金币抛光”强化。</p>
   <p class="rules-note">得分 = 基础分 × 构筑倍率 × 连击倍率 × FEVER。0.7 秒内连续进币，连击每次 +0.1，最高 ×1.5；FEVER ×2。</p>
-  <p class="rules-note">每关初始 50 次投币，赢币只加分、不返还次数。按住约半秒锁定该槽并持续投出，再点一下解除；连续点按比按住更快。用完后等候落币；达标可提前结算。商店与说明界面暂停游戏。</p>
+  <p class="rules-note">标准航路每关初始 50 次普通投币，平静海湾 60 次，风暴航路 45 次，改装可增加额度。赢币加分，不直接返还次数。按住普通投币按钮可锁定连投，再点一下解除；用完后等候落币，达标可提前结算。商店与说明界面暂停游戏。</p>
   <p class="rules-note">每枚入账硬币给 1 张兑币票。每关可兑 2 次，先 12 票再 18 票，每次 +8 次投币；落币结算时也能兑，用来把额度补回来。每局另有 1 次免费摇台，把台面硬币抖向前沿。</p>
   <p class="rules-note">通关贝壳 = 8 + 关卡 ×2；每剩 5 次投币额外 +1（最多 +6），超额得分最多 +4。商店每次可刷新一次。</p>
   <p class="rules-note">每关保留台面和未完成抽奖，清除临时增益，再应用开局护墙。新模式单独存档，旧版存档保留。</p>
-  <p class="rules-note">特殊代币放进币槽，从中间摆槽射出。摆槽一直左右摇，硬币从它当下的位置落下，所以要卡时机。仍消耗 1 次投币额度。R 键轮换现有币。商店可以扩币槽。打开币仓时可以收起面板看台面。</p>
+  <p class="rules-note">特殊币先在币仓装入<b>特殊币夹</b>，再点击机台上的币面投放。它们使用独立的左右摆动槽，从摆槽当下的位置自然下落，要观察摆动时机。R 键选择特殊币，F 键投放所选特殊币；普通左右入口始终投入普通金币。商店可以扩充币夹。</p>
   <p class="rules-note">联动：种子 + 水滴长成摇钱树；虾米喂鱼、猫猫吃鱼鼠；母鸡跨关产蛋、蛋在下一关孵化；闪电充能，电池吸能；倍率印记不重复叠乘。跨关保留币仓、币值与净化次数。</p>
   <p class="rules-note">第 2 关起坏币入侵，之后每 12 次手动投币再来 1 枚，台面最多 8 枚坏币。锈蚀降低环境倍率；盗壳偷贝壳；腐蚀吞普通币。坏币进前沿扣分，最低 0 分，不触发连击。杀手币最多清 6 枚，每枚 +1 贝壳，清满后消耗。</p>
   <p class="rules-note">商店的「松台销」每投入 20 枚就自动摇一次，不消耗免费摇台。已买推板改装时，摇台和爆破币的全场轰击更有力。爆破币投入时先把全场硬币轰向前沿，入账时再炸开周围的币。</p>
@@ -282,7 +282,7 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
   <section class="token-dialog" role="dialog" aria-modal="true" aria-labelledby="token-title" aria-describedby="token-subtitle">
     <header class="hold-header"><div><p class="eyebrow">THE WHALE'S TREASURE · NO. 019</p><h2 id="token-title">代币装填舱</h2><p id="token-subtitle"></p></div><div class="hold-header-right"><span id="bag-total">珍藏代币</span><button id="dock-tokens" class="dock-handle" type="button" data-dock>收起</button><button id="token-close" aria-label="关闭代币仓">×</button></div></header>
     <div class="hold-deck"><aside id="token-preview" class="token-preview"><span id="preview-group" class="eyebrow"></span><div class="porthole"><i class="orbit orbit-one"></i><i class="orbit orbit-two"></i><div id="preview-art"></div><span class="porthole-star star-a" aria-hidden="true"></span><span class="porthole-star star-b" aria-hidden="true"></span></div><h3 id="preview-name"></h3><div class="coin-stat"><strong id="preview-points"></strong><span>基础分</span><small id="preview-stock"></small></div><p id="preview-desc"></p><div class="recipe-label"><span>联动灵感</span><i></i></div><div id="preview-route" aria-label="相关代币示意"></div><p id="preview-tip"></p><button id="token-equip" class="arcade-primary">装填代币 →</button><p id="preview-atlas-note" hidden>图鉴模式 · 切回百宝舱即可装填</p></aside>
-    <div class="hold-collection"><div class="token-tabs" role="tablist" aria-label="代币信息"><button id="token-tab-bag" role="tab" aria-selected="true">我的百宝舱</button><button id="token-tab-atlas" role="tab" aria-selected="false">联动图鉴 <span>22</span></button></div><div id="token-filters" aria-label="按构筑筛选"></div><div class="tray-heading"><span>挑选你的下一枚幸运</span><small>点击代币查看</small></div><div id="token-cards"></div><p id="token-event-log" role="status"></p></div></div>
+    <div class="hold-collection"><div class="token-tabs" role="tablist" aria-label="代币信息"><button id="token-tab-bag" role="tab" aria-selected="true">我的百宝舱</button><button id="token-tab-atlas" role="tab" aria-selected="false">联动图鉴 <span>22</span></button></div><div id="token-filters" aria-label="按构筑筛选"></div><div class="tray-heading"><span>挑选你的特殊币</span><small>点击代币查看</small></div><div id="token-cards"></div><p id="token-event-log" role="status"></p></div></div>
   </section>
 </div>
 <div id="run-modal" hidden>

@@ -68,7 +68,7 @@ export function rollPicks(run, options = {}) {
   const upgrades = options.upgrades || {};
   const upgradeIds = (options.upgradeIds || Object.keys(upgrades)).filter(id => {
     const spec = upgrades[id];
-    return spec && id !== 'supply' && (run.level?.(id) || 0) < spec.max;
+    return spec && id !== 'supply' && (run.level?.(id) || 0) < (run.upgradeMax?.(id) ?? spec.max);
   });
   const relicIds = Object.keys(RELICS).filter(id => (run.relics?.[id] || 0) < RELICS[id].max);
   const used = new Set();
@@ -88,6 +88,18 @@ export function rollPicks(run, options = {}) {
     if (!extra) break;
     cards.push(extra);
   }
+  // 角色供给先给一条可成型的航路，另外两张仍保留探索空间。
+  const preferred = {gardener:{upgrade:'irrigation',coins:['seed','water']},keeper:{upgrade:'predator',coins:['shrimp','fish','cat']},engineer:{upgrade:'capacitor',coins:['lightning','water','battery','bomb']}}[run.character];
+  if(preferred && cards.length) {
+    const id=preferred.upgrade,max=run.upgradeMax?.(id)??upgrades[id]?.max;
+    if(upgrades[id]&&(run.level?.(id)||0)<max&&!cards.some(card=>card.kind==='upgrade'&&card.id===id)) {
+      cards[0]={kind:'upgrade',id,name:upgrades[id].name,desc:upgrades[id].desc,rarity:'uncommon',max};
+    } else if (!cards.some(card=>card.kind==='coin'&&preferred.coins.includes(card.id))) {
+      const open=preferred.coins.filter(id=>coinIds.includes(id)&&!cards.some(card=>card.kind==='coin'&&card.id===id));
+      if(open.length) {const id=open[Math.floor(random()*open.length)%open.length];cards[0]={kind:'coin',id,name:options.names?.[id]||id,desc:'本航路补给 · 收入币仓 2 枚。',rarity:'uncommon',count:2};}
+    }
+  }
+  for(const card of cards)if(card.kind==='upgrade')card.max=run.upgradeMax?.(card.id)??card.max;
   return cards;
 }
 
@@ -116,7 +128,7 @@ function takeRelic(ids, used) {
 export function applyPick(run, card, grant) {
   if (!card || run.picked) return false;
   if (card.kind === 'upgrade') {
-    const max = card.max ?? 8;
+    const max = run.upgradeMax?.(card.id) ?? card.max ?? 8;
     if ((run.level?.(card.id) || run.levels?.[card.id] || 0) >= max) return false;
     run.levels[card.id] = (run.levels[card.id] || 0) + 1;
   } else if (card.kind === 'coin') {
