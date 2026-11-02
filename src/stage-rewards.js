@@ -7,34 +7,60 @@ export const PRIZES = Object.freeze({
   plushie: { name: '小鲸玩偶', points: 120, tickets: 4, shells: 2 },
 });
 export const RELICS = Object.freeze({
-  tide: { name: '潮汐芯', desc: '之后每枚入账额外 +1 能量。', max: 3, rarity: 'uncommon' },
+  tide: { name: '潮汐芯', desc: '之后每枚连续入账额外 +1 连击蓄能。', max: 3, rarity: 'uncommon' },
   net: { name: '礼品网', desc: '之后每关开场多放 1 件海湾礼品。', max: 3, rarity: 'uncommon' },
   purse: { name: '票夹', desc: '之后每枚入账额外 +1 兑币票。', max: 3, rarity: 'common' },
   swing: { name: '宽摆', desc: '摆槽摆幅加大，特殊币更吃出手时机。', max: 2, rarity: 'rare' },
 });
+// Broad original flow is verified: combo end -> base wheel -> optional bonus wheel.
+// Amounts and weights below are this build's tuning, not reverse-engineered values.
 export const LOTTERY = Object.freeze([
-  { id: 'shower', name: '金币雨', weight: 34, rarity: 'common', text: '8 枚金币落向台面' },
-  { id: 'tickets', name: '兑币票', weight: 24, rarity: 'common', text: '兑币票 +8' },
-  { id: 'shells', name: '贝壳', weight: 18, rarity: 'common', text: '贝壳 +4' },
-  { id: 'prize', name: '海湾礼品', weight: 14, rarity: 'uncommon', text: '台面多一件可被推下的礼品' },
-  { id: 'special', name: '特殊币', weight: 8, rarity: 'rare', text: '币槽收入 1 枚特殊币' },
-  { id: 'tower', name: '币塔', weight: 2, rarity: 'rare', text: '金币雨 ×10，并落下宝箱' },
+ {id:'shower',name:'金币 16',weight:36,coins:16,icon:0,text:'金币落向台面'},
+ {id:'coins50',name:'金币 50',weight:16,coins:50,icon:0,text:'金币落向台面'},
+ {id:'prize',name:'礼品球',weight:30,prizes:1,icon:3,text:'礼品落向台面'},
+ {id:'advance',name:'奖励轮',weight:18,advance:true,icon:4,text:'收绳后进入二级奖励轮'},
 ]);
+export const BONUS_LOTTERY = Object.freeze([
+ {id:'tower',name:'金币塔',weight:40,towerLayers:6,icon:5,text:'真实堆叠金币塔'},
+ {id:'prizebundle',name:'礼品 ×3',weight:40,prizes:3,icon:3,text:'礼品落向台面'},
+ {id:'tall_tower',name:'高金币塔',weight:8,towerLayers:10,icon:5,text:'更高的堆叠金币塔'},
+ {id:'prizeburst',name:'礼品 ×6',weight:12,prizes:6,icon:3,text:'礼品落向台面'},
+]);
+const LEGACY_LOTTERY = [
+ {id:'tickets',name:'兑币票',icon:1,text:'兑币票 +8'},
+ {id:'shells',name:'贝壳',icon:2,text:'贝壳 +4'},
+ {id:'special',name:'特殊币',icon:4,text:'币槽收入特殊币'},
+];
+export function normalizeWheelItem(item) {
+ if(!item||typeof item!=='object')return null;
+ const spec=[...LOTTERY,...BONUS_LOTTERY,...LEGACY_LOTTERY].find(x=>x.id===item.id);
+ return spec?{...spec,level:Math.max(1,Math.min(5,Math.trunc(Number(item.level)||1)))}:null;
+}
+export function wheelItemsFor(item) {
+ if(BONUS_LOTTERY.some(x=>x.id===item.id))return BONUS_LOTTERY;
+ if(LEGACY_LOTTERY.some(x=>x.id===item.id))return [...LEGACY_LOTTERY,LOTTERY[0]];
+ return LOTTERY;
+}
+export function wheelRewardText(item) {
+ const n=item.level||1;
+ if(item.coins)return `${item.coins*n} 枚金币落向台面`;
+ if(item.prizes)return `${item.prizes*n} 件可推动的礼品落向台面`;
+ if(item.towerLayers)return `一座 ${Math.min(12,item.towerLayers+n-1)*7} 枚的堆叠金币塔`;
+ return item.text;
+}
 
 const rarityOf = (random) => {
   const roll = random();
   return roll < 0.62 ? 'common' : roll < 0.9 ? 'uncommon' : 'rare';
 };
 
-export function spinLottery(random = Math.random) {
-  const total = LOTTERY.reduce((sum, item) => sum + item.weight, 0);
-  let cursor = random() * total;
-  for (const item of LOTTERY) {
-    cursor -= item.weight;
-    if (cursor <= 0) return item;
-  }
-  return LOTTERY[0];
+function weighted(items,random) {
+ let cursor=random()*items.reduce((n,x)=>n+x.weight,0);
+ for(const item of items){cursor-=item.weight;if(cursor<=0)return item;}
+ return items[0];
 }
+export function spinLottery(random=Math.random){return weighted(LOTTERY,random);}
+export function spinBonusLottery(random=Math.random){return weighted(BONUS_LOTTERY,random);}
 
 export function rollPicks(run, options = {}) {
   const random = options.random || run.random || Math.random;

@@ -25,7 +25,7 @@ export function createTokenUI({kit,run,entities,save,pauseInput,sfx,changed}) {
  function paint(){
   const t=kit(),cards=el('token-cards');const focused=document.activeElement?.dataset?.preview;
   el('token-tab-bag').setAttribute('aria-selected',tab==='bag');el('token-tab-atlas').setAttribute('aria-selected',tab==='atlas');
-  el('token-title').textContent=tab==='bag'?'鲸鱼的百宝舱':'航海代币图鉴';
+  el('token-title').textContent=tab==='bag'?'代币装填舱':'代币联动图鉴';
   el('token-subtitle').textContent=tab==='bag'?'挑一枚幸运，投进下一场冒险。':'收集灵感，把台面变成你的连锁乐园。';
   el('bag-total').textContent=tab==='bag'?`${t.remaining} 枚珍藏`:'22 种奇遇';
   const groups=['全部',...new Set(SPECIAL_IDS.map(id=>TOKENS[id].group)),...(tab==='atlas'?['坏币']:[])];

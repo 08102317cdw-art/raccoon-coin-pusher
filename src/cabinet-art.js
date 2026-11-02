@@ -9,7 +9,7 @@ export function paintCabinetPanel(g,W,H){
  g.textAlign='center';g.textBaseline='middle';g.fillStyle='#c5d8bc';g.font=`${Math.round(W*.012)}px Georgia`;g.fillText('W H A L E   B A Y   ·   A R C A D E   W O R K S',W/2,H-43);
  for(const [x,y]of [[37,37],[W-37,37],[37,H-37],[W-37,H-37]]){g.fillStyle='#122f41';g.beginPath();g.arc(x,y,7,0,7);g.fill();g.fillStyle='#e5d39b';g.beginPath();g.arc(x-1,y-1,4,0,7);g.fill();g.strokeStyle='#507271';g.beginPath();g.moveTo(x-3,y);g.lineTo(x+2,y-2);g.stroke();}
 }
-export function makeSlotBackdrop(W,H,compact=false){const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+export function makeSlotBackdrop(W,H,compact=false){if(compact){const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');const bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#173c4a');bg.addColorStop(1,'#0d2636');g.fillStyle=bg;g.fillRect(0,0,W,H);return c;}const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
  const bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#133b50');bg.addColorStop(.5,'#20586a');bg.addColorStop(1,'#0d2e41');g.fillStyle=bg;g.fillRect(0,0,W,H);
  const halo=g.createRadialGradient(W/2,H*.35,20,W/2,H*.35,W*.6);halo.addColorStop(0,'#8dbbaa24');halo.addColorStop(1,'#8dbbaa00');g.fillStyle=halo;g.fillRect(0,0,W,H);
  // Quiet guilloche and wave bands, instead of the old spinning starburst.

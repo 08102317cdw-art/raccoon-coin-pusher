@@ -5,22 +5,23 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Sfx } from './audio.js';
-import { coinTextures, floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=2.4.1';
+import { coinTextures } from './textures.js?v=3.2.0';
 import { buildDafeiyu } from './mascot.js?v=2.4.1';
 import { loadCharacterArt, characterSources } from './character-art.js?v=2.1.1';
-import { Slot } from './slot.js?v=2.4.1';
-import { Run, UPGRADES, TARGETS, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=3.0.0';
+import { Run, UPGRADES, TARGETS, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=3.3.0';
 import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=3.1.0';
 import { TOKENS, TokenSystem, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=3.1.0';
-import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=3.1.0';
+import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=3.3.0';
 import { makeTokenMesh } from './token-mesh.js?v=2.2.0';
-import { createTokenUI } from './token-ui.js?v=2.3.0';
-import { upgradeArt, arcadeToast } from './token-art.js?v=2.3.0';
-import { createMobileCabinet } from './mobile-cabinet.js?v=2.4.1';
-import { dressCabinet } from './cabinet-details.js?v=2.4.1';
-import { createSeasideRoom } from './seaside-room.js?v=2.4.1';
+import { createTokenUI } from './token-ui.js?v=3.3.0';
+import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=2.3.0';
+import { createMobileCabinet } from './mobile-cabinet.js?v=3.3.0';
+import { createSeasideRoom } from './arcade-room.js?v=3.2.0';
+import { createPrizeWheel } from './prize-wheel.js?v=3.3.0';
+import { ComboWheel } from './combo-wheel.js?v=3.3.0';
+import { createMachineJuice } from './machine-juice.js?v=3.3.0';
+import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=3.3.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -33,27 +34,28 @@ const GAP_Z = -0.6;                // 侧墙在此结束，之后两侧为漏币
 const DROP_Y = 3.3, DROP_Z = -4.75, GATE_Y = 2.35;
 const TRAY_Y = -2.8, MAX_COINS = 420;
 const SAVE_KEY = 'raccoon-pusher-run-v2'; // v1 arcade save is intentionally untouched
+const motionReduced = matchMedia('(prefers-reduced-motion: reduce)');
 const isTouch = matchMedia('(pointer: coarse)').matches;
 
 // ================== 渲染器 / 场景 ==================
 const app = document.getElementById('app');
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.6 : 2));
 renderer.setSize(app.clientWidth, app.clientHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.92;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.88;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 app.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#071321');
-scene.fog = new THREE.Fog('#366c7a', 28, 60);
+scene.fog = new THREE.Fog('#142936', 32, 80);
 const seasideRoom=createSeasideRoom(scene);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.65;
+scene.environmentIntensity = 0.52;
 
 const camera = new THREE.PerspectiveCamera(46, app.clientWidth / app.clientHeight, 0.1, 150);
-const CAM_POS = new THREE.Vector3(0, 12.6, 15.4), CAM_TARGET = new THREE.Vector3(0, 2.0, -1.2);
+const CAM_POS = new THREE.Vector3(0, 11.5, 13.7), CAM_TARGET = new THREE.Vector3(0, 0.3, -1.2);
 const CAM_DIR = CAM_POS.clone().sub(CAM_TARGET).normalize();
 
 const composer = new EffectComposer(renderer);
@@ -62,24 +64,24 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(app.clientWidth, app.clientH
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
-scene.add(new THREE.HemisphereLight('#c8eaff', '#0d2035', 0.35));
-const key = new THREE.DirectionalLight('#fff1dd', 2.0);
+scene.add(new THREE.HemisphereLight('#d4e8ea', '#15232f', 0.65));
+const key = new THREE.DirectionalLight('#fff0d6', 2.7);
 key.position.set(4, 16, 8); key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
 Object.assign(key.shadow.camera, { left: -8, right: 8, top: 10, bottom: -10, near: 1, far: 40 });
 key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
 scene.add(key);
-const pinkL = new THREE.PointLight('#ff4fd8', 6, 14, 1.8); pinkL.position.set(-6, 4, 1); scene.add(pinkL);
-const cyanL = new THREE.PointLight('#3fe6ff', 6, 14, 1.8); cyanL.position.set(6, 4, 1); scene.add(cyanL);
+const pinkL = new THREE.PointLight('#b9cbeb', 2.4, 14, 1.8); pinkL.position.set(-6, 4, 1); scene.add(pinkL);
+const cyanL = new THREE.PointLight('#a3d9d1', 3.5, 14, 1.8); cyanL.position.set(6, 4, 1); scene.add(cyanL);
 const screenL = new THREE.PointLight('#ffb54a', 5, 9, 1.8); screenL.position.set(0, 5, -4.5); scene.add(screenL);
 
 // ================== 材质 ==================
 const ct = coinTextures();
-const coinFaceMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 1.6, metalness: 1, roughness: 0.3, color: '#ffffff' });
-const coinSideMat = new THREE.MeshStandardMaterial({ map: ct.side, metalness: 1, roughness: 0.35 });
-const chrome = new THREE.MeshStandardMaterial({ color: '#dfe6ef', metalness: 1, roughness: 0.18 });
-const orange = new THREE.MeshStandardMaterial({ color: '#347fb3', roughness: 0.5, metalness: 0.15 });
-const brown = new THREE.MeshStandardMaterial({ color: '#c5e5ee', roughness: 0.7 });
+const coinFaceMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 0.22, metalness: 0.72, roughness: 0.46, color: '#ffffff' });
+const coinSideMat = new THREE.MeshStandardMaterial({ map: ct.side, metalness: 0.75, roughness: 0.44 });
+const chrome = new THREE.MeshStandardMaterial({ color: '#b4c6c8', metalness: 0.82, roughness: 0.36 });
+const orange = new THREE.MeshStandardMaterial({ color: '#28566c', roughness: 0.58, metalness: 0.24 });
+const brown = new THREE.MeshStandardMaterial({ color: '#b5cecb', roughness: 0.62 });
 const darkMat = new THREE.MeshStandardMaterial({ color: '#10263c', roughness: 0.9 });
 const glass = new THREE.MeshPhysicalMaterial({ color: '#bff6ff', metalness: 0, roughness: 0.05, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide });
 
@@ -94,74 +96,9 @@ function staticBox(hx, hy, hz, x, y, z, fr = F_FLOOR) {
   world.createCollider(RAPIER.ColliderDesc.cuboid(hx, hy, hz).setFriction(fr).setRestitution(0.1), body);
   return body;
 }
-function meshBox(w, h, d, mat, x, y, z, rounded = 0, parent = scene) {
-  const geo = rounded ? new RoundedBoxGeometry(w, h, d, 3, rounded) : new THREE.BoxGeometry(w, h, d);
-  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m;
-}
-
-// ---------- 场地 ----------
-const fieldLen = FRONT_Z - BACK_Z;
-staticBox(HALF_W, 0.5, fieldLen / 2, 0, -0.5, (FRONT_Z + BACK_Z) / 2);
-const ftex = floorTexture(); ftex.wrapS = ftex.wrapT = THREE.RepeatWrapping; ftex.repeat.set(1, 1.3);
-const floorMat = new THREE.MeshStandardMaterial({ map: ftex, metalness: 0.55, roughness: 0.32 });
-meshBox(HALF_W * 2, 0.5, fieldLen, floorMat, 0, -0.25, (FRONT_Z + BACK_Z) / 2);
-// 前沿镀铬边
-const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, HALF_W * 2, 16), chrome);
-lip.rotation.z = Math.PI / 2; lip.position.set(0, -0.02, FRONT_Z); scene.add(lip);
-// 侧墙（亚克力）
-for (const s of [-1, 1]) {
-  const len = GAP_Z - BACK_Z;
-  staticBox(0.1, 1.6, len / 2, s * (HALF_W + 0.1), 1.6, (GAP_Z + BACK_Z) / 2);
-  const g = new THREE.Mesh(new THREE.PlaneGeometry(len, 2.6), glass); g.rotation.y = Math.PI / 2; g.position.set(s * (HALF_W + 0.02), 1.3, (GAP_Z + BACK_Z) / 2); scene.add(g);
-  const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, len, 12), chrome); rail.rotation.x = Math.PI / 2; rail.position.set(s * (HALF_W + 0.05), 2.6, (GAP_Z + BACK_Z) / 2); scene.add(rail);
-  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.6, 12), chrome); post.position.set(s * (HALF_W + 0.05), 1.3, GAP_Z); scene.add(post);
-  // 外侧机柜立柱
-  meshBox(1.3, 7.5, 14.6, orange, s * (HALF_W + 1.55), -0.95, -3.0, 0.25);
-  meshBox(1.34, 0.25, 14.64, brown, s * (HALF_W + 1.55), 2.6, -3.0, 0.1);
-  // 漏币槽（黑洞）
-  meshBox(0.8, 0.1, FRONT_Z - BACK_Z + 0.6, darkMat, s * (HALF_W + 0.5), -3.0, (FRONT_Z + BACK_Z) / 2);
-}
-// 漏币槽外墙（物理）
-for (const s of [-1, 1]) staticBox(0.1, 3, 8, s * (HALF_W + 0.95), 0, -2);
-
-// 侧挡板（奖励：护墙）
-const guards = [-1, 1].map(s => {
-  const len = FRONT_Z - GAP_Z;
-  const body = staticBox(0.1, 0.7, len / 2, s * (HALF_W + 0.1), -20, (FRONT_Z + GAP_Z) / 2);
-  const mesh = meshBox(0.16, 1.4, len, new THREE.MeshStandardMaterial({ color: '#5ff7ff', emissive: '#18c8ff', emissiveIntensity: 1.6, transparent: true, opacity: 0.55, roughness: 0.2 }), s * (HALF_W + 0.1), -1, (FRONT_Z + GAP_Z) / 2, 0.06);
-  mesh.castShadow = false;
-  return { body, mesh, y: -1 };
+const { meshBox, guards, backboardGroup, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh } = createCabinetBase({
+  scene, world, staticBox, HALF_W, FRONT_Z, BACK_Z, GAP_Z, WALL_Z, PUSH_H, PUSH_BACK, PUSH_D, F_PUSH, chrome, orange, brown, darkMat, glass,
 });
-
-// ---------- 后墙 + 老虎机屏幕 ----------
-const backboardGroup=new THREE.Group();scene.add(backboardGroup);
-staticBox(HALF_W, 3.2, 0.15, 0, PUSH_H + 0.035 + 3.2, WALL_Z - 0.15, 0.1);
-const wt = wallTexture();
-meshBox(HALF_W * 2 + 0.3, 7.6, 0.3, new THREE.MeshStandardMaterial({ map: wt, roughness: 0.6, metalness: 0.2 }), 0, PUSH_H + 0.035 + 3.8, WALL_Z - 0.15,0,backboardGroup);
-const slotSfx = new Sfx();
-const slot = new Slot(slotSfx, o => onSlot(o));
-const SCREEN_W = 6.4, SCREEN_H = 3.6, SCREEN_Y = 5.55;
-const screen = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN_W, SCREEN_H), new THREE.MeshBasicMaterial({ map: slot.texture, toneMapped: false }));
-screen.position.set(0, SCREEN_Y, WALL_Z + 0.02); backboardGroup.add(screen);
-screen.material.color.setScalar(0.92);
-const frameMat = new THREE.MeshStandardMaterial({ color: '#ffc93c', metalness: 0.9, roughness: 0.25 });
-meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y + SCREEN_H / 2 + 0.12, WALL_Z + 0.05, 0.1,backboardGroup);
-meshBox(SCREEN_W + 0.5, 0.25, 0.25, frameMat, 0, SCREEN_Y - SCREEN_H / 2 - 0.12, WALL_Z + 0.05, 0.1,backboardGroup);
-meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, -SCREEN_W / 2 - 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1,backboardGroup);
-meshBox(0.25, SCREEN_H + 0.5, 0.25, frameMat, SCREEN_W / 2 + 0.12, SCREEN_Y, WALL_Z + 0.05, 0.1,backboardGroup);
-// 顶部招牌
-const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.5), new THREE.MeshBasicMaterial({ map: textTexture('大肥鱼推币机', 1024, 170, { color: '#fff0a8', strokeColor: '#15547d', stroke: 22, font: '900 105px "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif' }), transparent: true, toneMapped: false }));
-sign.position.set(0, SCREEN_Y + SCREEN_H / 2 + 1.05, WALL_Z + 0.1); backboardGroup.add(sign);
-
-dressCabinet(scene,backboardGroup,HALF_W,WALL_Z);
-
-// ---------- 推板 ----------
-const pusherBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, PUSH_H / 2, PUSH_BACK - PUSH_D / 2));
-world.createCollider(RAPIER.ColliderDesc.cuboid(HALF_W - 0.03, PUSH_H / 2, PUSH_D / 2).setFriction(F_PUSH).setRestitution(0), pusherBody);
-const ptop = plateTexture(); ptop.repeat.set(4, 2.4);
-const pusherMats = [chrome, chrome, new THREE.MeshStandardMaterial({ map: ptop, metalness: 0.85, roughness: 0.28 }), chrome, new THREE.MeshStandardMaterial({ map: stripeTexture('#ff7a18', '#ffc53d', 'PUSH'), metalness: 0.3, roughness: 0.35 }), chrome];
-const pusherMesh = new THREE.Mesh(new THREE.BoxGeometry((HALF_W - 0.03) * 2, PUSH_H, PUSH_D), pusherMats);
-pusherMesh.castShadow = pusherMesh.receiveShadow = true; scene.add(pusherMesh);
 let pushPhase = -Math.PI / 2, pushMax = -0.5, pushMaxTarget = -0.5, pushSpeed = 1.55;
 function physicsStep() {
   const dt = world.timestep;
@@ -262,149 +199,19 @@ function syncCoins() {
   coinMesh.count = n; coinMesh.instanceMatrix.needsUpdate = true; if (coinMesh.instanceColor) coinMesh.instanceColor.needsUpdate=true;
 }
 
-// ================== 固定投币槽 + 幸运门 ==================
-const chuteMat = {
-  side: new THREE.MeshStandardMaterial({ color: '#9fd8cf', emissive: '#1c6f68', emissiveIntensity: 0.25, metalness: 0.48, roughness: 0.34 }),
-  mid: new THREE.MeshStandardMaterial({ color: '#e8c56d', emissive: '#a07820', emissiveIntensity: 0.4, metalness: 0.58, roughness: 0.3 }),
-};
-const chuteRig = {};
-function buildChute(side) {
-  const g = new THREE.Group();
-  const mat = side === 'middle' ? chuteMat.mid : chuteMat.side;
-  const tray = new THREE.Mesh(new THREE.BoxGeometry(side === 'middle' ? 0.72 : 0.82, 0.16, 1.65), mat);
-  tray.castShadow = tray.receiveShadow = true; g.add(tray);
-  const lipMesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 0.16), chrome);
-  lipMesh.position.z = 0.78; g.add(lipMesh);
-  const mouthX = side === 'left' ? -3.9 : side === 'right' ? 3.9 : 0;
-  g.position.set(mouthX, side === 'middle' ? 3.35 : 3.15, -5.55);
-  if (side === 'left') { g.rotation.z = -0.42; g.rotation.y = 0.32; }
-  if (side === 'right') { g.rotation.z = 0.42; g.rotation.y = -0.32; }
-  scene.add(g); chuteRig[side] = g; return g;
-}
-buildChute('left'); buildChute('right'); buildChute('middle');
-const pendulum = new THREE.Group();
-const hanger = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.9, 8), chuteMat.mid); hanger.position.y = 0.95; pendulum.add(hanger);
-const basket = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.28, 0.9), chuteMat.mid); basket.castShadow = true; pendulum.add(basket);
-const chuteLip = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.1, 0.18), chrome); chuteLip.position.set(0, -0.1, 0.42); pendulum.add(chuteLip);
-pendulum.position.set(0, 4.05, -3.55); scene.add(pendulum);
+const { chuteMat, chuteRig, pendulum, ledPos, leds, updateLeds, mascot } = createCabinetAccents({
+  scene, staticBox, meshBox, HALF_W, FRONT_Z, WALL_Z, GATE_Y, DROP_Z, TRAY_Y, SCREEN_W, SCREEN_H, SCREEN_Y, chrome, darkMat, coinFaceMat,
+  getEffects: () => ({ feverT, partyT }),
+});
 
-const gate = new THREE.Group(); scene.add(gate);
-const GATE_HW = 0.62;
-const gatePath = new THREE.CatmullRomCurve3([[-GATE_HW, 0, -0.5], [GATE_HW, 0, -0.5], [GATE_HW, 0, 0.5], [-GATE_HW, 0, 0.5]].map(a => new THREE.Vector3(...a)), true, 'catmullrom', 0.05);
-const gateMat = new THREE.MeshStandardMaterial({ color: '#7dff9a', emissive: '#22ff77', emissiveIntensity: 2.2, roughness: 0.3 });
-gate.add(new THREE.Mesh(new THREE.TubeGeometry(gatePath, 64, 0.06, 10, true), gateMat));
-const gateLabel = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), new THREE.MeshBasicMaterial({ map: textTexture('LUCKY', 256, 64, { color: '#b6ffcb', strokeColor: '#0a4020', stroke: 8 }), transparent: true, toneMapped: false, depthWrite: false }));
-gateLabel.position.set(0, 0.32, -0.5); gate.add(gateLabel);
-const gateArm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8), chrome); gateArm.rotation.x = Math.PI / 2; gateArm.position.set(0, 0, -0.95); gate.add(gateArm);
-const gateRail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, HALF_W * 2, 12), chrome); gateRail.rotation.z = Math.PI / 2; gateRail.position.set(0, GATE_Y, WALL_Z + 0.08); scene.add(gateRail);
-gate.position.set(0, GATE_Y, DROP_Z);
-
-// ================== LED 灯泡 ==================
-const ledPos = [];
-for (const s of [-1, 1]) for (let z = -9.4; z <= 4.3; z += 0.5) ledPos.push([s * (HALF_W + 1.55), 2.78, z, 0]);
-for (let x = -HALF_W + 0.2; x <= HALF_W; x += 0.45) ledPos.push([x, -0.16, FRONT_Z + 0.09, 1]);
-{
-  const fx = SCREEN_W / 2 + 0.12, fy = SCREEN_H / 2 + 0.12;
-  for (let x = -fx; x <= fx + 0.01; x += 0.42) { ledPos.push([x, SCREEN_Y + fy, WALL_Z + 0.2, 2]); ledPos.push([x, SCREEN_Y - fy, WALL_Z + 0.2, 2]); }
-  for (let y = -fy + 0.42; y < fy; y += 0.42) { ledPos.push([-fx, SCREEN_Y + y, WALL_Z + 0.2, 2]); ledPos.push([fx, SCREEN_Y + y, WALL_Z + 0.2, 2]); }
-}
-const leds = new THREE.InstancedMesh(new THREE.SphereGeometry(0.085, 12, 8), new THREE.MeshBasicMaterial({ toneMapped: false }), ledPos.length);
-ledPos.forEach((p, i) => { tmpM.makeTranslation(p[0], p[1], p[2]); leds.setMatrixAt(i, tmpM); leds.setColorAt(i, new THREE.Color(1, 1, 1)); });
-scene.add(leds);
-const ledCol = new THREE.Color();
-function updateLeds(t) {
-  const fever = feverT > 0, party = partyT > 0;
-  ledPos.forEach((p, i) => {
-    let on;
-    if (party) { ledCol.setHSL((i * 0.03 + t * 1.5) % 1, 1, 0.6); on = (Math.floor(t * 12) + i) % 3 !== 0 ? 1 : 0.15; }
-    else if (fever) { ledCol.setHSL((i * 0.05 + t) % 1, 1, 0.6); on = (Math.floor(t * 18) + i) % 2 ? 1 : 0.2; }
-    else {
-      const ph = p[3] === 2 ? Math.floor(t * 6) : Math.floor(t * 8);
-      on = (ph + i) % 4 === 0 ? 1.4 : 0.35;
-      if (p[3] === 0) ledCol.set('#ffcf5a'); else if (p[3] === 1) ledCol.set('#ff5fd2'); else ledCol.set(i % 2 ? '#7cf3ff' : '#ffe86b');
-    }
-    ledCol.multiplyScalar(on * 1.6); leds.setColorAt(i, ledCol);
-  });
-  leds.instanceColor.needsUpdate = true;
-}
-
-// 出币托盘
-staticBox(HALF_W, 0.2, 1.3, 0, TRAY_Y - 0.2, FRONT_Z + 1.4);
-staticBox(HALF_W, 0.8, 0.1, 0, TRAY_Y + 0.5, FRONT_Z + 2.75);
-meshBox(HALF_W * 2 + 0.3, 0.4, 2.8, new THREE.MeshStandardMaterial({ color: '#2a1440', metalness: 0.6, roughness: 0.3 }), 0, TRAY_Y - 0.2, FRONT_Z + 1.4);
-const trayFront = meshBox(HALF_W * 2 + 2.4, 1.8, 0.3, new THREE.MeshStandardMaterial({ map: stripeTexture('#4389b5', '#d3eef5', 'WIN!'), roughness: 0.4, metalness: 0.2 }), 0, TRAY_Y + 0.1, FRONT_Z + 2.9, 0.1);
-meshBox(HALF_W * 2 + 2.4, 3, 0.3, darkMat, 0, TRAY_Y - 2.4, FRONT_Z + 2.9);
-meshBox(HALF_W * 2 + 0.2, 2.6, 0.2, darkMat, 0, -1.6, FRONT_Z + 0.05);
-
-// ================== 吉祥物 ==================
-const mascot = buildDafeiyu(coinFaceMat);
-mascot.root.position.set(-HALF_W - 1.55, 2.73, -1.2); mascot.root.scale.setScalar(1.25); mascot.root.rotation.y = 0.55;
-mascot.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
-scene.add(mascot.root);
-
-// ================== 粒子 ==================
-const SP_N = 900;
-const spGeo = new THREE.BufferGeometry();
-const spPos = new Float32Array(SP_N * 3), spCol = new Float32Array(SP_N * 3), sp = [];
-for (let i = 0; i < SP_N; i++) { sp.push({ life: 0, vx: 0, vy: 0, vz: 0, r: 1, g: 1, b: 1 }); spPos[i * 3 + 1] = -100; }
-spGeo.setAttribute('position', new THREE.BufferAttribute(spPos, 3)); spGeo.setAttribute('color', new THREE.BufferAttribute(spCol, 3));
-const sparkles = new THREE.Points(spGeo, new THREE.PointsMaterial({ size: 0.32, map: glowSprite(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-sparkles.frustumCulled = false; scene.add(sparkles);
-let spIdx = 0;
-function burst(x, y, z, n = 14, color = '#ffd34d', speed = 4, up = 4) {
-  const c = new THREE.Color(color);
-  for (let k = 0; k < n; k++) {
-    const p = sp[spIdx], i = spIdx; spIdx = (spIdx + 1) % SP_N;
-    p.life = 0.6 + Math.random() * 0.6; p.max = p.life;
-    const a = Math.random() * Math.PI * 2, s = Math.random() * speed;
-    p.vx = Math.cos(a) * s; p.vz = Math.sin(a) * s; p.vy = up * (0.4 + Math.random());
-    spPos[i * 3] = x; spPos[i * 3 + 1] = y; spPos[i * 3 + 2] = z;
-    const h = c.clone().offsetHSL((Math.random() - 0.5) * 0.08, 0, Math.random() * 0.2); p.r = h.r * 2; p.g = h.g * 2; p.b = h.b * 2;
-  }
-}
-function updateSparkles(dt) {
-  for (let i = 0; i < SP_N; i++) {
-    const p = sp[i]; if (p.life <= 0) continue;
-    p.life -= dt; p.vy -= 9 * dt;
-    spPos[i * 3] += p.vx * dt; spPos[i * 3 + 1] += p.vy * dt; spPos[i * 3 + 2] += p.vz * dt;
-    const k = Math.max(0, p.life / p.max);
-    spCol[i * 3] = p.r * k; spCol[i * 3 + 1] = p.g * k; spCol[i * 3 + 2] = p.b * k;
-    if (p.life <= 0) spPos[i * 3 + 1] = -100;
-  }
-  spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
-}
-// 彩带
-const CF_N = 360, cf = [];
-const confetti = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.16, 0.28), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false }), CF_N);
-confetti.frustumCulled = false; scene.add(confetti);
-for (let i = 0; i < CF_N; i++) { cf.push({ life: 0, p: new THREE.Vector3(0, -100, 0), v: new THREE.Vector3(), r: new THREE.Euler(), w: new THREE.Vector3() }); confetti.setColorAt(i, new THREE.Color().setHSL(i / CF_N * 7 % 1, 0.9, 0.6)); }
-let cfIdx = 0;
-function confettiBurst(n = 200) {
-  for (let k = 0; k < n; k++) {
-    const c = cf[cfIdx]; cfIdx = (cfIdx + 1) % CF_N;
-    c.life = 3 + Math.random() * 2; c.p.set((Math.random() - 0.5) * 12, 9 + Math.random() * 3, -2 + (Math.random() - 0.5) * 8);
-    c.v.set((Math.random() - 0.5) * 3, -1 - Math.random() * 2, (Math.random() - 0.5) * 2);
-    c.w.set(Math.random() * 8, Math.random() * 8, Math.random() * 8);
-  }
-}
-function updateConfetti(dt) {
-  for (let i = 0; i < CF_N; i++) {
-    const c = cf[i];
-    if (c.life > 0) {
-      c.life -= dt; c.v.y = Math.max(-2.2, c.v.y - 3 * dt); c.p.addScaledVector(c.v, dt); c.p.x += Math.sin(c.life * 3 + i) * dt;
-      c.r.x += c.w.x * dt; c.r.y += c.w.y * dt; c.r.z += c.w.z * dt;
-      if (c.life <= 0) c.p.y = -100;
-    }
-    tmpQ.setFromEuler(c.r); tmpM.compose(c.p, tmpQ, tmpS.setScalar(1)); confetti.setMatrixAt(i, tmpM);
-  }
-  confetti.instanceMatrix.needsUpdate = true;
-}
+const { burst, updateSparkles, confettiBurst, updateConfetti } = createCabinetParticles(scene);
 
 // ================== 游戏状态 ==================
-const sfx = slotSfx;
+const sfx = new Sfx();
+const comboWheel = new ComboWheel();
 let run = new Run();
 let tokens = new TokenSystem();
-let tokenUI, mobileCabinet, tokenAcc=0, tokenNotifyAt=-10;
+let tokenUI, mobileCabinet, prizeWheel, juice, restoredWheelQueue = [], tokenAcc=0, tokenNotifyAt=-10;
 const tokenRemovals=new Set();
 const state = { coins: 50, won: 0, col: { big: 0, gem: 0, plush: 0 }, jackpots: 0 };
 let wallT = 0, pushT = 0, feverT = 0, partyT = 0, shake = 0, started = false;
@@ -415,7 +222,7 @@ let resultPhase = '', resetting = false;
 const stats = { lost: 0 }; const winTimes = []; let combo = 0, lastWin = -100, showerQueue = [];
 const catalogBlocking = () => !!tokenUI?.isOpen() && !$('token-modal').classList.contains('is-docked');
 const helpBlocking = () => $('help').classList.contains('show') && !$('help').classList.contains('is-docked');
-const inputOpen = () => started && run.phase === 'playing' && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !document.hidden;
+const inputOpen = () => started && run.phase === 'playing' && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !prizeWheel?.active && !document.hidden;
 
 // ---------- HUD ----------
 const $ = id => document.getElementById(id);
@@ -433,9 +240,9 @@ function updateHud(dt) {
   $('cash').textContent = run.cash;
   $('round-status').textContent = run.phase === 'settling' ? `落币结算 ${Math.ceil(run.settle)}s` : run.reached ? '目标达成' : '限量投币挑战';
   const action = $('round-action');
-  action.hidden = !run.active || !started || (!run.reached && run.phase !== 'settling');
-  action.disabled = !run.reached;
-  action.textContent = run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
+  action.hidden = !started || (run.active ? (!run.reached && run.phase !== 'settling') : !mobileCabinet?.shopClosed);
+  action.disabled = run.active && !run.reached;
+  action.textContent = !run.active ? '拉开补给舱 →' : run.reached ? '目标达成 · 结算本关 →' : run.phase === 'settling' ? `等待落币 ${Math.ceil(run.settle)}s` : '达到目标分后可结算';
   const canDrop = inputOpen() && run.shots > 0;
   for (const [id, side] of [['chute-left', 'left'], ['dropbtn', 'middle'], ['chute-right', 'right']]) {
     const button = $(id); if (!button) continue;
@@ -448,13 +255,13 @@ function updateHud(dt) {
   if (lamp) lamp.textContent = `${forward ? '推板前进 · 左右槽落到两侧' : '推板收回 · 左右槽落到中间'}${run.level('pin') ? ` · 松台销 ${run.inserts % 20}/20` : ''}`;
   const exchange = $('exchange-btn'), shakeBtn = $('shake-btn');
   if (exchange) {
-    const live = started && (run.phase === 'playing' || run.phase === 'settling') && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen();
+    const live = started && (run.phase === 'playing' || run.phase === 'settling') && !helpBlocking() && !catalogBlocking() && !mobileCabinet?.isMenuOpen() && !prizeWheel?.active;
     exchange.disabled = !live || !run.canExchange();
     exchange.querySelector('span').textContent = `兑币 +${EXCHANGE_GRANT}`;
     exchange.querySelector('small').textContent = run.exchanged >= 2 ? '已兑完' : `票 ${run.tickets}/${run.exchangeCost()} · 余${Math.max(0, 2 - run.exchanged)}`;
   }
   if (shakeBtn) {
-    shakeBtn.disabled = !started || !run.active || run.shakes <= 0 || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen();
+    shakeBtn.disabled = !started || !run.active || run.shakes <= 0 || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || prizeWheel?.active;
     shakeBtn.querySelector('small').textContent = run.shakes > 0 ? '本局 1 次' : '已用完';
   }
   tokens.setClipSize(2 + run.level('clip'));
@@ -477,10 +284,10 @@ function updateHud(dt) {
   }
   const energyCount = $('energy-count');
   if (energyCount) {
-    energyCount.textContent = `${run.energy}/8`;
-    const bar = $('energy-bar'); if (bar) bar.style.width = `${run.energy / 8 * 100}%`;
+    energyCount.textContent = comboWheel.level ? '×'+comboWheel.level : comboWheel.count+'/8';
+    const bar = $('energy-bar'); if (bar) bar.style.width = Math.min(100,comboWheel.count/8*100)+'%';
   }
-  tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update(slot);
+  tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update();prizeWheel?.update();
   renderResult();
 }
 function bumpCoinHud() { const el = $('coinbox'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
@@ -514,7 +321,7 @@ function onWin(c) {
   if (PRIZES[c.kind]) { rewardPrize(c); return; }
   const result=tokens.score(c,coins,specialAdapter);
   if(isBad(c.kind)) {
-    const lost=run.penalize(result.penalty);combo=0;
+    const lost=run.penalize(result.penalty);combo=0;comboWheel.reset();
     floatText(`坏币 -${lost} 分`,p.x,.5,FRONT_Z+.2,'lost');
     tokens.log(`${TOKENS[c.kind].name}入账 · -${lost} 分`);sfx.lost(p.x/6);
     $('score-formula').textContent=`${TOKENS[c.kind].name}扣除 ${lost} 分（最低 0 分）`;return;
@@ -531,12 +338,13 @@ function onWin(c) {
   burst(p.x,.1,FRONT_Z+.2,c.kind==='coin'?10:30,TOKENS[c.kind]?.color||'#ffd34d',3,3);
   floatText('+'+scored.points+' 分',p.x,.4,FRONT_Z+.3,c.kind==='coin'?(feverT>0?'fever':''):'big');
   bumpCoinHud();
+  { const [x,y]=toScreen(p.x,.4,FRONT_Z+.3);juice?.score({x,y,points:scored.points,combo}); }
   if(TOKENS[c.kind]) {sfx.prize();mascot.react('happy',1);}
   else if(c.kind!=='coin'){
     state.col[c.kind]=(state.col[c.kind]||0)+1;sfx.prize();mascot.react('happy',2);say('big');shake=.25;
     banner({big:'🏅 大金币',gem:'💎 宝石',plush:'🐋 大肥鱼立牌'}[c.kind]+`<small>+${scored.points} 分</small>`,'prize',1500);
   }  else if(Math.random()<.05){mascot.react('happy',.8);say('win');}
-  if (run.pendingSpin) presentLottery();
+  const before=comboWheel.level;comboWheel.score(time,1+(run.relics.tide||0));if(comboWheel.level>before)juice?.combo(comboWheel.level);
 }
 function rewardPrize(c) {
   const spec = PRIZES[c.kind];
@@ -552,32 +360,40 @@ function rewardPrize(c) {
   $('score-formula').textContent = `${spec.name} +${scored.points} 分`;
   sfx.prize(); mascot.react('happy', 1.4); say('big'); shake = Math.max(shake, 0.28);
   banner(`${spec.name}入手！<small>+${scored.points} 分</small>`, 'prize', 1600);
-  if (run.pendingSpin) presentLottery();
+  const before=comboWheel.level;comboWheel.score(time,1+(run.relics.tide||0));if(comboWheel.level>before)juice?.combo(comboWheel.level);
 }
-function presentLottery() {
-  while (run.pendingSpin > 0) {
-    run.pendingSpin--;
-    const item = spinLottery(run.random);
-    if (item.id === 'tickets') run.tickets = Math.min(9999, run.tickets + 8);
-    else if (item.id === 'shells') run.cash = Math.min(1e9, run.cash + 4);
-    else if (item.id === 'prize' && coins.length < 380) spawnTablePrize(null, (Math.random() - 0.5) * 3);
-    else if (item.id === 'special') {
-      const ids = SPECIAL_IDS.filter(id => id !== 'tree');
-      const id = ids[Math.floor(run.random() * ids.length)];
-      tokens.grant({ [id]: 1 }); tokens.select(id);
-    } else if (item.id === 'tower') { if (coins.length < 360) { shower(10); spawnTablePrize('chest', 0); } }
-    else if (coins.length < 360) shower(8);
-    else run.tickets = Math.min(9999, run.tickets + 6);
-    showLottery(item);
-  }
+function presentLottery(level) {
+  showLottery({ ...spinLottery(run.random), level });
+  save();
+}
+function awardWheel(item) {
+  const level = item.level || 1;
+  if(item.coins){shower(Math.min(250,item.coins*level+run.level('lucky')*4));sfx.fanfare(false);save();return;}
+  if(item.prizes){for(let i=0;i<Math.min(30,item.prizes*level);i++)spawnTablePrize(null,(run.random()-.5)*6);sfx.fanfare(false);save();return;}
+  if (item.id === 'tickets') run.tickets = Math.min(9999, run.tickets + 8 * level);
+  else if (item.id === 'shells') run.cash = Math.min(1e9, run.cash + 4 * level);
+  else if (item.id === 'prize' && coins.length < 380) spawnTablePrize(null, (Math.random() - 0.5) * 3);
+  else if (item.id === 'special') {
+    const ids = SPECIAL_IDS.filter(id => id !== 'tree');
+    tokens.grant({ [ids[Math.floor(run.random() * ids.length)]]: level });
+  } else if (item.towerLayers) {
+    spawnCoinTower(item.towerLayers+level-1);
+  } else if (coins.length < 360) shower(8 * level + run.level('lucky')*4);
+  else run.tickets = Math.min(9999, run.tickets + 6);
+  sfx.fanfare(false); save();
+}
+// A real stacked reward, not a rain effect labelled as a tower. Bounded for phones.
+function spawnCoinTower(height=6) {
+ const layers=Math.min(12,Math.max(1,height));
+ const free=Math.max(0,MAX_COINS-coins.length),limit=Math.min(layers*7,free);
+ for(let i=0;i<limit;i++){
+  const layer=Math.floor(i/7),ring=i%7,a=ring*Math.PI/3;
+  spawn('coin',ring===6?0:Math.cos(a)*1.22,1.6+layer*(COIN_H+.012),ring===6?.6:.6+Math.sin(a)*1.22,randQ(0));
+ }
+ if(!limit)run.tickets=Math.min(9999,run.tickets+8);
 }
 function showLottery(item) {
-  const panel = $('lottery'); if (!panel) return;
-  panel.hidden = false; panel.classList.remove('is-docked');
-  $('lottery-result').textContent = `${item.name} · ${item.text}`;
-  const wheel = $('lottery-wheel');
-  wheel.classList.remove('spin'); void wheel.offsetWidth; wheel.classList.add('spin');
-  sfx.fanfare(false); flash('#ffe7a1');
+  prizeWheel?.enqueue(item);
 }
 const PRIZE_ORDER = ['shell', 'plushie', 'chest'];
 let prizeCursor = 0;
@@ -616,27 +432,8 @@ function dropPrize(kind) {
 function shower(n, kind = 'coin', delay = 0.05) {
   for (let i = 0; i < n; i++) showerQueue.push({ t: i * delay, kind });
 }
-function onSlot(o) {
-  if (!run.active) return;
-  switch (o.id) {
-    case 'reach': mascot.react('excited', 2.5); say('reach'); break;
-    case 'miss': if (Math.random() < 0.4) say('miss'); break;
-    case 'jackpot':
-      state.jackpots++; sfx.fanfare(true); partyT = 6; shake = 0.8; flash('#ffe14d'); confettiBurst(360);
-      banner('JACKPOT!!!<small>大肥鱼开饭啦 · 金币雨 ×40</small>', 'jp', 3500); mascot.react('jackpot', 5); say('big');
-      shower(40, 'coin', 0.06); showerQueue.push({ t: 0.8, kind: 'plush', prize: true }, { t: 1.4, kind: 'gem', prize: true }); showerQueue.sort((a,b) => a.t-b.t); break;
-    case 'seven':
-      sfx.fanfare(true); partyT = 3; shake = 0.4; flash('#ff6a7a'); confettiBurst(160);
-      banner('777 金币雨！<small>×20</small>', 'jp', 2500); mascot.react('jackpot', 3); shower(20); break;
-    case 'coin': sfx.fanfare(false); banner('金币 ×10', 'win'); mascot.react('happy', 1.5); shower(10, 'coin', 0.09); say('win'); break;
-    case 'wall': sfx.fanfare(false); sfx.whoosh(); wallT = 30; banner('护墙升起！<small>两侧不再漏币 · 30 秒</small>', 'win'); mascot.react('happy', 1.5); break;
-    case 'bell': sfx.fanfare(false); banner('奖品掉落！', 'win'); dropPrize(Math.random() < 0.35 ? 'gem' : 'big'); mascot.react('happy', 1.5); break;
-    case 'push': sfx.fanfare(false); sfx.whoosh(); pushT = 18; banner('超级推板！<small>推程加长 · 18 秒</small>', 'win'); mascot.react('excited', 1.5); break;
-  }
-}
-
 // ---------- 投币 ----------
-let aimX = 0;
+
 function buzz(ms) { try { navigator.vibrate?.(ms); } catch (e) { /* optional haptic */ } }
 function blastField(mode) {
   const power = shakePower(run.level('push'));
@@ -702,9 +499,7 @@ function save() {
     const p = c.body.translation(), q = c.body.rotation(), v = c.body.linvel(), a = c.body.angvel();
     return { kind:c.kind, p, q, v, a, fromDrop:c.fromDrop, gated:c.gated, prevY:c.prevY, token:cleanMeta(c.token) };
   });
-  const slotState = {};
-  for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (slot[key] !== undefined) slotState[key] = slot[key];
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:5, run:run.serialize(), tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue, slotState, combo, lastWin, winTimes, lost:stats.lost })); }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version:5, run:run.serialize(), wheelQueue:prizeWheel?.pending||[], tokens:tokens.serialize(), state, bodies, pushPhase, pushMax, time, wallT, pushT, feverT, partyT, showerQueue,  combo, lastWin, winTimes, lost:stats.lost })); }
   catch (e) { $('save-status').textContent = '无法保存：请检查浏览器存储空间'; }
 }
 function load() {
@@ -713,7 +508,7 @@ function load() {
     if (!d || ![2,3,4,5].includes(d.version) || !Array.isArray(d.bodies) || d.bodies.length > MAX_COINS) return false;
     const restored = new Run(d.run);
     if (d.bodies.some(b => (!SHAPES[b.kind] && !TOKENS[b.kind]) || !['x','y','z'].every(k => Number.isFinite(b.p?.[k])) || !['x','y','z','w'].every(k => Number.isFinite(b.q?.[k])))) return false;
-    run = restored; tokens = new TokenSystem(d.tokens);
+    run = restored; run.energy=0;run.pendingSpin=0;restoredWheelQueue=Array.isArray(d.wheelQueue)?d.wheelQueue:[]; tokens = new TokenSystem(d.tokens);
     state.coins = run.shots; state.won = d.state?.won || 0; state.col = d.state?.col || {big:0,gem:0,plush:0}; state.jackpots = d.state?.jackpots || 0;
     pushPhase = Number.isFinite(d.pushPhase) ? d.pushPhase : pushPhase;
     pushMax = Number.isFinite(d.pushMax) ? d.pushMax : -0.5;
@@ -723,8 +518,7 @@ function load() {
       const c = spawn(b.kind, b.p.x,b.p.y,b.p.z,b.q,b.v);
       if (c) { c.token={...cleanMeta(b.token),uid:c.token.uid}; tokens.uid=Math.max(tokens.uid,c.token.uid); c.fromDrop=!!b.fromDrop; c.gated=!!b.gated; c.prevY=Number.isFinite(b.prevY)?b.prevY:b.p.y; if(b.a) c.body.setAngvel(b.a,true); }
     }
-    for (const key of ['reels','queue','spinning','t','msg','msgT','reach','flash','lastTick','outcome','result','willReach','stopAt','win']) if (d.slotState?.[key] !== undefined) slot[key]=d.slotState[key];
-    wallT=Math.max(0,d.wallT||0); pushT=Math.max(0,d.pushT||0); feverT=Math.max(0,d.feverT||0); partyT=Math.max(0,d.partyT||0);
+      wallT=Math.max(0,d.wallT||0); pushT=Math.max(0,d.pushT||0); feverT=Math.max(0,d.feverT||0); partyT=Math.max(0,d.partyT||0);
     showerQueue=Array.isArray(d.showerQueue)?d.showerQueue.filter(s=>(SHAPES[s.kind]||TOKENS[s.kind])&&Number.isFinite(s.t)).slice(0,100):[];
     restoredTime=Number.isFinite(d.time)?d.time:0; combo=d.combo||0; lastWin=Number.isFinite(d.lastWin)?d.lastWin:-100; winTimes.push(...(d.winTimes||[])); stats.lost=d.lost||0;
     sfx.fast=feverT>0?1.35:1;
@@ -779,7 +573,10 @@ function renderPicks() {
   reroll.textContent = run.pickRerolls && !run.picked ? '重抽一次' : '不能重抽';
   const box = $('pick-cards'); box.replaceChildren();
   const rarityName = { common: '常见', uncommon: '少见', rare: '稀有' };
-  run.picks.forEach(card => {
+  section.classList.toggle('is-picked',!!run.picked);
+  section.querySelector('h3').textContent=run.picked?'装配完成':'本关奖励 · 三选一';
+  const visiblePicks=run.picked?run.picks.filter(card=>card.id===run.chosen):run.picks;
+  visiblePicks.forEach(card => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `pick-card rarity-${card.rarity}${run.chosen === card.id ? ' chosen' : ''}`;
@@ -787,7 +584,8 @@ function renderPicks() {
     const rarity = document.createElement('small'); rarity.textContent = rarityName[card.rarity] || '航路';
     const title = document.createElement('strong'); title.textContent = card.name;
     const desc = document.createElement('span'); desc.textContent = card.desc;
-    button.append(rarity, title, desc);
+    const art=document.createElement('div');art.className='pick-art';art.setAttribute('aria-hidden','true');art.innerHTML=card.kind==='coin'?coinArt(card.id,TOKENS[card.id]?.color):upgradeArt(card.id);
+    button.append(art, rarity, title, desc);
     button.onclick = () => {
       if (!applyPick(run, card, (id, count) => tokens.grant({ [id]: count }))) return;
       if (card.kind === 'coin') tokens.select(card.id);
@@ -800,12 +598,14 @@ function renderPicks() {
 function renderResult(force = false) {
   const phase = run.phase;
   if (run.active || !started) { $('run-modal').hidden=true; resultPhase=''; return; }
+  if(mobileCabinet?.shopClosed && !force) return;
+  mobileCabinet?.openShop();
   $('run-modal').hidden=false;$('run-modal').dataset.phase=phase;
   if (resultPhase===phase && !force) return;
   resultPhase=phase; releaseLaunchers(lanes);
   const shop=phase==='shop', won=phase!=='gameover', r=run.receipt;
   $('result-kicker').textContent = phase==='victory' ? '八关制霸 · RUN COMPLETE' : `第 ${run.round} 关 · ${won?'挑战完成':'本局结束'}`;
-  $('result-title').textContent = shop ? '靠港啦！鲸鱼补给站' : won ? '恭喜通关！' : '差一点，再来一局';
+  $('result-title').textContent = shop ? '机台补给舱' : won ? '恭喜通关！' : '差一点，再来一局';
   $('result-score').textContent = run.score.toLocaleString();
   $('result-target').textContent = `目标 ${run.target.toLocaleString()} · 本局累计 ${run.total.toLocaleString()} 分`;
   $('result-rewards').textContent = won && r ? `通关 +${r.base}　节币 +${r.thrift}　超额 +${r.over}　＝ 贝壳 +${r.reward}` : '投币额度已用尽。落币结算后仍未达到目标。';
@@ -838,14 +638,14 @@ function finishRound() {
   if(!run.active||!run.reached) return;
   run.finish(); releaseLaunchers(lanes); sfx.levelUp(); confettiBurst(140); save(); renderResult(true); updateHud(0);
 }
-$('round-action').onclick=finishRound;
+$('round-action').onclick=()=>{ if(!run.active){mobileCabinet.openShop();renderResult(true);}else finishRound(); };
 $('reroll-shop').onclick=()=>{if(run.reroll()){sfx.tick();save();renderResult(true);arcadeToast('新一批宝贝上架啦');$('reroll-shop').focus({preventScroll:true});}};
 $('next-round').onclick=()=>{
   if(run.phase==='shop') {
     if(!run.next()) return;
     coins.forEach(c=>c.p=c.body.translation());tokens.startStage(run.round,coins,specialAdapter);flushTokens();
     spawnRoundPrizes();
-    // Preserve the physical field and outstanding slot rewards; buffs restart each stage.
+    // Preserve the physical field; buffs restart each stage.
     wallT=run.level('guard')*6; pushT=0; feverT=0; partyT=0; combo=0; lastWin=-100; winTimes.length=0; sfx.fast=1;
     releaseLaunchers(lanes); resultPhase=''; $('score-formula').textContent='基础分 × 构筑倍率 × 连击 × FEVER';
     $('run-modal').hidden=true; state.coins=run.shots; sfx.levelUp(); cv.focus({preventScroll:true});
@@ -938,10 +738,10 @@ function toggleDock(id, label) {
   const button = panel.querySelector('[data-dock]');
   if (button) button.textContent = panel.classList.contains('is-docked') ? `展开${label}` : '收起';
 }
-$('dock-shop').onclick = () => toggleDock('run-modal', '补给');
+$('dock-shop').onclick = () => { $('run-modal').hidden=true; mobileCabinet.returnToCabinet(); };
 $('dock-help').onclick = () => toggleDock('help', '说明');
-$('dock-tokens').onclick = () => toggleDock('token-modal', '币仓');
-$('lottery-dock').onclick = () => toggleDock('lottery', '转盘');
+$('dock-tokens').onclick = () => $('token-close').click();
+// The wheel's own close action is wired after its mechanism is mounted.
 $('pick-reroll').onclick = () => { if (rerollPicks(run, pickOptions())) { sfx.tick(); save(); renderResult(true); } };
 $('btn-sound').onclick = e => { sfx.setEnabled(!sfx.enabled); e.currentTarget.classList.toggle('off', !sfx.enabled); };
 $('btn-music').onclick = e => { sfx.setMusic(!sfx.musicOn); e.currentTarget.classList.toggle('off', !sfx.musicOn); };
@@ -959,30 +759,34 @@ $('start-button').onclick = () => {
 // Fit the complete playable cabinet to the actual canvas, not the browser window.
 // This also keeps aiming and projected reward text correct after HUD reflow.
 let resizeFrame = 0;
-mobileCabinet=createMobileCabinet(slot.canvas,()=>queueResize());
+mobileCabinet=createMobileCabinet(()=>queueResize());
+juice=createMachineJuice($('mobile-cabinet'));
+prizeWheel=createPrizeWheel({
+  canPresent: () => started && run.active && !helpBlocking() && !catalogBlocking() && !mobileCabinet.isMenuOpen(),
+  onActive: active => { releaseLaunchers(lanes); mobileCabinet.setWheelActive(active); },
+  onReveal: awardWheel,
+  random:()=>run.random(),
+  onChange: () => { if(started) save(); },
+});
+for (const item of restoredWheelQueue) prizeWheel.enqueue(item);
 function resize() {
   resizeFrame = 0;
   const narrow=mobileCabinet.mobile;
-  backboardGroup.visible=!narrow;
-  mascot.root.position.set(narrow?-5.1:-HALF_W-1.55,narrow?2.75:2.73,narrow?1.35:-1.2);mascot.root.scale.setScalar(narrow?1.48:1.25);
-  CAM_TARGET.set(0,narrow?.3:2.0,narrow?-1.05:-1.2);
-  // The rear slot is a live cabinet-mounted canvas on phones, not a faraway mesh.
-  leds.instanceMatrix.needsUpdate=true;ledPos.forEach((p,i)=>{if(narrow&&p[3]===2)tmpM.makeScale(0,0,0);else tmpM.makeTranslation(p[0],p[1],p[2]);leds.setMatrixAt(i,tmpM);});
+  backboardGroup.visible=false;
+  mascot.root.position.set(-5.1,2.7,1.25);mascot.root.scale.setScalar(narrow?.78:.96);
+  CAM_DIR.set(0,narrow?.84:.601,narrow?.543:.799).normalize();
+  CAM_TARGET.set(0,narrow?.8:.55,narrow?-.7:-1.0);
+  leds.instanceMatrix.needsUpdate=true;ledPos.forEach((p,i)=>{if(p[3]===2)tmpM.makeScale(0,0,0);else tmpM.makeTranslation(p[0],p[1],p[2]);leds.setMatrixAt(i,tmpM);});
   const r=app.getBoundingClientRect(), w=Math.max(1,r.width), h=Math.max(1,r.height);
-  const slotHost=narrow?$('machine-live-slot').getBoundingClientRect():null;slot.setDisplay(narrow,slotHost?.width,slotHost?.height);
   camera.aspect=w/h; camera.fov=narrow?49:46;
   const tan=Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
   const up=new THREE.Vector3(0,CAM_DIR.z,-CAM_DIR.y);
-  let distance=narrow?10:20;
+  let distance=10;
   // Separate real cabinet regions avoid fitting imaginary upper-front corners,
   // which would unnecessarily shrink the playfield, especially on phones.
-  const regions=narrow?[
-    [[-5.65,5.65],[-.25,2.65],[-6.3,4.3]],
-  ]:[
-    [[-5.3,5.3],[1.2,9.5],[-6.6,-5.9]], // backboard, sign and slot screen
-    [[-7.3,7.3],[-2.8,2.9],[-10,4.6]],  // cabinet rails
-    [[-6.3,6.3],[-3.3,-0.1],[4.0,7.1]], // payout tray (not decorative plinth)
-    [[-7.7,-5.1],[2.5,5.8],[-2.2,0.3]], // Dafeiyu standee
+  const regions=[
+    [[narrow?-5.2:-5.65,narrow?5.2:5.65],[-.1,2.75],[-6.3,4.25]],
+    [[-4.4,4.4],[3.2,4.2],[-5.8,-3.5]],
   ];
   for(const [xs,ys,zs] of regions) for(const x of xs) for(const y of ys) for(const z of zs) {
     const relative=new THREE.Vector3(x,y,z).sub(CAM_TARGET);
@@ -1017,7 +821,7 @@ function frame() {
   composer.render();
 }
 function update(dt) {
-  if (!started || !run.active || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || document.hidden) { updateHud(dt); slot.draw(); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
+  if (!started || !run.active || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || prizeWheel?.active || document.hidden) { updateHud(dt); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
 
   for (const rig of Object.values(chuteRig)) rig.scale.y += (1 - rig.scale.y) * Math.min(1, dt * 12);
@@ -1030,12 +834,6 @@ function update(dt) {
   chuteMat.mid.emissiveIntensity = tokens.selected !== 'coin' ? 1.15 : forward ? 0.22 : 0.85;
   if (inputOpen()) for (const side of stepLaunchers(lanes, dt)) dropCoin(side);
   stepSlides(dt);
-  gate.position.x = Math.sin(time * 1.05) * 3.3 + Math.sin(time * 2.3) * 0.5;
-  const gateHalfWidth = GATE_HW + run.level('lucky') * 0.1;
-  gate.scale.x = gateHalfWidth / GATE_HW;
-  gateMat.emissiveIntensity = 1.6 + Math.sin(time * 6) * 0.6 + (gate.userData.hitT > 0 ? 4 : 0);
-  gate.userData.hitT = (gate.userData.hitT || 0) - dt;
-
   // 奖励计时
   wallT = Math.max(0, wallT - dt); pushT = Math.max(0, pushT - dt); partyT = Math.max(0, partyT - dt);
   if (feverT > 0) { feverT -= dt; if (feverT <= 0) sfx.fast = 1; }
@@ -1045,11 +843,6 @@ function update(dt) {
     g.mesh.position.y = g.y; { const ty = wallT > 0 ? 0.7 : -20, cur = g.body.translation(); if (Math.abs(cur.y - ty) > 0.01) g.body.setTranslation({ x: cur.x, y: ty, z: cur.z }, true); }
     g.mesh.material.opacity = 0.35 + 0.2 * Math.sin(time * 8) * (wallT < 5 && wallT > 0 ? 2 : 0.5);
   });
-  slot.status = [];
-  if (wallT > 0) slot.status.push({ text: `护墙 ${Math.ceil(wallT)}s`, color: '#7cf3ff' });
-  if (pushT > 0) slot.status.push({ text: `超级推板 ${Math.ceil(pushT)}s`, color: '#ffb34d' });
-  if (feverT > 0) slot.status.push({ text: `FEVER ${Math.ceil(feverT)}s`, color: '#ff6ad5' });
-
   // 金币雨
   if (showerQueue.length) {
     showerQueue.forEach(s => s.t -= dt);
@@ -1077,13 +870,6 @@ function update(dt) {
       else if (dv > 2.6 && c.state === 'won' && c.t < 1) sfx.clink(Math.min(0.7, dv / 12), p.x / 6);
       c.pv = v;
     }
-    if (c.fromDrop && !c.gated && c.prevY > GATE_Y && p.y <= GATE_Y) {
-      c.gated = true;
-      if (Math.abs(p.x - gate.position.x) < gateHalfWidth - 0.12) {
-        gate.userData.hitT = 0.4; sfx.gate(); burst(p.x, GATE_Y, DROP_Z, 24, '#5bff95', 3, 2);
-        if (slot.add()) floatText('LUCKY!', p.x, GATE_Y + 0.6, DROP_Z, 'lucky'); else floatText('保留已满', p.x, GATE_Y + 0.6, DROP_Z, 'lucky');
-      }
-    }
     c.prevY = p.y;
     if (c.ccd !== false && p.y < 1.9 && c.state === 'field') { c.ccd = false; c.body.enableCcd(false); }
     if (c.state === 'field' && p.y < -0.4) {
@@ -1109,21 +895,22 @@ function update(dt) {
     const b = $('bubble'), r=app.getBoundingClientRect(); b.style.left = Math.max(r.left+b.offsetWidth/2+8,Math.min(r.right-b.offsetWidth/2-8,bx)) + 'px'; b.style.top = Math.max(r.top+44,by) + 'px';
   }
 
-  slot.update(dt);
+  const spinLevel = comboWheel.tick(time);
+  if (spinLevel) presentLottery(spinLevel);
   updateLeds(time); updateSparkles(dt); updateConfetti(dt);
   if (partyT > 0 && Math.random() < 0.3) burst((Math.random() - 0.5) * 10, 3 + Math.random() * 3, -2 + Math.random() * 4, 6, `hsl(${Math.random() * 360},100%,65%)`, 3, 2);
-  pinkL.intensity = 6 + (partyT > 0 || feverT > 0 ? Math.sin(time * 20) * 5 : Math.sin(time * 2) * 1.5);
-  cyanL.intensity = 6 + (partyT > 0 || feverT > 0 ? Math.cos(time * 20) * 5 : Math.cos(time * 2) * 1.5);
+  pinkL.intensity = motionReduced.matches?3:6 + (partyT > 0 || feverT > 0 ? Math.sin(time * 20) * 5 : Math.sin(time * 2) * 1.5);
+  cyanL.intensity = motionReduced.matches?3:6 + (partyT > 0 || feverT > 0 ? Math.cos(time * 20) * 5 : Math.cos(time * 2) * 1.5);
 
   // 相机：轻微呼吸 + 震动
   shake = Math.max(0, shake - dt * 1.5);
-  const sx = (Math.random() - 0.5) * shake * 0.6, sy = (Math.random() - 0.5) * shake * 0.6;
-  camera.position.set(CAM_POS.x + Math.sin(time * 0.3) * 0.25 + sx, CAM_POS.y + Math.sin(time * 0.4) * 0.1 + sy, CAM_POS.z);
+  const sx = motionReduced.matches?0:(Math.random() - 0.5) * shake * 0.6, sy = motionReduced.matches?0:(Math.random() - 0.5) * shake * 0.6;
+  camera.position.set(CAM_POS.x + (motionReduced.matches?0:Math.sin(time * 0.3) * 0.15) + sx, CAM_POS.y + (motionReduced.matches?0:Math.sin(time * 0.4) * 0.06) + sy, CAM_POS.z);
   camera.lookAt(CAM_TARGET.x, CAM_TARGET.y, CAM_TARGET.z);
 
-  if (run.tick(dt, slot.spinning || slot.queue > 0 || showerQueue.length > 0 || slot.msgT > 0)) { releaseLaunchers(lanes); save(); }
+  if (run.tick(dt, showerQueue.length > 0 || prizeWheel?.active || comboWheel.level > 0)) { releaseLaunchers(lanes); save(); }
   updateHud(dt);
 }
 frame();
 tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>releaseLaunchers(lanes),sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, slotUpdate: dt => slot.update(dt), leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, slot, onSlot, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,slotViewport:(mobileCabinet.mobile?slot.canvas.getBoundingClientRect().toJSON():null),environment:'whale-bay-pavilion',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound, get aimX() { return aimX; }, set aimX(v) { aimX = v; }, get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };
+window.__game = { get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };

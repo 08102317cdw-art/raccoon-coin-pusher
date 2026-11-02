@@ -1,0 +1,2 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+(async()=>{const m=await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync('src/wheel-math.js')).toString('base64'));let checks=0;for(const current of [0,12,319,360,720,1860,4999])for(const count of [4,6])for(let i=0;i<count;i++){const stop=m.wheelTarget(current,i,count);assert.equal(m.sectorAtPointer(stop,count),i);assert.ok(stop-current>=1800);assert.ok(stop-current<2160);checks+=3;}console.log(`Wheel geometry: ${checks} assertions passed`);})().catch(e=>{console.error(e);process.exit(1)});
