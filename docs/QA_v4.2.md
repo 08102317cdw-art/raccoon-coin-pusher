@@ -15,7 +15,7 @@
 
 用 Chromium 直接打开构建后的 `file://` HTML，并将浏览器设为离线。通过真实 DOM 按钮交替左右投币六次，可投次数由 50 变为 44；LCD 跟随实际物理收币更新。没有远程 HTTP 请求，也没有浏览器运行错误。点击吉祥物不扣币，能播放内嵌语音；八段音频均可解码。
 
-`npm run build` 和 `npm run pages` 均已通过。尚未推送远程或更新线上 Pages。
+`npm run build` 和 `npm run pages` 均已通过。以上为发布前本地验收，线上发布状态以 GitHub Pages 部署记录为准。
 
 ## 画面复核
 
