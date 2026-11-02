@@ -5,26 +5,28 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { Sfx } from './audio.js?v=4.0.0';
-import { coinTextures } from './textures.js?v=4.0.0';
-import { buildDafeiyu } from './mascot.js?v=4.0.0';
-import { loadCharacterArt, characterSources } from './character-art.js?v=4.0.0';
-import { Run, UPGRADES, DIFFICULTIES, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=4.0.0';
-import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=4.0.0';
-import { TOKENS, TokenSystem, CREW, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=4.0.0';
-import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=4.0.0';
-import { makeTokenMesh } from './token-mesh.js?v=4.0.0';
-import { createTokenUI } from './token-ui.js?v=4.0.0';
-import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=4.0.0';
-import { createMobileCabinet } from './mobile-cabinet.js?v=4.0.0';
-import { createSeasideRoom } from './arcade-room.js?v=4.0.0';
-import { createPrizeWheel } from './prize-wheel.js?v=4.0.0';
-import { ComboWheel } from './combo-wheel.js?v=4.0.0';
-import { createMachineJuice } from './machine-juice.js?v=4.0.0';
-import { createTableEffects } from './table-effects.js?v=4.0.0';
-import { VoyageLog } from './voyage-log.js?v=4.0.0';
-import { createVoyageUI } from './voyage-ui.js?v=4.0.0';
-import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=4.0.0';
+import { MACHINE, openingCoins } from './machine-tuning.js?v=4.1.0';
+import { createPayoutRail } from './payout-rail.js?v=4.1.0';
+import { Sfx } from './audio.js?v=4.1.0';
+import { coinTextures } from './textures.js?v=4.1.0';
+import { buildDafeiyu } from './mascot.js?v=4.1.0';
+import { loadCharacterArt, characterSources } from './character-art.js?v=4.1.0';
+import { Run, UPGRADES, DIFFICULTIES, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=4.1.0';
+import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=4.1.0';
+import { TOKENS, TokenSystem, CREW, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=4.1.0';
+import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=4.1.0';
+import { makeTokenMesh } from './token-mesh.js?v=4.1.0';
+import { createTokenUI } from './token-ui.js?v=4.1.0';
+import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=4.1.0';
+import { createMobileCabinet } from './mobile-cabinet.js?v=4.1.0';
+import { createSeasideRoom } from './arcade-room.js?v=4.1.0';
+import { createPrizeWheel } from './prize-wheel.js?v=4.1.0';
+import { ComboWheel } from './combo-wheel.js?v=4.1.0';
+import { createMachineJuice } from './machine-juice.js?v=4.1.0';
+import { createTableEffects } from './table-effects.js?v=4.1.0';
+import { VoyageLog } from './voyage-log.js?v=4.1.0';
+import { createVoyageUI } from './voyage-ui.js?v=4.1.0';
+import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=4.1.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -44,7 +46,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 // ================== 渲染器 / 场景 ==================
 const app = document.getElementById('app');
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.6 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.35 : 1.75));
 renderer.setSize(app.clientWidth, app.clientHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.88;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -56,7 +58,7 @@ scene.fog = new THREE.Fog('#142936', 32, 80);
 const seasideRoom=createSeasideRoom(scene);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.52;
+scene.environmentIntensity = 0.42;
 
 const camera = new THREE.PerspectiveCamera(46, app.clientWidth / app.clientHeight, 0.1, 150);
 const CAM_POS = new THREE.Vector3(0, 11.5, 13.7), CAM_TARGET = new THREE.Vector3(0, 0.3, -1.2);
@@ -64,14 +66,14 @@ const CAM_DIR = CAM_POS.clone().sub(CAM_TARGET).normalize();
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(app.clientWidth, app.clientHeight), 0.42, 0.38, 0.92);
+const bloom = new UnrealBloomPass(new THREE.Vector2(app.clientWidth, app.clientHeight), 0.27, 0.3, 0.98);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
 scene.add(new THREE.HemisphereLight('#d4e8ea', '#15232f', 0.65));
 const key = new THREE.DirectionalLight('#fff0d6', 2.7);
 key.position.set(4, 16, 8); key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
+key.shadow.mapSize.set(1024, 1024);
 Object.assign(key.shadow.camera, { left: -8, right: 8, top: 10, bottom: -10, near: 1, far: 40 });
 key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
 scene.add(key);
@@ -82,20 +84,20 @@ const tableFX = createTableEffects(scene, motionReduced);
 
 // ================== 材质 ==================
 const ct = coinTextures();
-const coinFaceMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 0.22, metalness: 0.72, roughness: 0.46, color: '#ffffff' });
-const coinSideMat = new THREE.MeshStandardMaterial({ map: ct.side, metalness: 0.75, roughness: 0.44 });
-const chrome = new THREE.MeshStandardMaterial({ color: '#b4c6c8', metalness: 0.82, roughness: 0.36 });
+const coinFaceMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 0.22, metalness: 0.8, roughness: 0.29, color: '#ffffff' });
+const coinSideMat = new THREE.MeshStandardMaterial({ map: ct.side, metalness: 0.78, roughness: 0.3 });
+const chrome = new THREE.MeshStandardMaterial({ color: '#536b7c', metalness: 0.76, roughness: 0.38 });
 const orange = new THREE.MeshStandardMaterial({ color: '#28566c', roughness: 0.58, metalness: 0.24 });
-const brown = new THREE.MeshStandardMaterial({ color: '#b5cecb', roughness: 0.62 });
+const brown = new THREE.MeshStandardMaterial({ color: '#35556a', roughness: 0.52 });
 const darkMat = new THREE.MeshStandardMaterial({ color: '#10263c', roughness: 0.9 });
 const glass = new THREE.MeshPhysicalMaterial({ color: '#bff6ff', metalness: 0, roughness: 0.05, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide });
 
 // ================== 物理世界 ==================
 await RAPIER.init();
 const world = new RAPIER.World({ x: 0, y: -24, z: 0 });
-world.timestep = 1 / 60;
-world.integrationParameters.numSolverIterations = 4;
-const F_FLOOR = 0.2, F_COIN = 0.32, F_PUSH = 0.55;
+world.timestep = MACHINE.fixedStep;
+world.integrationParameters.numSolverIterations = 6;
+const F_FLOOR = MACHINE.floorFriction, F_COIN = MACHINE.coinFriction, F_PUSH = MACHINE.pusherFriction;
 function staticBox(hx, hy, hz, x, y, z, fr = F_FLOOR) {
   const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z));
   world.createCollider(RAPIER.ColliderDesc.cuboid(hx, hy, hz).setFriction(fr).setRestitution(0.1), body);
@@ -104,7 +106,8 @@ function staticBox(hx, hy, hz, x, y, z, fr = F_FLOOR) {
 const { meshBox, guards, backboardGroup, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh } = createCabinetBase({
   scene, world, staticBox, HALF_W, FRONT_Z, BACK_Z, GAP_Z, WALL_Z, PUSH_H, PUSH_BACK, PUSH_D, F_PUSH, chrome, orange, brown, darkMat, glass,
 });
-let pushPhase = -Math.PI / 2, pushMax = -0.5, pushMaxTarget = -0.5, pushSpeed = 1.55;
+const payoutRail = createPayoutRail(scene, FRONT_Z, HALF_W);
+let pushPhase = -Math.PI / 2, pushMax = MACHINE.pusherMax, pushMaxTarget = MACHINE.pusherMax, pushSpeed = MACHINE.pusherSpeed;
 function physicsStep() {
   const dt = world.timestep;
   pushMax += (pushMaxTarget - pushMax) * 0.01;
@@ -115,7 +118,16 @@ function physicsStep() {
   world.step();
 }
 let acc = 0;
-function stepWorld(dt) { acc += dt; let n = 0; while (acc >= world.timestep && n < 3) { physicsStep(); acc -= world.timestep; n++; } if (n === 3) acc = 0; }
+function stepWorld(dt) {
+  // Rapier's timestep getter is float32; use the logical double-precision step
+  // here so exactly 100ms cannot accidentally execute only five ticks.
+  const fixed = MACHINE.fixedStep;
+  acc += dt; let n = 0;
+  while (acc + 1e-9 >= fixed && n < MACHINE.maxCatchUpSteps) {
+    physicsStep(); acc = Math.max(0, acc - fixed); n++;
+  }
+  if (n === MACHINE.maxCatchUpSteps) acc = Math.min(acc, fixed);
+}
 
 // ================== 硬币系统 ==================
 const coinGeo = new THREE.CylinderGeometry(COIN_R, COIN_R, COIN_H, 40, 1);
@@ -134,7 +146,7 @@ const SHAPES = {
 const coins = [];
 const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), tmpS = new THREE.Vector3();
 
-const bigMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 2, metalness: 1, roughness: 0.2, color: '#ffd77a', emissive: '#6a3a00', emissiveIntensity: 0.5 });
+const bigMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: .16, metalness: .84, roughness: .3, color: '#ffd77a', emissive: '#6a3a00', emissiveIntensity: 0.18 });
 const gemMat = new THREE.MeshPhysicalMaterial({ color: '#36e0ff', metalness: 0.1, roughness: 0.04, clearcoat: 1, iridescence: 1, iridescenceIOR: 1.6, emissive: '#0a5a8a', emissiveIntensity: 0.6, flatShading: true });
 function makePrizeMesh(kind) {
   if (kind === 'shell') {
@@ -259,6 +271,7 @@ function updateHud(dt) {
     button.setAttribute('aria-pressed', String(!!lanes[side]?.locked));
   }
   const forward = pusherMovingForward(pushPhase);
+  juice?.timing({ forward, progress:(Math.sin(pushPhase)+1)/2, phase:run.phase });
   const lamp = $('timing-lamp');
   if (lamp) lamp.textContent = `${forward ? '推板前进 · 留意上层币堆' : '推板收回 · 双侧投币可在中间相撞'}${run.level('pin') ? ` · 松台销 ${run.inserts % 20}/20` : ''}`;
   const exchange = $('exchange-btn'), shakeBtn = $('shake-btn');
@@ -328,7 +341,7 @@ function say(kind) {
 function onWin(c) {
   if (!started || !run.active) return;
   const p=c.p=c.body.translation();
-  if (PRIZES[c.kind]) { rewardPrize(c); return; }
+  if (PRIZES[c.kind]) { payoutRail.collect(); rewardPrize(c); return; }
   const result=tokens.score(c,coins,specialAdapter);
   if(isBad(c.kind)) {
     const lost=run.penalize(result.penalty);combo=0;comboWheel.reset();
@@ -346,6 +359,7 @@ function onWin(c) {
   if (winTimes.length >= 9 && feverT <= 0) startFever();
   burst(p.x,.1,FRONT_Z+.2,c.kind==='coin'?10:30,TOKENS[c.kind]?.color||'#ffd34d',3,3);
   bumpCoinHud();
+  payoutRail.collect();
   { const [x,y]=toScreen(p.x,.4,FRONT_Z+.3);juice?.score({x,y,points:scored.points,combo,special:c.kind!=='coin'}); }
   if(TOKENS[c.kind]) {sfx.prize();mascot.react('happy',1);}
   else if(c.kind!=='coin'){
@@ -473,7 +487,7 @@ function launchPhysicalCoin(kind,plan) {
   dropStreak=time-dropStreakAt<.45?dropStreak+1:0;dropStreakAt=time;
   sfx.drop(plan.spawn.x/6,dropStreak);
   buzz(Math.min(28, 10 + dropStreak * 3));
-  shake=Math.min(.12,shake+.035);
+  shake=Math.min(.035,shake+.012);
   burst(plan.spawn.x,plan.spawn.y,plan.spawn.z,4,kind==='coin'?'#ffe08a':TOKENS[kind].color,.8,.5);
   const rig=chuteRig[plan.chute];if(rig)rig.scale.y=.9;
   return c;
@@ -543,25 +557,15 @@ function load() {
   }
 }
 function initialFill() {
-  for (let layer = 0; layer < 2; layer++) {
-    for (let r = 0; r < 6; r++) for (let k = 0; k < 8; k++) {
-      if (layer === 1 && Math.random() < 0.45) continue;
-      const x = -4.15 + k * 1.19 + (r % 2) * 0.3 + (Math.random() - 0.5) * 0.06, z = -2.4 + r * 1.06 + (Math.random() - 0.5) * 0.06;
-      if (Math.abs(x) > 4.4) continue;
-      spawn('coin', x, COIN_H / 2 + 0.01 + layer * 0.18, z, randQ(0.02));
-    }
-    for (let r = 0; r < 2; r++) for (let k = 0; k < 8; k++) {
-      if (layer === 1 && Math.random() < 0.5) continue;
-      spawn('coin', -4.15 + k * 1.19 + (r % 2) * 0.3, PUSH_H + COIN_H / 2 + 0.01 + layer * 0.18, -5.58 + r * 1.12, randQ(0.02));
-    }
-  }
-  spawn('big', 1.2, 0.5, 2.3, randQ(0.02)); spawn('gem', -2.0, 0.8, 1.2, randQ(0.02));
+  for (const p of openingCoins()) spawn('coin', p.x, p.y, p.z, randQ(.045));
+  spawn('big', 1.2, .5, 2.1, randQ(.02));
+  spawn('gem', -1.7, .6, 1.5, randQ(.02));
 }
 let restoredTime = 0;
 const loaded = load();
 if (!loaded) initialFill();
 // 预热：让堆叠稳定
-if (!loaded) for (let i = 0; i < 150; i++) physicsStep();
+if (!loaded) for (let i = 0; i < MACHINE.warmupSteps; i++) physicsStep();
 // 预热期间可能掉落的币不计入
 if (!loaded) for (let i = coins.length - 1; i >= 0; i--) if (coins[i].body.translation().y < -0.4) removeCoin(i);
 
@@ -781,7 +785,7 @@ $('start-button').onclick = () => {
 let resizeFrame = 0;
 mobileCabinet=createMobileCabinet(()=>queueResize());
 const eventLabel=document.createElement('div');eventLabel.id='machine-event';eventLabel.setAttribute('role','status');$('machine-window').append(eventLabel);
-juice=createMachineJuice($('mobile-cabinet'),{onBatch:b=>{sfx.bank(b);if(b.tier===3){shake=Math.max(shake,.25);mascot.react('excited',1);buzz(22);}}});
+juice=createMachineJuice($('mobile-cabinet'),{onBatch:b=>{sfx.bank(b);if(b.tier>=2){shake=Math.max(shake,b.tier===3?.26:.1);mascot.react('excited',1);buzz(b.tier===3?25:14);}}});
 prizeWheel=createPrizeWheel({
   canPresent: () => started && run.active && !helpBlocking() && !catalogBlocking() && !mobileCabinet.isMenuOpen(),
   onActive: active => { releaseLaunchers(lanes); mobileCabinet.setWheelActive(active); },
@@ -796,7 +800,7 @@ function resize() {
   const narrow=mobileCabinet.mobile;
   backboardGroup.visible=false;
   mascot.root.position.set(narrow?-4.6:-5.1,2.7,1.25);mascot.root.scale.setScalar(narrow?.68:.96);
-  CAM_DIR.set(0,narrow?.96:.78,narrow?.28:.626).normalize();
+  CAM_DIR.set(0,narrow?.91:.78,narrow?.415:.626).normalize();
   CAM_TARGET.set(0,narrow?.15:.4,narrow?-.65:-.5);
   leds.instanceMatrix.needsUpdate=true;ledPos.forEach((p,i)=>{if(p[3]===2)tmpM.makeScale(0,0,0);else tmpM.makeTranslation(p[0],p[1],p[2]);leds.setMatrixAt(i,tmpM);});
   const r=app.getBoundingClientRect(), w=Math.max(1,r.width), h=Math.max(1,r.height);
@@ -835,15 +839,22 @@ setInterval(save, 5000);
 
 // ================== 主循环 ==================
 const clock = new THREE.Clock(); let time = restoredTime;
-let paused = false;
+let paused = false, frameCost = 1 / 60, lowQuality = false;
 function frame() {
   requestAnimationFrame(frame);
   if (paused) return;
-  update(Math.min(clock.getDelta(), 1 / 20));
+  const realDelta = clock.getDelta();
+  update(Math.min(realDelta, MACHINE.maxFrameDelta));
+  // Rendering quality may drop; physical coin identities and the rules never do.
+  if (realDelta < .25) frameCost += (realDelta - frameCost) * .04;
+  if (!lowQuality && time > 2 && frameCost > .045) {
+    lowQuality = true; renderer.setPixelRatio(1); composer.setPixelRatio(1); bloom.enabled = false; queueResize();
+  }
   composer.render();
 }
 function update(dt) {
   tableFX.update(Math.min(dt,.05));
+  payoutRail.update(dt, motionReduced.matches);
   if (!started || !run.active || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || prizeWheel?.active || document.hidden) { updateHud(dt); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
   run.noteTime(dt);
@@ -860,7 +871,7 @@ function update(dt) {
   // 奖励计时
   wallT = Math.max(0, wallT - dt); pushT = Math.max(0, pushT - dt); partyT = Math.max(0, partyT - dt);
   if (feverT > 0) { feverT -= dt; if (feverT <= 0) sfx.fast = 1; }
-  pushMaxTarget = (pushT > 0 ? 0.6 : -0.5) + run.level('push') * 0.12; pushSpeed = pushT > 0 ? 1.9 : 1.55;
+  pushMaxTarget = (pushT > 0 ? 0.6 : MACHINE.pusherMax) + run.level('push') * 0.12; pushSpeed = pushT > 0 ? 2.1 : MACHINE.pusherSpeed;
   guards.forEach((g, i) => {
     const target = wallT > 0 ? 0.7 : -1.0; g.y += (target - g.y) * Math.min(1, dt * 5);
     g.mesh.position.y = g.y; { const ty = wallT > 0 ? 0.7 : -20, cur = g.body.translation(); if (Math.abs(cur.y - ty) > 0.01) g.body.setTranslation({ x: cur.x, y: ty, z: cur.z }, true); }
@@ -903,6 +914,10 @@ function update(dt) {
     }
     c.prevY = p.y;
     if (c.ccd !== false && p.y < 1.9 && Math.abs(c.body.linvel().x)<4 && c.state === 'field') { c.ccd = false; c.body.enableCcd(false); }
+    if (c.fromDrop && !c.landed && c.state === 'field' && p.y < .95) {
+      c.landed = true;
+      if (p.y > .15) { sfx.clink(.45, p.x / 6); burst(p.x,.2,p.z,3,'#ffdc8b',.8,.25); }
+    }
     if (c.state === 'field' && p.y < -0.4) {
       if (p.z > FRONT_Z - 0.1 && Math.abs(p.x) < HALF_W + 0.3) { c.state = 'won'; onWin(c); }
       else { c.state = 'lost'; stats.lost++; sfx.lost(p.x / 6); if (c.kind !== 'coin') floatText('漏掉了…', p.x, 0, p.z, 'lost'); }
@@ -936,7 +951,7 @@ function update(dt) {
   // 相机：轻微呼吸 + 震动
   shake = Math.max(0, shake - dt * 1.5);
   const sx = motionReduced.matches?0:(Math.random() - 0.5) * shake * 0.6, sy = motionReduced.matches?0:(Math.random() - 0.5) * shake * 0.6;
-  camera.position.set(CAM_POS.x + (motionReduced.matches?0:Math.sin(time * 0.3) * 0.15) + sx, CAM_POS.y + (motionReduced.matches?0:Math.sin(time * 0.4) * 0.06) + sy, CAM_POS.z);
+  camera.position.set(CAM_POS.x + (motionReduced.matches?0:Math.sin(time * 0.3) * 0.025) + sx, CAM_POS.y + (motionReduced.matches?0:Math.sin(time * 0.4) * 0.015) + sy, CAM_POS.z);
   camera.lookAt(CAM_TARGET.x, CAM_TARGET.y, CAM_TARGET.z);
 
   if (run.tick(dt, showerQueue.length > 0 || prizeWheel?.active || comboWheel.level > 0)) { releaseLaunchers(lanes); save(); }
@@ -947,4 +962,4 @@ voyageUI=createVoyageUI({crew:CREW,difficulties:DIFFICULTIES,journal:()=>journal
 }});
 frame();
 tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>releaseLaunchers(lanes),sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { experience:()=>({effects:tableFX.counts,activeEffects:tableFX.active,batches:juice.batches,pendingDeliveries:showerQueue.length,journal:journal.serialize()}), time:()=>time, get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, dropSpecialCoin, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };
+window.__game = { performance:()=>({lowQuality,pixelRatio:renderer.getPixelRatio(),frameCost}), experience:()=>({effects:tableFX.counts,activeEffects:tableFX.active,batches:juice.batches,pendingDeliveries:showerQueue.length,journal:journal.serialize()}), time:()=>time, get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, dropSpecialCoin, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };

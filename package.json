@@ -1,6 +1,6 @@
 {
   "name": "dafeiyu-coin-pusher",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "大肥鱼推币机 — a noncommercial fan-themed 3D roguelike coin pusher.",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "test:mobile": "node tests/mobile-stage.cjs",
     "test:experience": "node tests/experience.cjs",
     "test:rewards": "node tests/reward-delivery.cjs",
-    "preview": "node preview.cjs"
+    "preview": "node preview.cjs",
+    "test:feel": "node tests/game-feel.cjs"
   },
   "keywords": [],
   "author": "",

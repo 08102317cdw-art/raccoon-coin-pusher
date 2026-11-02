@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=4.0.0';
-import { buildDafeiyu } from './mascot.js?v=4.0.0';
-import { dressCabinet } from './cabinet-details.js?v=4.0.0';
-import { finishCabinet } from './cabinet-finish.js?v=4.0.0';
+import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=4.1.0';
+import { buildDafeiyu } from './mascot.js?v=4.1.0';
+import { dressCabinet } from './cabinet-details.js?v=4.1.0';
+import { finishCabinet } from './cabinet-finish.js?v=4.1.0';
 
 // Cabinet presentation stays separate from run rules and the simulation loop.
 // Factories are invoked at the original initialization points; no timing changes.
@@ -65,7 +65,7 @@ export function createCabinetBase({ scene, world, staticBox, HALF_W, FRONT_Z, BA
   const pusherBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, PUSH_H / 2, PUSH_BACK - PUSH_D / 2));
   world.createCollider(RAPIER.ColliderDesc.cuboid(HALF_W - 0.03, PUSH_H / 2, PUSH_D / 2).setFriction(F_PUSH).setRestitution(0), pusherBody);
   const ptop = plateTexture(); ptop.repeat.set(4, 2.4);
-  const pusherMats = [chrome, chrome, new THREE.MeshStandardMaterial({ map: ptop, metalness: 0.85, roughness: 0.28 }), chrome, new THREE.MeshStandardMaterial({ map: stripeTexture('#ff7a18', '#ffc53d', 'PUSH'), metalness: 0.3, roughness: 0.35 }), chrome];
+  const pusherMats = [chrome, chrome, new THREE.MeshStandardMaterial({ map: ptop, metalness: 0.65, roughness: 0.4 }), chrome, new THREE.MeshStandardMaterial({ map: stripeTexture('#ff7a18', '#ffc53d', 'PUSH'), metalness: 0.3, roughness: 0.35 }), chrome];
   const pusherMesh = new THREE.Mesh(new THREE.BoxGeometry((HALF_W - 0.03) * 2, PUSH_H, PUSH_D), pusherMats);
   pusherMesh.castShadow = pusherMesh.receiveShadow = true; scene.add(pusherMesh);
   return { meshBox, guards, backboardGroup, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh };

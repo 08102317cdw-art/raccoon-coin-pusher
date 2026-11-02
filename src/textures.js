@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { paintCabinetPanel } from './cabinet-art.js?v=4.0.0';
-import { characterImages } from './character-art.js?v=4.0.0';
+import { paintCabinetPanel } from './cabinet-art.js?v=4.1.0';
+import { characterImages } from './character-art.js?v=4.1.0';
 
 const mk = (w, h = w) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
 const tex = (c, srgb = true) => { const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
@@ -75,8 +75,8 @@ export function stripeTexture(a = '#3476a5', b = '#d2edf3', label = '') {
 
 export function plateTexture() {
   const S = 512, [c, g] = mk(S);
-  g.fillStyle = '#92abb2'; g.fillRect(0, 0, S, S);
-  for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '60,70,80'},0.05)`; g.fillRect(0, Math.random() * S, S, 1); }
+  g.fillStyle = '#365567'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '10,20,32'},0.05)`; g.fillRect(0, Math.random() * S, S, 1); }
   g.fillStyle = 'rgba(80,90,110,0.35)';
   for (let y = 32; y < S; y += 64) for (let x = (y / 64 % 2) * 32 + 32; x < S; x += 64) { g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.fill(); }
   const t = tex(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;

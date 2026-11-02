@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { drawWhale } from './textures.js?v=4.0.0';
+import { drawWhale } from './textures.js?v=4.1.0';
 // Engraved side decks: maritime enamel, pinstripes, milled fasteners and makers' marks.
 // These are decorative meshes only. Nothing changes the Rapier collision surfaces.
 export function finishCabinet(scene) {
  const c=document.createElement('canvas');c.width=256;c.height=1536;const g=c.getContext('2d');
- const bg=g.createLinearGradient(0,0,256,0);bg.addColorStop(0,'#7b9ea5');bg.addColorStop(.13,'#c3d9d1');bg.addColorStop(.25,'#8bafb1');bg.addColorStop(.75,'#8bafb1');bg.addColorStop(.9,'#c3d9d1');bg.addColorStop(1,'#527d8c');g.fillStyle=bg;g.fillRect(0,0,256,1536);
+ const bg=g.createLinearGradient(0,0,256,0);bg.addColorStop(0,'#254358');bg.addColorStop(.13,'#537384');bg.addColorStop(.25,'#284d61');bg.addColorStop(.75,'#284d61');bg.addColorStop(.9,'#537384');bg.addColorStop(1,'#527d8c');g.fillStyle=bg;g.fillRect(0,0,256,1536);
  g.fillStyle='#2d5b6a';g.beginPath();g.roundRect(32,20,192,1496,35);g.fill();
  for(const x of [38,48,208,218]){g.strokeStyle=x===48||x===208?'#a9c6bb':'#d9c18a';g.lineWidth=2;g.beginPath();g.moveTo(x,48);g.lineTo(x,1488);g.stroke();}
  for(let y=60;y<1480;y+=52){g.strokeStyle='#a5c7be55';g.lineWidth=2;g.beginPath();g.moveTo(66,y+12);g.bezierCurveTo(95,y-16,163,y+40,190,y+12);g.stroke();}
@@ -18,7 +18,7 @@ export function finishCabinet(scene) {
  const blue=w.createLinearGradient(0,0,0,1024);blue.addColorStop(0,'#284f63');blue.addColorStop(.6,'#173b50');blue.addColorStop(1,'#102e40');w.fillStyle=blue;w.fillRect(0,0,1536,1024);
  // Scalloped tidal marquetry, not a flat recolour. The central chute is kept clear.
  for(const side of [-1,1]){w.save();w.translate(side<0?0:1536,0);w.scale(side<0?1:-1,1);
- w.fillStyle='#9ebfbe';w.beginPath();w.moveTo(0,0);w.lineTo(280,0);w.bezierCurveTo(110,270,360,400,190,610);w.bezierCurveTo(40,810,310,870,210,1024);w.lineTo(0,1024);w.closePath();w.fill();
+ w.fillStyle='#365a6c';w.beginPath();w.moveTo(0,0);w.lineTo(280,0);w.bezierCurveTo(110,270,360,400,190,610);w.bezierCurveTo(40,810,310,870,210,1024);w.lineTo(0,1024);w.closePath();w.fill();
  w.strokeStyle='#d8ca9f';w.lineWidth=7;w.beginPath();w.moveTo(270,0);w.bezierCurveTo(100,270,350,400,180,610);w.bezierCurveTo(30,810,300,870,200,1024);w.stroke();
  w.strokeStyle='#688f93';w.lineWidth=2;for(let y=30;y<1024;y+=36){w.beginPath();w.arc(45,y,19,Math.PI,0);w.stroke();}
  w.restore();}
