@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { characterImages } from './character-art.js?v=4.1.0';
+import { characterImages } from './character-art.js?v=4.2.0';
 
 // Licensed, illustrated acrylic standee — not an unofficial approximation of the art.
 // Textures are shared between the cabinet mascot and collectible mini-standees.
@@ -34,7 +34,8 @@ export function buildDafeiyu() {
         this.pose = pose; material.map = artMap(pose);
         portrait.scale.x = 2.4 * characterImages[pose].width / characterImages[pose].height;
       }
-      body.position.y = reducedMotion ? 0 : Math.sin(t * 2.4) * .035 + (this.mood === 'happy' || this.mood === 'jackpot' ? Math.abs(Math.sin(t * 7)) * .16 : 0);
+      body.position.y = reducedMotion ? 0 : Math.sin(t * 2.4) * .035 + (this.mood === 'happy' || this.mood === 'jackpot' || this.talking ? Math.abs(Math.sin(t * 7)) * .16 : 0);
+      pedestal.material.emissive.set(this.talking?'#367e99':'#000000');pedestal.material.emissiveIntensity=this.talking?.5:0;
       material.rotation = reducedMotion ? 0 : Math.sin(t * 1.7) * .025;
     }
   };

@@ -6,7 +6,16 @@ const out=process.env.QA_DIR;const evidence={method:'固定随机种子、真实
 try{browser=await chromium.launch({executablePath:require('./browser-path.cjs'),headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 async function boot(seed){const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'});const p=await ctx.newPage();p.setDefaultTimeout(120000);p.on('pageerror',e=>evidence.errors.push(e.message));await p.addInitScript(seed=>{Math.random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};},seed);await p.goto('http://127.0.0.1:8797/');await p.waitForFunction(()=>window.__game);await p.evaluate(()=>{__game.pause(true);__game.start();__game.update(0);});return{ctx,p};}
 async function shot(p,name){if(!out||process.env.QA_CAPTURE==='0')return;fs.mkdirSync(out,{recursive:true});await p.evaluate(()=>{window.captureGame=true;const f=()=>{if(!captureGame)return;__game.render();window.captureFrame=requestAnimationFrame(f);};f();});await p.screenshot({path:path.join(out,name+'.png'),timeout:120000});await p.evaluate(()=>{captureGame=false;cancelAnimationFrame(captureFrame);});}
-async function dismissWheel(p){for(let i=0;i<12&&await p.evaluate(()=>__game.prizeWheel.active);i++){await p.evaluate(()=>document.querySelector('#lottery-dock')?.click());await p.waitForTimeout(100);}}
+async function dismissWheel(p){
+ // Wait for the entire automatic reward queue, not a fixed number of frames.
+ // Slow software rendering can delay the retract/next-wheel transition.
+ const deadline=Date.now()+20000;
+ while(await p.evaluate(()=>__game.prizeWheel.active||__game.prizeWheel.queued>0)){
+  await p.evaluate(()=>{if(__game.prizeWheel.active)document.querySelector('#lottery-dock')?.click()});
+  await p.waitForTimeout(75);if(Date.now()>deadline)throw Error('自然投币回归等待轮盘队列超时');
+ }
+}
+
 // A zero-input machine must not grant a free win or regenerate shots.
 {const {ctx,p}=await boot(487);const idle=await p.evaluate(()=>{for(let i=0;i<1200;i++)__game.update(1/60);return{score:__game.run.score,target:__game.run.target,shots:__game.run.shots};});check(idle.score<idle.target,'静置不能白拿过关');check(idle.shots===50,'静置不返还或增加普通额度');evidence.idle=idle;await ctx.close();}
 for(const seed of [487,29,913]){const {ctx,p}=await boot(seed);let firstPayout=null,transferred=false,spent=0;const samples=[];
@@ -21,7 +30,7 @@ for(let block=0;block<50;block++){
  if(s.wheel)await dismissWheel(p);
  if(!['playing','settling'].includes(s.phase))break;
 }
- const last=samples.at(-1);check(spent===50,'自然投币完整消耗 50 次额度 seed '+seed);check(last.shots===0,'普通额度没有被收益返还 seed '+seed);check(transferred,'侧投硬币经真实物理到达下层 seed '+seed);check(firstPayout!==null&&firstPayout<12,'前 12 秒内出现真实前沿入账 seed '+seed);check(last.score>0,'不调用 onWin 或直接加分也有收益 seed '+seed);check(await p.locator('#push-readout').count()===1,'推进读数只有一个实例');
+ const last=samples.at(-1);check(spent===50,'自然投币完整消耗 50 次额度 seed '+seed+' actual '+JSON.stringify({spent,last}));check(last.shots===0,'普通额度没有被收益返还 seed '+seed);check(transferred,'侧投硬币经真实物理到达下层 seed '+seed);check(firstPayout!==null&&firstPayout<12,'前 12 秒内出现真实前沿入账 seed '+seed);check(last.score>0,'不调用 onWin 或直接加分也有收益 seed '+seed);check(await p.locator('#push-readout,#timing-lamp').count()===0,'推进回收浮层已完全移除');
  evidence.runs.push({seed,firstPayout,spent,transferred,...last,samples});
  if(seed===487){await shot(p,'phone-result');await p.setViewportSize({width:360,height:640});await p.waitForTimeout(100);await shot(p,'small-phone-result');}
  console.log(`自然投币 seed ${seed}: ${JSON.stringify({firstPayout,score:last.score,target:last.target,spent,phase:last.phase})}`);await ctx.close();}

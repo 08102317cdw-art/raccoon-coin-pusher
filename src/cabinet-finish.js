@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { drawWhale } from './textures.js?v=4.1.0';
+import { drawWhale } from './textures.js?v=4.2.0';
 // Engraved side decks: maritime enamel, pinstripes, milled fasteners and makers' marks.
 // These are decorative meshes only. Nothing changes the Rapier collision surfaces.
 export function finishCabinet(scene) {
@@ -26,7 +26,7 @@ export function finishCabinet(scene) {
  w.save();w.translate(768,650);w.strokeStyle='#c8c6a24d';w.lineWidth=3;for(const r of [172,184,198]){w.beginPath();w.arc(0,0,r,0,7);w.stroke();}for(let i=0;i<32;i++){w.rotate(Math.PI/16);w.beginPath();w.moveTo(0,-187);w.lineTo(0,-198);w.stroke();}w.restore();drawWhale(w,768,650,104,'#b3c9b35c','#1b4356');
  w.fillStyle='#d3c49b';w.textAlign='center';w.font='18px Georgia';w.fillText('T H E   L U C K Y   W H A L E',768,912);
  const wallTex=new THREE.CanvasTexture(wall);wallTex.colorSpace=THREE.SRGBColorSpace;wallTex.anisotropy=8;
- const rear=new THREE.Mesh(new THREE.PlaneGeometry(13.0,8.2),new THREE.MeshStandardMaterial({map:wallTex,roughness:.75,metalness:.15}));rear.position.set(0,4.2,-6.44);rear.receiveShadow=true;scene.add(rear);
+ const rear=new THREE.Mesh(new THREE.PlaneGeometry(13.0,3.0),new THREE.MeshStandardMaterial({map:wallTex,roughness:.75,metalness:.15}));rear.position.set(0,1.8,-6.6);rear.receiveShadow=true;scene.add(rear);
  const brass=new THREE.MeshStandardMaterial({color:'#c9af75',metalness:.68,roughness:.4});
  for(const s of [-1,1])for(let z=-8.8;z<4;z+=2.4){const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.04,12),brass);bolt.position.set(s*6.08,2.77,z);scene.add(bolt);}
 }

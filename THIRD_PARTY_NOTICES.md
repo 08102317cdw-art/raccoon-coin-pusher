@@ -25,3 +25,12 @@
 `src/arcade-room.js` 内的夜间游乐厅背景为本项目使用 AI 辅助生成的原创环境图，不含 RACCOIN 的截图或拆包素材。`src/cabinet-finish.js`、金币与机身纹样为本项目新绘制的程序化美术。
 
 原版官方截图与用户提供截图仅用于视觉分析，不被打包进游戏。既有大肥鱼角色素材的署名与非商业许可不变。
+
+
+## v4.2 机台模型、标志与通用语音
+
+- `models/whale-cabinet.blend` / `.glb`：本项目原创 Blender 建模，重建脚本为 `tools/build-cabinet.py`。未使用 Tripo3D 或 RACCOIN 下载模型；不包含 RACCOIN 的几何、美术或拆包资产。
+- `src/brand.js`：本项目新绘制的鲸鱼标志与金属舱门图案，不代表官方商标授权。
+- `src/art/lcd-art.js`：本项目使用 AI 辅助生成的原创海湾插画。
+- `src/art/voice-clips.js`：本项目原创台词，使用 Microsoft Edge 通用中文合成语音 `zh-CN-XiaoxiaoNeural` 合成；不是角色官方配音，没有模仿或克隆特定真人。合成声音不按代码 MIT 许可声称取得专属权利。整个游戏保持免费、非商业用途；分发和后续用途需遵守相应服务条款。
+- 原角色立绘及其 CC BY-NC-SA 4.0 约束不变。新增声音不表示已取得既有角色、名称或商标的官方许可。

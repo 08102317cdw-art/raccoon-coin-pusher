@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { drawSymbol, SYMBOLS } from './textures.js?v=4.1.0';
+import { drawSymbol, SYMBOLS } from './textures.js?v=4.2.0';
 
-import { makeSlotBackdrop } from './cabinet-art.js?v=4.1.0';
+import { makeSlotBackdrop } from './cabinet-art.js?v=4.2.0';
 
 // 结果表：权重 / 名称
 export const OUTCOMES = [

@@ -5,28 +5,32 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { MACHINE, openingCoins } from './machine-tuning.js?v=4.1.0';
-import { createPayoutRail } from './payout-rail.js?v=4.1.0';
-import { Sfx } from './audio.js?v=4.1.0';
-import { coinTextures } from './textures.js?v=4.1.0';
-import { buildDafeiyu } from './mascot.js?v=4.1.0';
-import { loadCharacterArt, characterSources } from './character-art.js?v=4.1.0';
-import { Run, UPGRADES, DIFFICULTIES, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=4.1.0';
-import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=4.1.0';
-import { TOKENS, TokenSystem, CREW, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=4.1.0';
-import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=4.1.0';
-import { makeTokenMesh } from './token-mesh.js?v=4.1.0';
-import { createTokenUI } from './token-ui.js?v=4.1.0';
-import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=4.1.0';
-import { createMobileCabinet } from './mobile-cabinet.js?v=4.1.0';
-import { createSeasideRoom } from './arcade-room.js?v=4.1.0';
-import { createPrizeWheel } from './prize-wheel.js?v=4.1.0';
-import { ComboWheel } from './combo-wheel.js?v=4.1.0';
-import { createMachineJuice } from './machine-juice.js?v=4.1.0';
-import { createTableEffects } from './table-effects.js?v=4.1.0';
-import { VoyageLog } from './voyage-log.js?v=4.1.0';
-import { createVoyageUI } from './voyage-ui.js?v=4.1.0';
-import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=4.1.0';
+import { createCabinetDisplay } from './cabinet-display.js?v=4.2.0';
+import { createCabinetConsole } from './cabinet-console.js?v=4.2.0';
+import { createMascotVoice } from './mascot-voice.js?v=4.2.0';
+import { whaleMark, hatchArt } from './brand.js?v=4.2.0';
+import { MACHINE, openingCoins } from './machine-tuning.js?v=4.2.0';
+import { createPayoutRail } from './payout-rail.js?v=4.2.0';
+import { Sfx } from './audio.js?v=4.2.0';
+import { coinTextures } from './textures.js?v=4.2.0';
+import { buildDafeiyu } from './mascot.js?v=4.2.0';
+import { loadCharacterArt, characterSources } from './character-art.js?v=4.2.0';
+import { Run, UPGRADES, DIFFICULTIES, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=4.2.0';
+import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=4.2.0';
+import { TOKENS, TokenSystem, CREW, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=4.2.0';
+import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=4.2.0';
+import { makeTokenMesh } from './token-mesh.js?v=4.2.0';
+import { createTokenUI } from './token-ui.js?v=4.2.0';
+import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=4.2.0';
+import { createMobileCabinet } from './mobile-cabinet.js?v=4.2.0';
+import { createSeasideRoom } from './arcade-room.js?v=4.2.0';
+import { createPrizeWheel } from './prize-wheel.js?v=4.2.0';
+import { ComboWheel } from './combo-wheel.js?v=4.2.0';
+import { createMachineJuice } from './machine-juice.js?v=4.2.0';
+import { createTableEffects } from './table-effects.js?v=4.2.0';
+import { VoyageLog } from './voyage-log.js?v=4.2.0';
+import { createVoyageUI } from './voyage-ui.js?v=4.2.0';
+import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=4.2.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -107,6 +111,8 @@ const { meshBox, guards, backboardGroup, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBod
   scene, world, staticBox, HALF_W, FRONT_Z, BACK_Z, GAP_Z, WALL_Z, PUSH_H, PUSH_BACK, PUSH_D, F_PUSH, chrome, orange, brown, darkMat, glass,
 });
 const payoutRail = createPayoutRail(scene, FRONT_Z, HALF_W);
+const cabinetDisplay = await createCabinetDisplay(scene);
+const cabinetConsole = createCabinetConsole(scene);
 let pushPhase = -Math.PI / 2, pushMax = MACHINE.pusherMax, pushMaxTarget = MACHINE.pusherMax, pushSpeed = MACHINE.pusherSpeed;
 function physicsStep() {
   const dt = world.timestep;
@@ -216,7 +222,7 @@ function syncCoins() {
   coinMesh.count = n; coinMesh.instanceMatrix.needsUpdate = true; if (coinMesh.instanceColor) coinMesh.instanceColor.needsUpdate=true;
 }
 
-const { chuteMat, chuteRig, pendulum, ledPos, leds, updateLeds, mascot } = createCabinetAccents({
+const { model: cabinetModel, chuteMat, chuteRig, pendulum, ledPos, leds, updateLeds, mascot } = await createCabinetAccents({
   scene, staticBox, meshBox, HALF_W, FRONT_Z, WALL_Z, GATE_Y, DROP_Z, TRAY_Y, SCREEN_W, SCREEN_H, SCREEN_Y, chrome, darkMat, coinFaceMat,
   getEffects: () => ({ feverT, partyT }),
 });
@@ -225,6 +231,8 @@ const { burst, updateSparkles, confettiBurst, updateConfetti } = createCabinetPa
 
 // ================== 游戏状态 ==================
 const sfx = new Sfx();
+const voice = createMascotVoice({onSpeaking:v=>{mascot.talking=v;},onDuck:v=>sfx.duckMusic(v?.7:0,v?3:.05)});
+let petCount=0,announcedRound=0,presentationTime=0;
 const comboWheel = new ComboWheel();
 let run = new Run();
 let tokens = new TokenSystem();
@@ -271,7 +279,6 @@ function updateHud(dt) {
     button.setAttribute('aria-pressed', String(!!lanes[side]?.locked));
   }
   const forward = pusherMovingForward(pushPhase);
-  juice?.timing({ forward, progress:(Math.sin(pushPhase)+1)/2, phase:run.phase });
   const lamp = $('timing-lamp');
   if (lamp) lamp.textContent = `${forward ? '推板前进 · 留意上层币堆' : '推板收回 · 双侧投币可在中间相撞'}${run.level('pin') ? ` · 松台销 ${run.inserts % 20}/20` : ''}`;
   const exchange = $('exchange-btn'), shakeBtn = $('shake-btn');
@@ -311,6 +318,9 @@ function updateHud(dt) {
     const bar = $('energy-bar'); if (bar) bar.style.width = Math.min(100,comboWheel.count/8*100)+'%';
   }
   tokenUI?.refresh(); tokenUI?.shop();mobileCabinet?.update();prizeWheel?.update();voyageUI?.update();
+  cabinetDisplay.update({score:run.score,target:run.target,round:run.endless?`第 ${run.round} 关 · 无尽`:`第 ${run.round} / 8 关`,shots:run.shots,cash:run.cash,multiplier:run.multiplier.toFixed(2),energy:comboWheel.level?'×'+comboWheel.level:comboWheel.count+'/8',phase:run.phase,caption:voice.caption,latest:tokens.eventLog[0]||'',formula:!$('score-formula').hidden?$('score-formula').textContent:''});
+  cv?.setAttribute('aria-description',`当前 ${run.score} 分，目标 ${run.target} 分，可投 ${run.shots} 枚，贝壳 ${run.cash}`);
+  if(started&&run.reached&&announcedRound!==run.round){announcedRound=run.round;mascot.react('excited',2.5);say('reach');}
   renderResult();
 }
 function bumpCoinHud() { const el = $('coinbox'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
@@ -333,8 +343,11 @@ const lines = {
 };
 let bubbleT = 0, idleTalk = 6;
 function say(kind) {
-  const arr = lines[kind], el = $('bubble'); el.textContent = arr[Math.floor(Math.random() * arr.length)];
-  el.classList.add('show'); bubbleT = 1.8;
+  voice.say(kind,{manual:kind==='pet'});bubbleT=0;
+}
+function petMascot(){
+  if(!started||helpBlocking()||catalogBlocking()||mobileCabinet?.isMenuOpen()||prizeWheel?.active)return false;
+  petCount++;sfx.init();mascot.react('happy',2.8);say('pet');buzz(12);updateHud(0);return true;
 }
 
 // ---------- 结算 ----------
@@ -489,7 +502,7 @@ function launchPhysicalCoin(kind,plan) {
   buzz(Math.min(28, 10 + dropStreak * 3));
   shake=Math.min(.035,shake+.012);
   burst(plan.spawn.x,plan.spawn.y,plan.spawn.z,4,kind==='coin'?'#ffe08a':TOKENS[kind].color,.8,.5);
-  const rig=chuteRig[plan.chute];if(rig)rig.scale.y=.9;
+  const rig=chuteRig[plan.chute];if(rig)rig.userData.lastFeed=time;
   return c;
 }
 function dropCoin(side='both') {
@@ -701,7 +714,7 @@ cv.setAttribute('aria-label', '推币机：Q左侧投币，E右侧投币，W或�
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('pointerdown', e => {
   pointRay(e.clientX, e.clientY);
-  if (inputOpen() && mascot.hitTest(ray)) { mascot.react('happy', 1.8); say('pet'); sfx.gate(); return; }
+  if (started && mascot.hitTest(ray) && petMascot()) return;
   if (e.pointerType === 'touch' || !inputOpen() || e.button > 2) return;
   const side = e.button === 2 ? 'right' : e.button === 1 ? 'both' : 'left';
   e.preventDefault();
@@ -774,8 +787,8 @@ $('help').onclick = () => { $('help').classList.remove('show'); cv.focus({preven
 $('btn-reset').onclick = () => { if (confirm('重置存档并重新开始？')) { resetting=true; localStorage.removeItem(SAVE_KEY); location.reload(); } };
 $('start-button').onclick = () => {
   if(!loaded){run=new Run(undefined,Math.random,voyageUI.options);tokens=new TokenSystem(undefined,{character:run.character});tokens.configure(run);coins.forEach(c=>tokens.meta(c));}
-  sfx.init(); started = true; $('start').classList.add('hide'); $('start').inert=true; $('hud').classList.add('show'); cv.focus({preventScroll:true});
-  mascot.react('happy', 1.5); say('idle'); sfx.levelUp();
+  sfx.init(); voice.unlock(); started = true; $('start').classList.add('hide'); $('start').inert=true; $('hud').classList.add('show'); cv.focus({preventScroll:true});
+  mascot.react('happy', 1.5); say('welcome'); sfx.levelUp();
   if (loaded) $('save-status').textContent = '已恢复本局进度';
   renderResult(); save();updateHud(0);
 };
@@ -784,8 +797,12 @@ $('start-button').onclick = () => {
 // This also keeps aiming and projected reward text correct after HUD reflow.
 let resizeFrame = 0;
 mobileCabinet=createMobileCabinet(()=>queueResize());
+$('mobile-cabinet').style.setProperty('--hatch-art',`url("data:image/svg+xml,${encodeURIComponent(hatchArt)}")`);
+$('mascot-pet').onclick=()=>petMascot();
+$('btn-voice').setAttribute('aria-pressed',String(voice.enabled));$('btn-voice').classList.toggle('off',!voice.enabled);
+$('btn-voice').onclick=e=>{voice.setEnabled(!voice.enabled);e.currentTarget.setAttribute('aria-pressed',String(voice.enabled));e.currentTarget.classList.toggle('off',!voice.enabled);if(voice.enabled)voice.say('pet',{manual:true});};
 const eventLabel=document.createElement('div');eventLabel.id='machine-event';eventLabel.setAttribute('role','status');$('machine-window').append(eventLabel);
-juice=createMachineJuice($('mobile-cabinet'),{onBatch:b=>{sfx.bank(b);if(b.tier>=2){shake=Math.max(shake,b.tier===3?.26:.1);mascot.react('excited',1);buzz(b.tier===3?25:14);}}});
+juice=createMachineJuice($('mobile-cabinet'),{scoreTarget:()=>{const q=cabinetDisplay.scorePoint(),p=toScreen(q.x,q.y,q.z);return{left:p[0]-20,top:p[1]-12,width:40,height:24};},payoutTarget:()=>{const p=toScreen(0,-1.1,4.6);return{x:p[0],y:p[1]};},onBatch:b=>{sfx.bank(b);if(b.tier>=2){shake=Math.max(shake,b.tier===3?.26:.1);mascot.react('excited',1);buzz(b.tier===3?25:14);}}});
 prizeWheel=createPrizeWheel({
   canPresent: () => started && run.active && !helpBlocking() && !catalogBlocking() && !mobileCabinet.isMenuOpen(),
   onActive: active => { releaseLaunchers(lanes); mobileCabinet.setWheelActive(active); },
@@ -798,10 +815,12 @@ for (const item of restoredWheelQueue) prizeWheel.enqueue(item);
 function resize() {
   resizeFrame = 0;
   const narrow=mobileCabinet.mobile;
+  const widePhone=innerHeight<=480&&innerWidth>=600;cabinetModel.root.getObjectByName('LandscapeLCDDock').visible=widePhone;cabinetConsole.root.scale.x=widePhone?1.8:1;cabinetConsole.root.position.set(0,widePhone?-.5:-1.2,widePhone?5.5:6.4);
   backboardGroup.visible=false;
-  mascot.root.position.set(narrow?-4.6:-5.1,2.7,1.25);mascot.root.scale.setScalar(narrow?.68:.96);
-  CAM_DIR.set(0,narrow?.91:.78,narrow?.415:.626).normalize();
-  CAM_TARGET.set(0,narrow?.15:.4,narrow?-.65:-.5);
+  cabinetDisplay.group.scale.y=widePhone?2.5:narrow?1.75:1.15;cabinetDisplay.group.position.set(widePhone?-13.3:0,widePhone?1.5:narrow?5.45:4.15,widePhone?.5:-6.9);
+  mascot.root.position.set(narrow?-5.15:-5.4,1.9,.2);mascot.root.scale.setScalar(narrow?.94:1.12);
+  CAM_DIR.set(0,narrow?.76:.69,narrow?.65:.724).normalize();
+  CAM_TARGET.set(0,narrow?1.1:1.1,narrow?-.15:0);
   leds.instanceMatrix.needsUpdate=true;ledPos.forEach((p,i)=>{if(p[3]===2)tmpM.makeScale(0,0,0);else tmpM.makeTranslation(p[0],p[1],p[2]);leds.setMatrixAt(i,tmpM);});
   const r=app.getBoundingClientRect(), w=Math.max(1,r.width), h=Math.max(1,r.height);
   camera.aspect=w/h; camera.fov=narrow?49:46;
@@ -810,20 +829,27 @@ function resize() {
   let distance=10;
   // Separate real cabinet regions avoid fitting imaginary upper-front corners,
   // which would unnecessarily shrink the playfield, especially on phones.
-  const regions=[
-    [[narrow?-4.9:-5.15,narrow?4.9:5.15],[-.05,1.8],[-5.9,4.1]],
-    [[-2.8,2.8],[3.05,3.7],[-5.55,-3.5]],
-  ];
-  for(const [xs,ys,zs] of regions) for(const x of xs) for(const y of ys) for(const z of zs) {
-    const relative=new THREE.Vector3(x,y,z).sub(CAM_TARGET);
-    const near=relative.dot(CAM_DIR);
-    distance=Math.max(distance,near+Math.abs(relative.dot(up))/tan*1.055,near+Math.abs(x)/(tan*camera.aspect)*1.055);
-  }
+  cabinetConsole.root.updateWorldMatrix(true,true);
+  const consolePoints=[-6.2,6.2].flatMap(x=>[-1.05,1.05].map(z=>cabinetConsole.root.localToWorld(new THREE.Vector3(x,-.25,z))));
+  const points=[...cabinetDisplay.corners(),...consolePoints,...[-6.2,6.2].map(x=>new THREE.Vector3(x,2.9,-4.7)),...[-5,5].flatMap(x=>[new THREE.Vector3(x,0,4.2),new THREE.Vector3(x,1.5,-5.9)])];
+  if(widePhone)CAM_TARGET.x=(Math.max(...points.map(p=>p.x))+Math.min(...points.map(p=>p.x)))/2;
+  // Fit actual model landmarks, not an imaginary rectangular box above the table.
+  const vertical=points.map(p=>p.clone().sub(CAM_TARGET).dot(up));
+  CAM_TARGET.addScaledVector(up,(Math.max(...vertical)+Math.min(...vertical))/2);
+  for(const point of points){const relative=point.clone().sub(CAM_TARGET),near=relative.dot(CAM_DIR);distance=Math.max(distance,near+Math.abs(relative.dot(up))/tan*1.055,near+Math.abs(relative.x)/(tan*camera.aspect)*1.055);}
   CAM_POS.copy(CAM_TARGET).addScaledVector(CAM_DIR,distance+0.35);
   camera.updateProjectionMatrix(); camera.position.copy(CAM_POS); camera.lookAt(CAM_TARGET); camera.updateMatrixWorld();
   renderer.setSize(w,h); composer.setSize(w,h); bloom.setSize(w,h);seasideRoom.resize(w,h,narrow);
   const bannerEl=$('banner');bannerEl.style.left=(r.left+w/2)+'px';bannerEl.style.top=(r.top+h*.4)+'px';bannerEl.style.maxWidth=(w-24)+'px';
+  projectModelControls();
   $('floats').style.clipPath=`inset(${r.top}px ${innerWidth-r.right}px ${innerHeight-r.bottom}px ${r.left}px)`;
+}
+function projectModelControls(){
+  const r=app.getBoundingClientRect();camera.updateMatrixWorld();cabinetConsole.project(toScreen,r);
+  const corners=cabinetDisplay.corners().map(p=>toScreen(p.x,p.y,p.z)),displayBounds={left:Math.min(...corners.map(p=>p[0])),right:Math.max(...corners.map(p=>p[0])),top:Math.min(...corners.map(p=>p[1])),bottom:Math.max(...corners.map(p=>p[1]))};
+  const target=$('detail-toggle'),point=cabinetDisplay.detailPoint(),p=toScreen(point.x,point.y,point.z);target.style.left=(p[0]-r.left-32)+'px';target.style.top=(p[1]-r.top-22)+'px';target.style.width='64px';target.style.height='44px';
+  mascot.portrait.updateWorldMatrix(true,false);const pos=mascot.portrait.getWorldPosition(new THREE.Vector3()),mp=toScreen(pos.x,pos.y,pos.z),pet=$('mascot-pet');pet.style.left=(mp[0]-r.left-30)+'px';pet.style.top=(mp[1]-r.top-36)+'px';pet.style.width='60px';pet.style.height='72px';
+  window.__displayBounds=displayBounds;
 }
 function queueResize(){if(!resizeFrame) resizeFrame=requestAnimationFrame(resize);}
 addEventListener('resize',queueResize);
@@ -853,17 +879,19 @@ function frame() {
   composer.render();
 }
 function update(dt) {
+  if(Math.abs(camera.aspect-app.clientWidth/Math.max(1,app.clientHeight))>.001)resize();
   tableFX.update(Math.min(dt,.05));
   payoutRail.update(dt, motionReduced.matches);
+  presentationTime+=Math.min(dt,.1);mascot.update(Math.min(dt,.1),presentationTime);cabinetConsole.update(lanes);projectModelControls();
   if (!started || !run.active || helpBlocking() || catalogBlocking() || mobileCabinet?.isMenuOpen() || prizeWheel?.active || document.hidden) { updateHud(dt); syncCoins(); const pp=pusherBody.translation(); pusherMesh.position.set(pp.x,pp.y,pp.z); return; }
   time += dt;
   run.noteTime(dt);
 
-  for (const rig of Object.values(chuteRig)) rig.scale.y += (1 - rig.scale.y) * Math.min(1, dt * 12);
+  // Cast feeder housings remain rigid; only their status lamps animate.
   const swingScale = 1 + (run.relics.swing || 0) * 0.28;
   const swingX = pendulumOffset(time, swingScale);
   pendulum.position.x = swingX;
-  pendulum.rotation.z = swingX / 9;
+  pendulum.rotation.z = 0;
   const forward = pusherMovingForward(pushPhase);
   chuteMat.side.emissiveIntensity = forward ? 0.9 : 0.18;
   chuteMat.mid.emissiveIntensity = tokens.selected !== 'coin' ? 1.15 : forward ? 0.22 : 0.85;
@@ -932,10 +960,9 @@ function update(dt) {
   { const pp = pusherBody.translation(); pusherMesh.position.set(pp.x, pp.y, pp.z); }
 
   // 吉祥物
-  mascot.update(dt, time);
   coins.forEach(c => c.mesh && c.mesh.userData.rac && c.mesh.userData.rac.update(dt, time));
   if (bubbleT > 0) { bubbleT -= dt; if (bubbleT <= 0) $('bubble').classList.remove('show'); }
-  idleTalk -= dt; if (idleTalk < 0) { idleTalk = 10 + Math.random() * 10; if (bubbleT <= 0 && started) say('idle'); }
+  idleTalk -= dt; if (idleTalk < 0) { idleTalk = 35 + Math.random() * 15; if (bubbleT <= 0 && started) say('idle'); }
   {
     const [bx, by] = toScreen(mascot.root.position.x + 0.2, mascot.root.position.y + 2.4*mascot.root.scale.y+.3, mascot.root.position.z);
     const b = $('bubble'), r=app.getBoundingClientRect(); b.style.left = Math.max(r.left+b.offsetWidth/2+8,Math.min(r.right-b.offsetWidth/2-8,bx)) + 'px'; b.style.top = Math.max(r.top+44,by) + 'px';
@@ -962,4 +989,4 @@ voyageUI=createVoyageUI({crew:CREW,difficulties:DIFFICULTIES,journal:()=>journal
 }});
 frame();
 tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>releaseLaunchers(lanes),sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { performance:()=>({lowQuality,pixelRatio:renderer.getPixelRatio(),frameCost}), experience:()=>({effects:tableFX.counts,activeEffects:tableFX.active,batches:juice.batches,pendingDeliveries:showerQueue.length,journal:journal.serialize()}), time:()=>time, get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, dropSpecialCoin, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };
+window.__game = { cabinet:()=>({model: 'Blender 5.1 · original GLB',outlet:(()=>{cabinetModel.root.updateWorldMatrix(true,true);return cabinetModel.outlet.getWorldPosition(new THREE.Vector3()).toArray();})(),carriage:pendulum.position.toArray(),display:cabinetDisplay.snapshot,bounds:window.__displayBounds,voice:voice.state,petCount,controls:document.querySelectorAll('#model-controls>button,#chute-row button,#play-actions button').length}), pet:petMascot, performance:()=>({lowQuality,pixelRatio:renderer.getPixelRatio(),frameCost}), experience:()=>({effects:tableFX.counts,activeEffects:tableFX.active,batches:juice.batches,pendingDeliveries:showerQueue.length,journal:journal.serialize()}), time:()=>time, get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, dropSpecialCoin, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'whale-night-arcade',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };

@@ -1,5 +1,5 @@
-import { TOKENS, SPECIAL_IDS, BAD_IDS, PACKS } from './tokens.js?v=4.1.0';
-import { coinArt, arcadeToast } from './token-art.js?v=4.1.0';
+import { TOKENS, SPECIAL_IDS, BAD_IDS, PACKS } from './tokens.js?v=4.2.0';
+import { coinArt, arcadeToast } from './token-art.js?v=4.2.0';
 const el=id=>document.getElementById(id);
 const NORMAL={name:'普通金币',base:10,group:'基础',color:'#efc46a',desc:'左右入口各投一枚普通金币，每枚消耗 1 次额度；双侧同投会同时投入两枚。特殊币夹独立投放。'};
 const routes={coin:['coin','multi','coin'],seed:['seed','water','tree'],water:['seed','water','tree'],tree:['seed','water','tree'],fish:['shrimp','fish','cat'],shrimp:['shrimp','fish','cat'],cat:['rat','cat','shell'],rat:['coin','rat','cat'],hen:['hen','rooster','egg'],rooster:['hen','rooster','egg'],egg:['egg','hen','egg'],clover:['clover','coin','multi'],multi:['multi','coin','multi'],lightning:['lightning','water','battery'],battery:['lightning','battery','relic'],magnet:['magnet','seed','water'],bomb:['bomb','bomb','coin'],echo:['fish','echo','fish'],relic:['relic','relic','relic'],killer:['rust','killer','shell'],rust:['rust','killer','shell'],thief:['thief','killer','shell'],decay:['decay','killer','shell']};
