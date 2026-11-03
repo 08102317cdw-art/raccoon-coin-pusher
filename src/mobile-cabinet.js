@@ -1,4 +1,4 @@
-import { whaleMark } from './brand.js?v=4.2.0';
+import { whaleMark } from './brand.js?v=4.3.0';
 // One machine, one live canvas. The glass is also the shop/inventory aperture.
 export function createMobileCabinet(onResize) {
  const by=id=>document.getElementById(id),mq=matchMedia('(max-width:760px), (max-height:480px) and (max-width:1100px)');
