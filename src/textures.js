@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { paintCabinetPanel } from './cabinet-art.js?v=4.3.0';
-import { characterImages } from './character-art.js?v=4.3.0';
+import { paintCabinetPanel } from './cabinet-art.js?v=4.4.1';
+import { characterImages } from './character-art.js?v=4.4.1';
 
 const mk = (w, h = w) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; };
 const tex = (c, srgb = true) => { const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };

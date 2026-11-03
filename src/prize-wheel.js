@@ -1,5 +1,5 @@
-import { LOTTERY, normalizeWheelItem, wheelItemsFor, wheelRewardText, spinBonusLottery } from './stage-rewards.js?v=4.3.0';
-import { wheelTarget } from './wheel-math.js?v=4.3.0';
+import { LOTTERY, normalizeWheelItem, wheelItemsFor, wheelRewardText, spinBonusLottery } from './stage-rewards.js?v=4.4.1';
+import { wheelTarget } from './wheel-math.js?v=4.4.1';
 const COLORS = ['#90bbc8','#729fae','#e4ca7c','#839fbd','#aac9c0','#c88b77'];
 const ICONS = [
  '<ellipse cy="4" rx="14" ry="6"/><path d="M-14 4v7c0 8 28 8 28 0V4M-10-4c0 7 24 7 24 0s-24-7-24 0Z"/>',

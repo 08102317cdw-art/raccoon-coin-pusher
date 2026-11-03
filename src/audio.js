@@ -80,6 +80,15 @@ export class Sfx {
     [0, 4, 7, 12, 16].forEach((n, i) => this.tone('square', 880 * Math.pow(2, n / 12), null, 0.12, 0.06, i * 0.04, 0, 0.4));
   }
   tick() { if (!this.ok()) return; this.tone('square', 1200, 900, 0.025, 0.025); }
+  // 原创底阀锁销、低速电机与落座声，跟随机械阶段触发。
+  tower(phase,duration=1) {
+    if(!this.ok())return;
+    if(phase==='unlocking'){this.noise(.09,.09,'bandpass',950);this.tone('triangle',170,85,.14,.045);}
+    else if(phase==='opening'){this.noise(.22,.035,'lowpass',700);this.tone('triangle',95,145,.4,.025);}
+    else if(phase==='rising'){this.tone('triangle',100,155,Math.min(2.8,duration),.026);this.noise(.5,.025,'bandpass',430);}
+    else if(phase==='seating'){this.noise(.08,.12,'lowpass',620);this.tone('triangle',150,65,.18,.07);this.tone('sine',1046,1046,.28,.045,.08);}
+    else if(phase==='closing'){this.noise(.15,.04,'bandpass',540);this.tone('triangle',120,70,.25,.03);}
+  }
   reelStop() { if (!this.ok()) return; this.tone('sine', 180, 60, 0.14, 0.3); this.noise(0.04, 0.15, 'bandpass', 2500); }
   reach() {
     if (!this.ok()) return;

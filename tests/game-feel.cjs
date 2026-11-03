@@ -10,8 +10,8 @@ async function dismissWheel(p){
  // Wait for the entire automatic reward queue, not a fixed number of frames.
  // Slow software rendering can delay the retract/next-wheel transition.
  const deadline=Date.now()+20000;
- while(await p.evaluate(()=>__game.prizeWheel.active||__game.prizeWheel.queued>0)){
-  await p.evaluate(()=>{if(__game.prizeWheel.active)document.querySelector('#lottery-dock')?.click()});
+ while(await p.evaluate(()=>__game.prizeWheel.active||__game.prizeWheel.queued>0||__game.tower().active)){
+  await p.evaluate(()=>{if(__game.prizeWheel.active)document.querySelector('#lottery-dock')?.click();else if(__game.tower().active)for(let i=0;i<10;i++)__game.update(.05);});
   await p.waitForTimeout(75);if(Date.now()>deadline)throw Error('自然投币回归等待轮盘队列超时');
  }
 }

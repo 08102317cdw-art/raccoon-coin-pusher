@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { characterImages } from './character-art.js?v=4.3.0';
+import { characterImages } from './character-art.js?v=4.4.1';
 
 // Licensed, illustrated acrylic standee — not an unofficial approximation of the art.
 // Textures are shared between the cabinet mascot and collectible mini-standees.
@@ -21,7 +21,7 @@ export function buildDafeiyu() {
   pedestal.position.y = -.03; root.add(pedestal);
   let live=null,rigError=null;
   return {
-    async activateLive2D(){try{if(!globalThis.Live2DCubismCore)throw Error('Cubism Core is not available');const {createLive2DMascot}=await import('./vendor/live2d-mascot.bundle.js?v=4.3.0');live=await createLive2DMascot();}catch(error){rigError=String(error.message||error);return null;}const texture=new THREE.CanvasTexture(live.canvas);texture.colorSpace=THREE.SRGBColorSpace;material.map=texture;portrait.scale.set(2.7*.8,2.7,1);return live;},
+    async activateLive2D(){try{if(!globalThis.Live2DCubismCore)throw Error('Cubism Core is not available');const {createLive2DMascot}=await import('./vendor/live2d-mascot.bundle.js?v=4.4.1');live=await createLive2DMascot();}catch(error){rigError=String(error.message||error);return null;}const texture=new THREE.CanvasTexture(live.canvas);texture.colorSpace=THREE.SRGBColorSpace;material.map=texture;portrait.scale.set(2.7*.8,2.7,1);return live;},
     look(x,y){live?.look(x,y);},
     get rig(){return live?.state||{kind:'static fallback',error:rigError};},
     root, body, portrait, mood: 'idle', moodT: 0, pose: 'idle',

@@ -46,7 +46,7 @@ const check = (value, label) => { assert.ok(value, label); checks++; };
       await page.evaluate(() => {
         __game.pause(true);
         // 刷新会恢复动态刚体，所以每次恢复后都在开始与推进前重新固定。
-        for (const coin of __game.coins) coin.body.setBodyType(1, true);
+        for (const coin of __game.coins) if(coin.state==='field')coin.body.setBodyType(1, true);
         __game.start();
       });
     }
@@ -74,7 +74,11 @@ const check = (value, label) => { assert.ok(value, label); checks++; };
     async function advance(seconds) {
       await page.evaluate(duration => {
         const frames = Math.round(duration / .05);
-        for (let i = 0; i < frames; i++) __game.update(.05);
+        for (let i = 0; i < frames; i++) {
+          __game.update(.05);
+          // 固定已交付金币，不阻止底阀中的运动学装塔；物理推动由专门集成测试覆盖。
+          for(const coin of __game.coins)if(coin.state==='field')coin.body.setBodyType(1,true);
+        }
         __game.save();
       }, seconds);
       return snapshot();
@@ -135,7 +139,7 @@ const check = (value, label) => { assert.ok(value, label); checks++; };
     await reveal();
     const towerResult = await page.evaluate(before => {
       const old = new Set(before.uids), generated = __game.coins.filter(coin => !old.has(coin.token.uid));
-      for (const coin of __game.coins) coin.body.setBodyType(1, true);
+      for (const coin of __game.coins) if(coin.state==='field')coin.body.setBodyType(1, true);
       __game.save();
       return {coins: __game.coins.length, generated: generated.length, allCoins: generated.every(coin => coin.kind === 'coin'),
         tickets: __game.run.tickets, pending: __game.experience().pendingDeliveries,

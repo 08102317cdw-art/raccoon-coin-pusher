@@ -35,6 +35,7 @@ const check = (value, label) => { assert.ok(value, label); checks++; };
       await page.waitForFunction(() => window.__game && typeof __game.experience === 'function' && typeof __game.time === 'function' && typeof __game.dropSpecialCoin === 'function');
       await page.evaluate(() => __game.pause(true));
       if (initial) {
+        await page.locator('#holiday-new').click();
         await page.locator('[data-crew="engineer"]').click();
         await page.locator('[data-difficulty="storm"]').click();
       }

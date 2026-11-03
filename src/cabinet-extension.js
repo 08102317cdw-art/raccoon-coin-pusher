@@ -3,9 +3,9 @@ import * as THREE from 'three';
 // Presentation only: no scaled coin field, altered colliders or floating controls.
 export function createCabinetExtension(scene){
  const root=new THREE.Group();root.name='Adaptive cabinet apron';scene.add(root);
- const enamel=new THREE.MeshStandardMaterial({color:'#163c50',metalness:.52,roughness:.41});
- const trim=new THREE.MeshStandardMaterial({color:'#b3a17a',metalness:.72,roughness:.31});
- const edge=new THREE.MeshStandardMaterial({color:'#406779',metalness:.7,roughness:.35});
+ const enamel=new THREE.MeshStandardMaterial({color:'#83c8c0',metalness:.18,roughness:.55});
+ const trim=new THREE.MeshStandardMaterial({color:'#dfad65',metalness:.72,roughness:.31});
+ const edge=new THREE.MeshStandardMaterial({color:'#e9e8cf',metalness:.7,roughness:.35});
  const panel=new THREE.Mesh(new THREE.BufferGeometry(),enamel);panel.castShadow=panel.receiveShadow=true;root.add(panel);
  const links=[];
  function beam(material,r=.065){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,10),material);root.add(m);links.push(m);return m;}

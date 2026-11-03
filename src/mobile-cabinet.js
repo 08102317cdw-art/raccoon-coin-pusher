@@ -1,4 +1,4 @@
-import { whaleMark } from './brand.js?v=4.3.0';
+import { whaleMark } from './brand.js?v=4.4.1';
 // One machine, one live canvas. The glass is also the shop/inventory aperture.
 export function createMobileCabinet(onResize) {
  const by=id=>document.getElementById(id),mq=matchMedia('(max-width:760px), (max-height:480px) and (max-width:1100px)');
@@ -30,11 +30,11 @@ export function createMobileCabinet(onResize) {
  };
  let settings=false,wheel=false,shopClosed=false,previousFocus=null;
  function sync(){
-  const shop=!by('run-modal').hidden,catalog=!by('token-modal').hidden,help=by('help').classList.contains('show');
+  const shop=!by('run-modal').hidden,catalog=!by('token-modal').hidden,help=by('help').classList.contains('show'),menu=!by('start').classList.contains('hide');
   root.classList.toggle('service-open',shop||catalog||help);root.classList.toggle('wheel-active',wheel);
-  for(const id of ['machine-console','machine-window','machine-right'])by(id).inert=wheel||shop||catalog||help||settings;
+  for(const id of ['machine-console','machine-window','machine-right'])by(id).inert=wheel||shop||catalog||help||settings||menu;
  }
- const observer=new MutationObserver(sync);for(const id of ['run-modal','token-modal','help'])observer.observe(by(id),{attributes:true,attributeFilter:['hidden','class']});
+ const observer=new MutationObserver(sync);for(const id of ['run-modal','token-modal','help','start'])observer.observe(by(id),{attributes:true,attributeFilter:['hidden','class']});
  function close(){settings=false;by('machine-hatch').hidden=true;by('machine-menu').setAttribute('aria-expanded','false');sync();}
  by('machine-menu').onclick=()=>{settings=!settings;by('machine-hatch').hidden=!settings;by('machine-menu').setAttribute('aria-expanded',String(settings));sync();if(settings)by('hatch-close').focus({preventScroll:true});};
  by('hatch-close').onclick=()=>{close();by('machine-menu').focus({preventScroll:true});};
