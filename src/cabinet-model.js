@@ -6,7 +6,7 @@ export async function loadCabinetModel(scene){
  const root=gltf.scene;root.name='Blender cabinet mechanisms';scene.add(root);
  const mats={};root.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;for(const m of Array.isArray(o.material)?o.material:[o.material])mats[m.name]=m;}});
  // 保留机构和碰撞坐标，使用晴日搪瓷、奶油包边与蜂蜜色金属。
- for(const [name,color]of Object.entries({'Deep marine enamel':'#78b8b9','Cast teal housings':'#80c8be','Brushed nickel':'#e9e8cf','Satin champagne brass':'#dfad65','Rubber / channel interior':'#376570'})){
+ for(const [name,color]of Object.entries({'Deep marine enamel':'#ec9175','Cast teal housings':'#2e91a3','Brushed nickel':'#fff0cf','Satin champagne brass':'#edbe65','Rubber / channel interior':'#173e57'})){
   if(mats[name]){mats[name].color.set(color);mats[name].metalness=.25;mats[name].roughness=.5;}
  }
  root.getObjectByName('LandscapeLCDDock').visible=false;

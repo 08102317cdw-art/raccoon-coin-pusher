@@ -50,7 +50,13 @@ const check = (value, label) => { assert.ok(value, label); checks++; };
       finally {await page.evaluate(()=>{window.experienceCapture=false;cancelAnimationFrame(window.experienceFrame);});}
     }
     async function wheelIdle() {
-      await page.waitForFunction(() => !__game.prizeWheel.active && __game.prizeWheel.queued===0, null, {timeout:20000,polling:25});
+      const deadline=Date.now()+40000;
+      while(await page.evaluate(()=>__game.prizeWheel.active||__game.prizeWheel.queued>0||__game.tower().active)){
+        // 页面暂停物理供截图，机械升塔仍须推进到归位，才能进入后续商店流程。
+        await page.evaluate(()=>{if(__game.tower().active)for(let i=0;i<10;i++)__game.update(.05);});
+        if(Date.now()>deadline)throw Error('等待奖励轮与机械金币塔结束超时');
+        await page.waitForTimeout(50);
+      }
     }
     async function wheelTrace() {
       await page.evaluate(() => {

@@ -196,15 +196,15 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 #lottery.is-docked .lottery-card{max-height:46px;overflow:hidden}
 @media(max-width:760px){#pick-cards{grid-template-columns:1fr}#run-modal.is-docked,#token-modal.is-docked,#help.show.is-docked{align-items:flex-start;justify-content:flex-end}#lottery{top:8%}}
 </style>
-<link rel="stylesheet" href="./src/arcade-ui.css?v=4.4.1">
-<link rel="stylesheet" href="./src/mobile-cabinet.css?v=4.4.1">
-<link rel="stylesheet" href="./src/mobile-stage.css?v=4.4.1">
+<link rel="stylesheet" href="./src/arcade-ui.css?v=5.0.0">
+<link rel="stylesheet" href="./src/mobile-cabinet.css?v=5.0.0">
+<link rel="stylesheet" href="./src/mobile-stage.css?v=5.0.0">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/":"https://cdn.jsdelivr.net/npm/three@0.170.0/","@dimforge/rapier3d-compat":"https://esm.sh/@dimforge/rapier3d-compat@0.14.0?target=es2022"}}</script>
-<link rel="stylesheet" href="./src/game-feel.css?v=4.4.1">
-<link rel="stylesheet" href="./src/voyage-ui.css?v=4.4.1">
-<link rel="stylesheet" href="./src/feel-pass.css?v=4.4.1">
-<link rel="stylesheet" href="./src/diegetic.css?v=4.4.1">
-<link rel="stylesheet" href="./src/holiday-theme.css?v=4.4.1">
+<link rel="stylesheet" href="./src/game-feel.css?v=5.0.0">
+<link rel="stylesheet" href="./src/voyage-ui.css?v=5.0.0">
+<link rel="stylesheet" href="./src/feel-pass.css?v=5.0.0">
+<link rel="stylesheet" href="./src/diegetic.css?v=5.0.0">
+<link rel="stylesheet" href="./src/holiday-theme.css?v=5.0.0">
 </head>
 <body>
 <div id="app"></div>
@@ -287,6 +287,12 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
     <p><a href="https://github.com/lokicorvus/crosspet/tree/5c64326b6e7fc175eda0360c0bb5c4732541d138/characters/deepseek" target="_blank" rel="noopener noreferrer">立绘来源</a> · <a href="https://space.bilibili.com/4456176" target="_blank" rel="noopener noreferrer">上善无形</a> · <a href="https://space.bilibili.com/4168597" target="_blank" rel="noopener noreferrer">ZipZipPipe</a></p>
     <details id="runtime-licenses"><summary>完整许可文本（离线副本）</summary><details><summary>THIRD_PARTY_NOTICES.md</summary><pre style="white-space:pre-wrap;max-height:240px;overflow:auto;font:inherit;line-height:1.5"># 角色素材署名与许可
 
+## v5.0 银币与联动表现
+
+- `models/minted-whale-coin.blend` / `.glb`：本项目原创鲸鱼浮雕银币，由 `tools/build-minted-coin.py` 使用 Blender 建模。用户参考图用于观察压铸银面、圆边和珠点语言，没有复制参考图角色。
+- `audio/generated/silver-single-v1.mp3` 与 `silver-cascade-v1.mp3`：经用户授权使用 GamesVibe / VibeHub 现有积分，通过官方 CLI 调用 ElevenLabs `eleven_text_to_sound_v2` 生成。不是实录，也不声称为 CC0；生成素材遵循相应服务条款。原始文件、裁剪采样与来源记录保留在 `audio/generated/`，网页内嵌离线采样，不在游戏运行时调用生成服务。
+- `src/table-effects.js`：参考 [Jeff-FX-forge](https://github.com/08102317cdw-art/Jeff-FX-forge) 的脱离式射线、错峰圆环、分段电弧与粒子衰减逻辑，为本游戏重新实现 Three.js 版本。原项目代码 Copyright (c) 2026 Smidle and Jeff Studio，MIT，完整许可见 [licenses/JEFF-FX-MIT.txt](licenses/JEFF-FX-MIT.txt)。没有引入其演示角色、背景、字体或第三方游戏素材。
+
 《大肥鱼推币机》为免费、非商业、非官方同人项目，与 DeepSeek 及角色原作者无隶属关系、无官方背书。没有因为改名就取得独占名称、商标或全部角色权利。
 
 ## 使用的立绘
@@ -330,6 +336,31 @@ html,body{background:#071321;color:#f4f8fc}#app{background:#071321}
 - Cubism Framework：遵循 [Live2D Open Software License 副本](licenses/LIVE2D-FRAMEWORK-LICENSE.txt)。
 - PixiJS 6.5.10：[MIT](licenses/PIXI-MIT.txt)；pixi-live2d-display 0.4.0（Guan）：[MIT](licenses/PIXI-LIVE2D-DISPLAY-MIT.txt)。
 - 运行库与美术的权利分别保留，不因本项目代码的 MIT 而改变。启动页、收藏物与后备立绘仍使用上述 CrossPet 美术。
+</pre></details><details><summary>licenses/JEFF-FX-MIT.txt</summary><pre style="white-space:pre-wrap;max-height:240px;overflow:auto;font:inherit;line-height:1.5">参考来源：https://github.com/08102317cdw-art/Jeff-FX-forge
+本项目参考 burst、ring、bolt 与解析式粒子的演出逻辑，用 Three.js 重新实现台面特效；未使用演示角色、背景或字体。
+
+MIT License
+
+Copyright (c) 2026 Smidle and Jeff Studio
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 </pre></details><details><summary>licenses/DAFEIYU-LIVE2D.txt</summary><pre style="white-space:pre-wrap;max-height:240px;overflow:auto;font:inherit;line-height:1.5">================================================================================
 《大肥鱼》四套 Live2D 模型素材 —— 许可与署名
   Q肥鱼 ＝《DeepSeek 鲸鱼娘》 · 中肥鱼 · 成年肥鱼 · 小肥鱼
@@ -1530,7 +1561,7 @@ SOFTWARE.
   </section>
 </div>
 <div id="arcade-toast" role="status" aria-live="polite"></div>
-<script src="./src/vendor/live2dcubismcore.min.js?v=4.4.1"></script>
-<script type="module">import "./src/main.js?v=4.4.1";</script>
+<script src="./src/vendor/live2dcubismcore.min.js?v=5.0.0"></script>
+<script type="module">import "./src/main.js?v=5.0.0";</script>
 </body>
 </html>

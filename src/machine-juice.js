@@ -5,7 +5,7 @@ export function createMachineJuice(root,{onBatch=()=>{},scoreTarget=()=>null,pay
  const pulse=(el,keyframes,ms=260)=>{if(!el||reduced.matches)return;el.animate(keyframes,{duration:ms,easing:'ease-out'});};
  function flight(x,y,dest,big=false){
   if(reduced.matches||live>=14)return;
-  const r=root.getBoundingClientRect(),coin=document.createElement('i');coin.className='score-spark'+(big?' is-large':'');coin.textContent=big?'✦':'◒';host.append(coin);live++;
+  const r=root.getBoundingClientRect(),coin=document.createElement('i');coin.className='score-spark'+(big?' is-large':'');coin.textContent='✦';host.append(coin);live++;
   coin.style.left=(x-r.left)+'px';coin.style.top=(y-r.top)+'px';
   const a=coin.animate([{transform:'translate(-50%,-50%) scale(.6)',opacity:0},{transform:'translate(-50%,-50%) scale(1.25)',opacity:1,offset:.12},{transform:`translate(${dest.left+dest.width/2-x}px,${dest.top+dest.height/2-y}px) scale(.3)`,opacity:0}],{duration:big?670:490,easing:'cubic-bezier(.2,.6,.4,1)'});
   a.onfinish=()=>{coin.remove();live--;};
@@ -27,7 +27,7 @@ export function createMachineJuice(root,{onBatch=()=>{},scoreTarget=()=>null,pay
  }
  function combo(level){const el=root.querySelector('#combo-signal');el.textContent=`奖励轮蓄能 ×${level}`;el.classList.add('lit');pulse(el,[{transform:'translate(-50%,12px) scale(.8)',opacity:0},{transform:'translate(-50%,0) scale(1)',opacity:1}],350);setTimeout(()=>el.classList.remove('lit'),950);}
  function event(text,type='grow'){const log=root.querySelector('#machine-event');if(!log)return;log.dataset.type=type;log.textContent=text;log.classList.add('show');clearTimeout(log._timer);log._timer=setTimeout(()=>log.classList.remove('show'),1800);}
- root.addEventListener('wheel:reward',()=>{if(!reduced.matches)pulse(root.querySelector('#machine-window'),[{filter:'brightness(1.16)'},{filter:'brightness(1)'}],360);});
+ root.addEventListener('wheel:reward',()=>{if(!reduced.matches)pulse(root.querySelector('#machine-window'),[{filter:'brightness(1.06)'},{filter:'brightness(1)'}],260);});
  root.addEventListener('pointerdown',e=>{const b=e.target.closest('#chute-row button');if(b&&!b.disabled)pulse(b,[{filter:'brightness(1.2)'},{filter:'brightness(1)'}],140);});
  return {score,combo,pulse,event,flush,get batches(){return batches;},get pending(){return pending?.points||0;}};
 }

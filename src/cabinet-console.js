@@ -4,16 +4,16 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 // are projected onto their caps for pointer capture, keyboard access and 44px taps.
 export function createCabinetConsole(scene){
  const root=new THREE.Group();root.position.set(0,-1.2,6.4);scene.add(root);
- const enamel=new THREE.MeshStandardMaterial({color:'#83c8c0',metalness:.18,roughness:.5});
- const rim=new THREE.MeshStandardMaterial({color:'#dfad65',metalness:.78,roughness:.34});
+ const enamel=new THREE.MeshStandardMaterial({color:'#1d607a',metalness:.18,roughness:.5});
+ const rim=new THREE.MeshStandardMaterial({color:'#edbd64',metalness:.78,roughness:.34});
  const deck=new THREE.Mesh(new RoundedBoxGeometry(12.2,.62,2.1,4,.23),enamel);root.add(deck);deck.receiveShadow=true;deck.castShadow=true;
  const front=new THREE.Mesh(new RoundedBoxGeometry(11.8,.18,2.0,3,.1),rim);front.position.y=-.19;root.add(front);
- const top=new THREE.Mesh(new RoundedBoxGeometry(11.95,.07,1.9,3,.1),new THREE.MeshStandardMaterial({color:'#fff1cd',metalness:.15,roughness:.57}));top.position.y=.34;root.add(top);
+ const top=new THREE.Mesh(new RoundedBoxGeometry(11.95,.07,1.9,3,.1),new THREE.MeshStandardMaterial({color:'#fff1cf',metalness:.15,roughness:.57}));top.position.y=.34;root.add(top);
  const controls=[];
- const specs=[['exchange-btn',-4.9,.62,'exchange','#87d5bd','兑币'],['chute-left',-2.6,.91,'left','#8be2d2','左投'],['dropbtn',0,1.06,'both','#f3d183','双投'],['chute-right',2.6,.91,'right','#8be2d2','右投'],['shake-btn',4.9,.62,'shake','#e6bd7b','摇台']];
+ const specs=[['exchange-btn',-4.9,.62,'exchange','#ffcf69','兑币'],['chute-left',-2.6,.91,'left','#7bd6e9','左投'],['dropbtn',0,1.06,'both','#ff8e70','双投'],['chute-right',2.6,.91,'right','#7bd6e9','右投'],['shake-btn',4.9,.62,'shake','#fff0c9','摇台']];
  for(const [id,x,r,side,color,label]of specs){
   const mount=new THREE.Group();mount.position.set(x,.36,0);root.add(mount);
-  const socket=new THREE.Mesh(new THREE.CylinderGeometry(r+.13,r+.2,.13,48),new THREE.MeshStandardMaterial({color:'#376570',metalness:.7,roughness:.35}));mount.add(socket);
+  const socket=new THREE.Mesh(new THREE.CylinderGeometry(r+.13,r+.2,.13,48),new THREE.MeshStandardMaterial({color:'#214758',metalness:.7,roughness:.35}));mount.add(socket);
   const bezel=new THREE.Mesh(new THREE.TorusGeometry(r+.02,.075,8,48),rim);bezel.rotation.x=Math.PI/2;bezel.position.y=.09;mount.add(bezel);
   const cap=new THREE.Group();mount.add(cap);cap.position.y=.17;
   const capMat=new THREE.MeshStandardMaterial({color,metalness:.15,roughness:.4,emissive:color,emissiveIntensity:.1});

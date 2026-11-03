@@ -1,5 +1,11 @@
 # 角色素材署名与许可
 
+## v5.0 银币与联动表现
+
+- `models/minted-whale-coin.blend` / `.glb`：本项目原创鲸鱼浮雕银币，由 `tools/build-minted-coin.py` 使用 Blender 建模。用户参考图用于观察压铸银面、圆边和珠点语言，没有复制参考图角色。
+- `audio/generated/silver-single-v1.mp3` 与 `silver-cascade-v1.mp3`：经用户授权使用 GamesVibe / VibeHub 现有积分，通过官方 CLI 调用 ElevenLabs `eleven_text_to_sound_v2` 生成。不是实录，也不声称为 CC0；生成素材遵循相应服务条款。原始文件、裁剪采样与来源记录保留在 `audio/generated/`，网页内嵌离线采样，不在游戏运行时调用生成服务。
+- `src/table-effects.js`：参考 [Jeff-FX-forge](https://github.com/08102317cdw-art/Jeff-FX-forge) 的脱离式射线、错峰圆环、分段电弧与粒子衰减逻辑，为本游戏重新实现 Three.js 版本。原项目代码 Copyright (c) 2026 Smidle and Jeff Studio，MIT，完整许可见 [licenses/JEFF-FX-MIT.txt](licenses/JEFF-FX-MIT.txt)。没有引入其演示角色、背景、字体或第三方游戏素材。
+
 《大肥鱼推币机》为免费、非商业、非官方同人项目，与 DeepSeek 及角色原作者无隶属关系、无官方背书。没有因为改名就取得独占名称、商标或全部角色权利。
 
 ## 使用的立绘

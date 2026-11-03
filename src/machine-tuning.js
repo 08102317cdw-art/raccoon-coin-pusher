@@ -2,6 +2,7 @@
 // No scripted payouts, score grants, target positions or per-frame coin forces.
 export const MACHINE = Object.freeze({
   floorFriction: .18, coinFriction: .28, pusherFriction: .38,
+  coinRestitution:.12,tableRestitution:.08,linearDamping:.05,angularDamping:.22,solverIterations:6,contactThreshold:50,
   pusherSpeed: 1.85, pusherMax: -.5,
   fixedStep: 1 / 60, maxCatchUpSteps: 6, maxFrameDelta: .1,
   warmupSteps: 240,

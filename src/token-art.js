@@ -44,6 +44,6 @@ export function paintEmblem(ctx,id,color='#f1c96c'){
  }
  ctx.restore();
 }
-export function coinArt(id,color='#f1c96c',extra=''){return `<span class="coin-art ${extra}" style="--coin:${color}">${emblem(id)}</span>`;}
+export function coinArt(id,color='#f1c96c',extra=''){return `<span class="coin-art ${extra}" data-coin="${id}" style="--coin:${id==='coin'?'#cbd5df':color}">${emblem(id)}</span>`;}
 export function upgradeArt(id){return coinArt(({mult:'multi',value:'coin',reserve:'relic',push:'magnet',guard:'killer',lucky:'clover',fever:'lightning',supply:'shell',pin:'gear',irrigation:'seed',predator:'cat',capacitor:'lightning'})[id]||'gear',({mult:'#e5a0b8',value:'#f6c96d',reserve:'#91d3d7',push:'#e7b77b',guard:'#a4dbc8',lucky:'#b6d794',fever:'#efb2c9',supply:'#e6c68a',pin:'#d7c48a',irrigation:'#79bd72',predator:'#d69cd7',capacitor:'#e9d66c'})[id]||'#d7c48a');}
 export function arcadeToast(text){const box=document.getElementById('arcade-toast');if(!box)return;box.textContent=text;box.classList.remove('show');void box.offsetWidth;box.classList.add('show');clearTimeout(box._timer);box._timer=setTimeout(()=>box.classList.remove('show'),2200);}

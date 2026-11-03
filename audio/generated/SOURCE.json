@@ -1,0 +1,84 @@
+{
+  "platform": "GamesVibe / VibeHub",
+  "provider": "ElevenLabs",
+  "model": "eleven_text_to_sound_v2",
+  "date": "2026-11-03",
+  "source": "https://gamesvibe.app/credits",
+  "method": "用户授权现有积分，通过官方 CLI 生成；原始音频保留于本目录。",
+  "creditsSpent": 8,
+  "balanceAfter": 352,
+  "samples": [
+    {
+      "file": "silver-single-v1.mp3",
+      "key": "impact0",
+      "sha256": "7162ffce5fcef28dcc033a668b58ebb16d6d287873f05b7018e9274409b78f33",
+      "start": 0,
+      "duration": 0.28
+    },
+    {
+      "file": "silver-cascade-v1.mp3",
+      "key": "impact1",
+      "sha256": "ca91f88a7ebe1989fec4a534b23f1b07cd152c7a4a471a50e239f85e37e6dcf9",
+      "start": 0,
+      "duration": 0.19
+    },
+    {
+      "file": "silver-cascade-v1.mp3",
+      "key": "impact2",
+      "sha256": "ca91f88a7ebe1989fec4a534b23f1b07cd152c7a4a471a50e239f85e37e6dcf9",
+      "start": 0.25,
+      "duration": 0.22
+    },
+    {
+      "file": "silver-cascade-v1.mp3",
+      "key": "impact3",
+      "sha256": "ca91f88a7ebe1989fec4a534b23f1b07cd152c7a4a471a50e239f85e37e6dcf9",
+      "start": 0.54,
+      "duration": 0.18
+    },
+    {
+      "file": "silver-cascade-v1.mp3",
+      "key": "impact4",
+      "sha256": "ca91f88a7ebe1989fec4a534b23f1b07cd152c7a4a471a50e239f85e37e6dcf9",
+      "start": 1.045,
+      "duration": 0.15996875
+    },
+    {
+      "file": "silver-single-v1.mp3",
+      "key": "insert",
+      "sha256": "7162ffce5fcef28dcc033a668b58ebb16d6d287873f05b7018e9274409b78f33",
+      "start": 0,
+      "duration": 0.13
+    },
+    {
+      "file": "silver-cascade-v1.mp3",
+      "key": "scatter",
+      "sha256": "ca91f88a7ebe1989fec4a534b23f1b07cd152c7a4a471a50e239f85e37e6dcf9",
+      "start": 0,
+      "duration": 1.48
+    },
+    {
+      "file": "silver-cascade-v1.mp3",
+      "key": "bank",
+      "sha256": "ca91f88a7ebe1989fec4a534b23f1b07cd152c7a4a471a50e239f85e37e6dcf9",
+      "start": 0.25,
+      "duration": 0.78
+    }
+  ],
+  "generation": [
+    {
+      "file": "silver-single-v1.mp3",
+      "durationSeconds": 1.2,
+      "promptInfluence": 0.65,
+      "cost": 4,
+      "description": "单枚银币敲击另一枚币沿，清脆明亮，短余响，干净近距离录音感，无空罐、低沉撞击、音乐、人声或环境混响。"
+    },
+    {
+      "file": "silver-cascade-v1.mp3",
+      "durationSeconds": 1.8,
+      "promptInfluence": 0.65,
+      "cost": 4,
+      "description": "多枚小银币落在币堆与金属收币盘，连续清晰的明亮叮响，短促衰减，无罐响、重低音或配乐。"
+    }
+  ]
+}

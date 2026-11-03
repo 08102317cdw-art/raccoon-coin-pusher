@@ -1,4 +1,4 @@
-import { whaleMark } from './brand.js?v=4.4.1';
+import { whaleMark } from './brand.js?v=5.0.0';
 
 // 主菜单复用航路选择和收藏数据；返回菜单只暂停输入，不重置正在进行的游戏。
 export function createHolidayMenu({hasSaved,getRun,onHome,onNew,onRefresh,setting}){

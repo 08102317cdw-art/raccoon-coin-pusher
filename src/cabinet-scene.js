@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=4.4.1';
-import { buildDafeiyu } from './mascot.js?v=4.4.1';
-import { dressCabinet } from './cabinet-details.js?v=4.4.1';
-import { loadCabinetModel } from './cabinet-model.js?v=4.4.1';
-import { finishCabinet } from './cabinet-finish.js?v=4.4.1';
+import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=5.0.0';
+import { buildDafeiyu } from './mascot.js?v=5.0.0';
+import { dressCabinet } from './cabinet-details.js?v=5.0.0';
+import { loadCabinetModel } from './cabinet-model.js?v=5.0.0';
+import { finishCabinet } from './cabinet-finish.js?v=5.0.0';
 
 // Cabinet presentation stays separate from run rules and the simulation loop.
 // Factories are invoked at the original initialization points; no timing changes.

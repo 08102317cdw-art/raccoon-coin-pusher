@@ -5,35 +5,36 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { createCabinetDisplay } from './cabinet-display.js?v=4.4.1';
-import { createCabinetExtension } from './cabinet-extension.js?v=4.4.1';
-import { createCabinetConsole } from './cabinet-console.js?v=4.4.1';
-import { createMascotVoice } from './mascot-voice.js?v=4.4.1';
-import { whaleMark, hatchArt } from './brand.js?v=4.4.1';
-import { MACHINE, openingCoins } from './machine-tuning.js?v=4.4.1';
-import { createPayoutRail } from './payout-rail.js?v=4.4.1';
-import { Sfx } from './audio.js?v=4.4.1';
-import { coinTextures } from './textures.js?v=4.4.1';
-import { buildDafeiyu } from './mascot.js?v=4.4.1';
-import { loadCharacterArt, characterSources } from './character-art.js?v=4.4.1';
-import { Run, UPGRADES, DIFFICULTIES, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=4.4.1';
-import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=4.4.1';
-import { TOKENS, TokenSystem, CREW, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=4.4.1';
-import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=4.4.1';
-import { makeTokenMesh } from './token-mesh.js?v=4.4.1';
-import { createTokenUI } from './token-ui.js?v=4.4.1';
-import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=4.4.1';
-import { createMobileCabinet } from './mobile-cabinet.js?v=4.4.1';
-import { createHolidaySetting } from './holiday-setting.js?v=4.4.1';
-import { createHolidayMenu } from './holiday-menu.js?v=4.4.1';
-import { createCoinTowerLift } from './coin-tower-lift.js?v=4.4.1';
-import { createPrizeWheel } from './prize-wheel.js?v=4.4.1';
-import { ComboWheel } from './combo-wheel.js?v=4.4.1';
-import { createMachineJuice } from './machine-juice.js?v=4.4.1';
-import { createTableEffects } from './table-effects.js?v=4.4.1';
-import { VoyageLog } from './voyage-log.js?v=4.4.1';
-import { createVoyageUI } from './voyage-ui.js?v=4.4.1';
-import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=4.4.1';
+import { createCabinetDisplay } from './cabinet-display.js?v=5.0.0';
+import { createCabinetExtension } from './cabinet-extension.js?v=5.0.0';
+import { createCabinetConsole } from './cabinet-console.js?v=5.0.0';
+import { createMascotVoice } from './mascot-voice.js?v=5.0.0';
+import { whaleMark, hatchArt } from './brand.js?v=5.0.0';
+import { MACHINE, openingCoins } from './machine-tuning.js?v=5.0.0';
+import { createPayoutRail } from './payout-rail.js?v=5.0.0';
+import { Sfx } from './audio.js?v=5.0.0';
+import { createMintedCoin } from './minted-coin.js?v=5.0.0';
+import { createCoinContacts } from './coin-contacts.js?v=5.0.0';
+import { buildDafeiyu } from './mascot.js?v=5.0.0';
+import { loadCharacterArt, characterSources } from './character-art.js?v=5.0.0';
+import { Run, UPGRADES, DIFFICULTIES, BASE_POINTS, EXCHANGE_GRANT } from './roguelike.js?v=5.0.0';
+import { planInsertion, pusherMovingForward, pendulumOffset, fieldImpulse, shakePower, createLaunchers, engage, disengage, stepLaunchers, releaseLaunchers } from './chutes.js?v=5.0.0';
+import { TOKENS, TokenSystem, CREW, cleanMeta, isBad, SPECIAL_IDS } from './tokens.js?v=5.0.0';
+import { PRIZES, RELICS, spinLottery, rollPicks, applyPick, rerollPicks } from './stage-rewards.js?v=5.0.0';
+import { makeTokenMesh } from './token-mesh.js?v=5.0.0';
+import { createTokenUI } from './token-ui.js?v=5.0.0';
+import { coinArt, upgradeArt, arcadeToast } from './token-art.js?v=5.0.0';
+import { createMobileCabinet } from './mobile-cabinet.js?v=5.0.0';
+import { createHolidaySetting } from './holiday-setting.js?v=5.0.0';
+import { createHolidayMenu } from './holiday-menu.js?v=5.0.0';
+import { createCoinTowerLift } from './coin-tower-lift.js?v=5.0.0';
+import { createPrizeWheel } from './prize-wheel.js?v=5.0.0';
+import { ComboWheel } from './combo-wheel.js?v=5.0.0';
+import { createMachineJuice } from './machine-juice.js?v=5.0.0';
+import { createTableEffects } from './table-effects.js?v=5.0.0';
+import { VoyageLog } from './voyage-log.js?v=5.0.0';
+import { createVoyageUI } from './voyage-ui.js?v=5.0.0';
+import { createCabinetBase, createCabinetAccents, createCabinetParticles } from './cabinet-scene.js?v=5.0.0';
 
 await loadCharacterArt();
 for (const img of document.querySelectorAll('[data-character]')) img.src = characterSources[img.dataset.character];
@@ -88,24 +89,23 @@ const screenL = new THREE.PointLight('#ffb54a', 5, 9, 1.8); screenL.position.set
 const tableFX = createTableEffects(scene, motionReduced);
 
 // ================== 材质 ==================
-const ct = coinTextures();
-const coinFaceMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: 0.22, metalness: 0.8, roughness: 0.29, color: '#ffffff' });
-const coinSideMat = new THREE.MeshStandardMaterial({ map: ct.side, metalness: 0.78, roughness: 0.3 });
-const chrome = new THREE.MeshStandardMaterial({ color: '#e9e8cf', metalness: 0.28, roughness: 0.48 });
-const orange = new THREE.MeshStandardMaterial({ color: '#83c8c0', roughness: 0.6, metalness: 0.12 });
-const brown = new THREE.MeshStandardMaterial({ color: '#fff1cd', roughness: 0.58 });
-const darkMat = new THREE.MeshStandardMaterial({ color: '#376570', roughness: 0.9 });
+const mintedCoin=await createMintedCoin(renderer),coinFaceMat=mintedCoin.face;
+const chrome = new THREE.MeshStandardMaterial({ color: '#fff0cc', metalness: 0.28, roughness: 0.48 });
+const orange = new THREE.MeshStandardMaterial({ color: '#ed8a6b', roughness: 0.6, metalness: 0.12 });
+const brown = new THREE.MeshStandardMaterial({ color: '#254e69', roughness: 0.58 });
+const darkMat = new THREE.MeshStandardMaterial({ color: '#143d53', roughness: 0.9 });
 const glass = new THREE.MeshPhysicalMaterial({ color: '#bff6ff', metalness: 0, roughness: 0.05, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide });
 
 // ================== 物理世界 ==================
 await RAPIER.init();
 const world = new RAPIER.World({ x: 0, y: -24, z: 0 });
 world.timestep = MACHINE.fixedStep;
-world.integrationParameters.numSolverIterations = 6;
+world.integrationParameters.numSolverIterations = MACHINE.solverIterations;
+const coinContacts=createCoinContacts(RAPIER,world,hit=>{if(started){sfx.impact(hit);if(hit.strength>.65)tableFX.emit({type:'impact',from:hit.position,strength:hit.strength});}});
 const F_FLOOR = MACHINE.floorFriction, F_COIN = MACHINE.coinFriction, F_PUSH = MACHINE.pusherFriction;
 function staticBox(hx, hy, hz, x, y, z, fr = F_FLOOR) {
   const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z));
-  world.createCollider(RAPIER.ColliderDesc.cuboid(hx, hy, hz).setFriction(fr).setRestitution(0.1), body);
+  world.createCollider(RAPIER.ColliderDesc.cuboid(hx, hy, hz).setFriction(fr).setRestitution(MACHINE.tableRestitution), body);
   return body;
 }
 const { meshBox, guards, backboardGroup, SCREEN_W, SCREEN_H, SCREEN_Y, pusherBody, pusherMesh } = createCabinetBase({
@@ -125,7 +125,8 @@ function physicsStep() {
   pusherBody.setNextKinematicTranslation({ x: 0, y: PUSH_H / 2, z: mid + amp * Math.sin(pushPhase) - PUSH_D / 2 });
   for (const c of coins) { const v = c.body.linvel(); if (v.y < -9) c.body.setLinvel({ x: v.x, y: -9, z: v.z }, true); }
   towerLift?.step(dt);
-  world.step();
+  for(const c of coins)c.contactVelocity=c.body.linvel();
+  world.step(coinContacts.queue);coinContacts.drain(dt);
 }
 let acc = 0;
 function stepWorld(dt) {
@@ -140,8 +141,8 @@ function stepWorld(dt) {
 }
 
 // ================== 硬币系统 ==================
-const coinGeo = new THREE.CylinderGeometry(COIN_R, COIN_R, COIN_H, 40, 1);
-const coinMesh = new THREE.InstancedMesh(coinGeo, [coinSideMat, coinFaceMat, coinFaceMat], MAX_COINS);
+const coinGeo = mintedCoin.geometry;
+const coinMesh = new THREE.InstancedMesh(coinGeo, mintedCoin.materials, MAX_COINS);
 coinMesh.castShadow = coinMesh.receiveShadow = true; coinMesh.count = 0; coinMesh.frustumCulled = false;
 coinMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(coinMesh);
 const SHAPES = {
@@ -156,7 +157,7 @@ const SHAPES = {
 const coins = [];
 const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), tmpS = new THREE.Vector3();
 
-const bigMat = new THREE.MeshStandardMaterial({ map: ct.face, bumpMap: ct.bump, bumpScale: .16, metalness: .84, roughness: .3, color: '#ffd77a', emissive: '#6a3a00', emissiveIntensity: 0.18 });
+const bigCoinGeo=coinGeo.clone().scale(.85/COIN_R,.2/COIN_H,.85/COIN_R);
 const gemMat = new THREE.MeshPhysicalMaterial({ color: '#36e0ff', metalness: 0.1, roughness: 0.04, clearcoat: 1, iridescence: 1, iridescenceIOR: 1.6, emissive: '#0a5a8a', emissiveIntensity: 0.6, flatShading: true });
 function makePrizeMesh(kind) {
   if (kind === 'shell') {
@@ -177,7 +178,7 @@ function makePrizeMesh(kind) {
 function makeSpecialMesh(kind) {
   if (PRIZES[kind]) return makePrizeMesh(kind);
   if (TOKENS[kind]) return makeTokenMesh(kind);
-  if (kind === 'big') { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 48), [coinSideMat, bigMat, bigMat]); m.castShadow = true; return m; }
+  if (kind === 'big') { const m = new THREE.Mesh(bigCoinGeo,mintedCoin.goldMaterials); m.castShadow = true; return m; }
   if (kind === 'gem') {
     const g = new THREE.Group();
     const a = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.3, 6), gemMat); g.add(a);
@@ -192,18 +193,19 @@ const VALUES = { coin: 1, big: 10, gem: 20, plush: 30 };
 
 function spawn(kind, x, y, z, q, vel) {
   if (coins.length >= MAX_COINS || (!SHAPES[kind] && !TOKENS[kind])) return null;
-  const bd = RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setLinearDamping(0.05).setAngularDamping(0.3).setCcdEnabled(!!vel);
+  const bd = RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setLinearDamping(MACHINE.linearDamping).setAngularDamping(MACHINE.angularDamping).setCcdEnabled(!!vel);
   if (q) bd.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
   if (vel) bd.setLinvel(vel.x, vel.y, vel.z);
   const body = world.createRigidBody(bd);
-  world.createCollider((SHAPES[kind] || SHAPES.coin)().setFriction(F_COIN).setRestitution(0.08), body);
+  const collider=world.createCollider((SHAPES[kind] || SHAPES.coin)().setFriction(F_COIN).setRestitution(MACHINE.coinRestitution).setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min).setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS).setContactForceEventThreshold(MACHINE.contactThreshold), body);
   const c = { p: { x, y, z }, body, kind, state: 'field', t: 0, scale: 1, prevY: y, gated: false, fromDrop: false, pv: { x: 0, y: vel ? vel.y : 0, z: 0 } };
   if (kind !== 'coin') { c.mesh = makeSpecialMesh(kind); scene.add(c.mesh); }
+  coinContacts.register(c,collider);
   tokens.meta(c); coins.push(c);journal.discover(kind);
   return c;
 }
 function removeCoin(i) {
-  const c = coins[i]; world.removeRigidBody(c.body);
+  const c = coins[i];coinContacts.unregister(c);world.removeRigidBody(c.body);
   if (c.mesh) scene.remove(c.mesh);
   coins[i] = coins[coins.length - 1]; coins.pop();
 }
@@ -944,16 +946,14 @@ function update(dt) {
     const c = coins[i], p = c.p = c.body.translation();
     if(c.tokenDead)continue;
     if (!c.body.isSleeping()) {
-      const v = c.body.linvel(), dv = Math.hypot(v.x - c.pv.x, v.y - c.pv.y, v.z - c.pv.z);
-      if (dv > 2.6 && p.y > -2.6 && c.state !== 'won') sfx.clink(Math.min(1, dv / 9) * (c.kind === 'coin' ? 1 : 1.3), p.x / 6);
-      else if (dv > 2.6 && c.state === 'won' && c.t < 1) sfx.clink(Math.min(0.7, dv / 12), p.x / 6);
+      const v = c.body.linvel();
       c.pv = v;
     }
     c.prevY = p.y;
     if (c.ccd !== false && p.y < 1.9 && Math.abs(c.body.linvel().x)<4 && c.state === 'field') { c.ccd = false; c.body.enableCcd(false); }
     if (c.fromDrop && !c.landed && c.state === 'field' && p.y < .95) {
       c.landed = true;
-      if (p.y > .15) { sfx.clink(.45, p.x / 6); burst(p.x,.2,p.z,3,'#ffdc8b',.8,.25); }
+      if (p.y > .15) tableFX.emit({type:'impact',from:{x:p.x,y:.2,z:p.z},strength:.25});
     }
     if (c.state === 'field' && p.y < -0.4) {
       if (p.z > FRONT_Z - 0.1 && Math.abs(p.x) < HALF_W + 0.3) { c.state = 'won'; onWin(c); }
@@ -1003,4 +1003,4 @@ holidayMenu=createHolidayMenu({hasSaved:()=>loaded||started,getRun:()=>run,setti
 }});
 frame();
 tokenUI=createTokenUI({kit:()=>tokens,run:()=>run,entities:()=>coins,save,pauseInput:()=>releaseLaunchers(lanes),sfx:()=>sfx.gate(),changed:()=>renderResult(true)});
-window.__game = { tower:()=>towerLift.snapshot, spawnCoinTower, holiday:()=>({...seasideRoom.diagnostics,menuOpen:holidayMenu.isOpen(),menuView:holidayMenu.view}), cabinet:()=>({model: 'Blender 5.1 · original GLB',rig:mascot.rig,outlet:(()=>{cabinetModel.root.updateWorldMatrix(true,true);return cabinetModel.outlet.getWorldPosition(new THREE.Vector3()).toArray();})(),carriage:pendulum.position.toArray(),display:cabinetDisplay.snapshot,bounds:window.__displayBounds,voice:voice.state,petCount,controls:document.querySelectorAll('#model-controls>button,#chute-row button,#play-actions button').length}), pet:petMascot, performance:()=>({lowQuality,pixelRatio:renderer.getPixelRatio(),frameCost}), experience:()=>({effects:tableFX.counts,activeEffects:tableFX.active,batches:juice.batches,pendingDeliveries:showerQueue.length,journal:journal.serialize()}), time:()=>time, get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, dropSpecialCoin, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'sunny-drift',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };
+window.__game = { material:()=>mintedCoin.diagnostics, sound:()=>({samples:sfx.sampleCount,voices:sfx.voices.size,contacts:coinContacts.stats}), tower:()=>towerLift.snapshot, spawnCoinTower, holiday:()=>({...seasideRoom.diagnostics,menuOpen:holidayMenu.isOpen(),menuView:holidayMenu.view}), cabinet:()=>({model: 'Blender 5.1 · original GLB',rig:mascot.rig,outlet:(()=>{cabinetModel.root.updateWorldMatrix(true,true);return cabinetModel.outlet.getWorldPosition(new THREE.Vector3()).toArray();})(),carriage:pendulum.position.toArray(),display:cabinetDisplay.snapshot,bounds:window.__displayBounds,voice:voice.state,petCount,controls:document.querySelectorAll('#model-controls>button,#chute-row button,#play-actions button').length}), pet:petMascot, performance:()=>({lowQuality,pixelRatio:renderer.getPixelRatio(),frameCost}), experience:()=>({effects:tableFX.counts,activeEffects:tableFX.active,particles:tableFX.metrics,batches:juice.batches,pendingDeliveries:showerQueue.length,journal:journal.serialize()}), time:()=>time, get prizeWheel(){return prizeWheel;}, showLottery, get tokens(){return tokens;}, stepTokens, tokenCatalog:TOKENS, changeToken:(c,k)=>specialAdapter.change(c,k), nextTokenStage:()=>tokens.startStage(run.round,coins,specialAdapter), theme: () => ({ name: '大肥鱼推币机', pose: mascot.pose }), pause: v => paused = v, stats, comboWheel, leds: () => updateLeds(time), syncCoins, update, dropSpecialCoin, render: () => composer.render(), state, coins, world, physicsStep, dropCoin, spawnPrize:(kind,x)=>spawnTablePrize(kind,x), pendulumX:()=>pendulum.position.x, get run(){return run;}, layout:()=>({viewport:app.getBoundingClientRect().toJSON(),mobile:mobileCabinet.mobile,environment:'sunny-drift',upper:$('machine-upper').getBoundingClientRect().toJSON(),mascot:(()=>{mascot.portrait.updateWorldMatrix(true,false);const p=mascot.portrait.getWorldPosition(new THREE.Vector3()),s=mascot.portrait.getWorldScale(new THREE.Vector3()),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),pts=[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]].map(([x,y])=>toScreen(...p.clone().addScaledVector(right,x*s.x).addScaledVector(up,y*s.y).toArray()));return {left:Math.min(...pts.map(p=>p[0])),right:Math.max(...pts.map(p=>p[0])),top:Math.min(...pts.map(p=>p[1])),bottom:Math.max(...pts.map(p=>p[1])),scale:mascot.root.scale.x,z:mascot.root.position.z};})(),landmarks:(mobileCabinet.mobile?[[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]:[[-4.5,9.15,-6.1],[4.5,9.15,-6.1],[-3.5,7.6,-6.1],[3.5,3.6,-6.1],[-5,0,4],[5,0,4],[-5,PUSH_H,-6],[5,PUSH_H,-6]]).map(p=>toScreen(...p))}), save, onWin, spawn, finishRound,  get pushPhase(){return pushPhase;}, set pushPhase(v){pushPhase=v;}, start: () => $('start-button').click() };

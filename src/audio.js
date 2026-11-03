@@ -1,6 +1,7 @@
-// 全合成音效：无需任何音频文件
+import metalAudio from './art/coin-audio.js';
+// AI 生成的金属拟音与环境音乐均可离线播放，碰撞音按强度与位置混合。
 export class Sfx {
-  constructor() { this.ctx = null; this.enabled = true; this.musicOn = true; this.clinkTimes = []; }
+  constructor() { this.ctx = null; this.enabled = true; this.musicOn = true; this.clinkTimes = []; this.buffers={};this.voices=new Set();this.sampleCount=0;this.lastImpact=-1000;this.musicBase=.055; }
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -10,17 +11,21 @@ export class Sfx {
     comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 6;
     this.master.connect(comp).connect(ctx.destination);
     this.sfx = ctx.createGain(); this.sfx.gain.value = 0.9; this.sfx.connect(this.master);
-    this.music = ctx.createGain(); this.music.gain.value = 0.16; this.music.connect(this.master);
+    this.music = ctx.createGain(); this.music.gain.value = this.musicBase; this.music.connect(this.master);
     // 简易混响
     this.verb = ctx.createConvolver();
     const len = ctx.sampleRate * 1.6, ir = ctx.createBuffer(2, len, ctx.sampleRate);
     for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
     this.verb.buffer = ir;
-    this.verbGain = ctx.createGain(); this.verbGain.gain.value = 0.22;
+    this.verbGain = ctx.createGain(); this.verbGain.gain.value = 0.055;
     this.verb.connect(this.verbGain).connect(this.master);
     const nb = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), nd = nb.getChannelData(0);
     for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
     this.noiseBuf = nb;
+    for(const [name,data]of Object.entries(metalAudio.samples)){
+      const bytes=Uint8Array.from(atob(data),v=>v.charCodeAt(0)),view=new DataView(bytes.buffer),buffer=ctx.createBuffer(1,bytes.length/2,metalAudio.rate),channel=buffer.getChannelData(0);
+      for(let i=0;i<channel.length;i++)channel[i]=view.getInt16(i*2,true)/32768;this.buffers[name]=buffer;
+    }
     this.startMusic();
   }
   get t() { return this.ctx.currentTime; }
@@ -48,75 +53,34 @@ export class Sfx {
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(f).connect(g).connect(this.out(pan)); s.start(t, Math.random()); s.stop(t + dur + 0.05);
   }
-  // 金属碰撞声
-  clink(intensity = 0.5, pan = 0) {
-    if (!this.ok()) return;
-    const now = performance.now();
-    this.clinkTimes = this.clinkTimes.filter(x => now - x < 100);
-    if (this.clinkTimes.length > 4) return;
-    this.clinkTimes.push(now);
-    const base = 2600 + Math.random() * 1900, v = 0.05 + intensity * 0.16;
-    [1, 1.47, 2.09, 2.76].forEach((m, i) => this.tone('sine', base * m, base * m * 0.995, 0.05 + 0.22 * intensity / (i + 1), v / (i + 1.2), 0, pan, 0.15, 0.001));
-    this.noise(0.02, v * 0.6, 'highpass', 5000, 0, pan);
+  // 每次接触有不同的金属短音，限制并发并保留清晰的瞬态。
+  sample(name,volume=.4,pan=0,when=0,rate=1){
+    if(!this.ok()||!this.buffers[name]||this.voices.size>=18)return false;
+    const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();source.buffer=this.buffers[name];source.playbackRate.value=rate;gain.gain.value=volume;source.connect(gain).connect(this.out(pan,.02));
+    this.voices.add(source);source.onended=()=>{this.voices.delete(source);source.disconnect();gain.disconnect();};source.start(this.t+when);this.sampleCount++;return true;
   }
-  drop(pan = 0, streak = 0) {
-    if (!this.ok()) return;
-    const lift = Math.pow(2, Math.min(12, Math.max(0, streak)) / 12);
-    this.noise(0.06, 0.25, 'lowpass', 1400, 0, pan, 1, 300);
-    this.tone('triangle', 520 * lift, 280 * lift, 0.09, 0.13, 0, pan);
-    this.clink(0.35 + Math.min(0.25, streak * 0.03), pan);
+  impact({strength=.5,pan=0,tray=false}={}){
+    const now=performance.now();if(now-this.lastImpact<32)return false;this.lastImpact=now;
+    return this.sample('impact'+Math.floor(Math.random()*5),.12+strength*.25,pan,0,(tray?.92:1.05)+Math.random()*.13);
   }
-  win(combo = 0, pan = 0) {
-    if (!this.ok()) return;
-    const scale = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
-    const n = scale[Math.min(combo, scale.length - 1)], f = 1046.5 * Math.pow(2, n / 12);
-    this.tone('sine', f, f, 0.35, 0.16, 0, pan, 0.5);
-    this.tone('sine', f * 2.01, f * 2.01, 0.2, 0.06, 0, pan, 0.5);
-    this.tone('square', f / 2, f / 2, 0.06, 0.03, 0, pan);
+  clink(intensity=.5,pan=0){return this.impact({strength:intensity,pan});}
+  drop(pan=0){this.sample('insert',.38,pan,0,1.05+Math.random()*.06);}
+  win(combo=0,pan=0){this.sample('impact'+combo%5,.28,pan,0,1.05+Math.min(8,combo)*.015);}
+  lost(pan=0){this.sample('impact3',.13,pan,0,.9);}
+  gate(){this.sample('insert',.3,0,0,.95);}
+  tick(){this.sample('insert',.08,0,0,1.35);}
+  tower(phase){
+    if(phase==='unlocking'||phase==='seating')this.sample('insert',.38,0,0,.85);
+    else if(phase==='rising')this.sample('scatter',.12,0,0,.72);
+    else this.sample('insert',.18,0,0,.92);
   }
-  lost(pan = 0) { if (!this.ok()) return; this.tone('sine', 260, 120, 0.25, 0.1, 0, pan); }
-  gate() {
-    if (!this.ok()) return;
-    [0, 4, 7, 12, 16].forEach((n, i) => this.tone('square', 880 * Math.pow(2, n / 12), null, 0.12, 0.06, i * 0.04, 0, 0.4));
-  }
-  tick() { if (!this.ok()) return; this.tone('square', 1200, 900, 0.025, 0.025); }
-  // 原创底阀锁销、低速电机与落座声，跟随机械阶段触发。
-  tower(phase,duration=1) {
-    if(!this.ok())return;
-    if(phase==='unlocking'){this.noise(.09,.09,'bandpass',950);this.tone('triangle',170,85,.14,.045);}
-    else if(phase==='opening'){this.noise(.22,.035,'lowpass',700);this.tone('triangle',95,145,.4,.025);}
-    else if(phase==='rising'){this.tone('triangle',100,155,Math.min(2.8,duration),.026);this.noise(.5,.025,'bandpass',430);}
-    else if(phase==='seating'){this.noise(.08,.12,'lowpass',620);this.tone('triangle',150,65,.18,.07);this.tone('sine',1046,1046,.28,.045,.08);}
-    else if(phase==='closing'){this.noise(.15,.04,'bandpass',540);this.tone('triangle',120,70,.25,.03);}
-  }
-  reelStop() { if (!this.ok()) return; this.tone('sine', 180, 60, 0.14, 0.3); this.noise(0.04, 0.15, 'bandpass', 2500); }
-  reach() {
-    if (!this.ok()) return;
-    const t = this.t, o = this.ctx.createOscillator(), lfo = this.ctx.createOscillator(), lg = this.ctx.createGain(), g = this.ctx.createGain();
-    o.type = 'sawtooth'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(880, t + 1.8);
-    lfo.frequency.value = 14; lg.gain.value = 0.05; lfo.connect(lg).connect(g.gain);
-    g.gain.setValueAtTime(0.06, t); g.gain.linearRampToValueAtTime(0.0001, t + 1.9);
-    const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2200;
-    o.connect(f).connect(g).connect(this.out(0, 0.3)); o.start(t); lfo.start(t); o.stop(t + 2); lfo.stop(t + 2);
-    for (let i = 0; i < 18; i++) this.noise(0.05, 0.12 + i * 0.01, 'bandpass', 180, i * 0.1, 0, 2);
-  }
-  fanfare(big = false) {
-    if (!this.ok()) return;
-    const seq = big ? [[0, 0], [4, 0.12], [7, 0.24], [12, 0.36], [7, 0.5], [12, 0.62], [16, 0.74], [19, 0.9]] : [[0, 0], [4, 0.1], [7, 0.2], [12, 0.3]];
-    seq.forEach(([n, w]) => {
-      const f = 523.25 * Math.pow(2, n / 12);
-      this.tone('square', f, null, 0.22, 0.07, w, 0, 0.4);
-      this.tone('triangle', f * 2, null, 0.3, 0.07, w, 0, 0.4);
-    });
-    if (big) {
-      [0, 4, 7, 12].forEach(n => this.tone('sawtooth', 261.6 * Math.pow(2, n / 12), null, 1.4, 0.035, 1.05, 0, 0.6, 0.02));
-      for (let i = 0; i < 24; i++) this.tone('sine', 2000 + Math.random() * 3000, null, 0.3, 0.04, 1.05 + i * 0.05, Math.random() * 2 - 1, 0.6);
-    }
-  }
-  levelUp() { if (!this.ok()) return; [0, 2, 4, 5, 7, 9, 11, 12].forEach((n, i) => this.tone('triangle', 659 * Math.pow(2, n / 12), null, 0.15, 0.08, i * 0.05, 0, 0.4)); }
-  whoosh() { if (!this.ok()) return; this.noise(0.6, 0.25, 'bandpass', 300, 0, 0, 3, 3000); }
-  prize() { if (!this.ok()) return; [12, 16, 19, 24, 28].forEach((n, i) => this.tone('sine', 523 * Math.pow(2, n / 12), null, 0.5, 0.08, i * 0.06, 0, 0.7)); }
-  button() { if (!this.ok()) return; this.tone('sine', 900, 1300, 0.06, 0.08); }
+  reelStop(){this.sample('impact2',.25,0,0,.9);}
+  reach(){this.sample('bank',.4);this.sample('impact0',.2,0,.14,1.3);}
+  fanfare(big=false){this.sample(big?'scatter':'bank',big?.45:.3);for(let i=0;i<(big?5:2);i++)this.sample('impact'+i%5,.13,0,.12+i*.065,1.1+i*.05);}
+  levelUp(){this.sample('bank',.28);this.sample('impact1',.16,0,.13,1.2);}
+  whoosh(){if(this.ok())this.noise(.2,.08,'bandpass',700,0,0,1,1700);}
+  prize(){this.sample('bank',.32);this.sample('impact4',.18,0,.12,1.25);}
+  button(){this.sample('insert',.13,0,0,1.12);}
 
   // 联动各有声音身份；同类触发限频，避免密集构筑挤满音频节点。
   synergy(type, pan = 0) {
@@ -126,32 +90,28 @@ export class Sfx {
     if (now - (this.eventTimes[type] || -1000) < 110) return;
     this.eventTimes[type] = now;
     if (type === 'grow') {
-      [0, 7, 12].forEach((n,i)=>this.tone('triangle',440*Math.pow(2,n/12),null,.18,.075,i*.07,pan,.22));
+      this.sample('impact0',.16,pan,0,1.1);this.sample('impact2',.12,pan,.15,1.25);
     } else if (type === 'hunt') {
       this.noise(.055,.14,'bandpass',750,0,pan,2,1700);
-      this.tone('triangle',220,660,.14,.1,.06,pan);
+      this.sample('impact3',.21,pan,.07,1.05);
     } else if (type === 'charge') {
-      this.noise(.045,.08,'highpass',4200,0,pan);
-      this.tone('sawtooth',620,1600,.1,.035,0,pan,.08);
+      this.noise(.035,.065,'highpass',6500,0,pan);this.noise(.025,.04,'bandpass',9000,.07,pan,1.5);this.sample('impact4',.13,pan,.08,1.25);
     } else if (type === 'explode') {
       this.noise(.35,.28,'lowpass',1100,0,pan,1,100);
       this.tone('sine',105,32,.42,.26,0,pan,.1);
       this.duckMusic(.4);
     } else if (type === 'purify') {
-      this.tone('sine',880,1760,.22,.09,0,pan,.4);
+      this.sample('impact0',.17,pan,0,1.35);this.sample('impact1',.1,pan,.13,1.4);
     } else this.clink(.6,pan);
   }
-  bank({count=1,points=0,combo=0,tier=1}) {
-    if (!this.ok()) return;
-    this.win(Math.min(10,combo),0);
-    if(count>=3)this.noise(.09,.08,'bandpass',1400,0,0,1,750);
-    if(tier>=2)this.tone('triangle',196,98,.16,.12);
-    if(tier===3){this.duckMusic(.65);this.tone('sine',65,40,.27,.18);}
+  bank({count=1,tier=1}){
+    this.sample(count>=3?'bank':'impact'+Math.floor(Math.random()*5),tier===3?.45:tier===2?.33:.23,0,0,.98+Math.random()*.06);
+    if(tier>=2)this.sample('impact2',.14,0,.07,1.2);if(tier===3)this.duckMusic(.5);
   }
   duckMusic(amount=.6,seconds=.3) {
     if(!this.music)return;
     const t=this.t,g=this.music.gain;
-    g.cancelScheduledValues(t);g.setTargetAtTime(.16*(1-amount),t,.025);g.setTargetAtTime(.16,t+seconds,.16);
+    g.cancelScheduledValues(t);g.setTargetAtTime(this.musicBase*(1-amount),t,.025);g.setTargetAtTime(this.musicBase,t+seconds,.16);
   }
 
   // ---------- 背景音乐：轻快的循环 ----------
@@ -172,7 +132,7 @@ export class Sfx {
         const bar = Math.floor(i / 8) % 4, s = i % 8, ch = chords[bar], root = 130.81;
         if (this.musicOn) {
           if (s % 2 === 0) play('triangle', root * Math.pow(2, ch[0] / 12) / (s % 4 === 0 ? 2 : 1), next, step * 1.6, 0.5);
-          if (s === 2 || s === 6) ch.forEach(n => play('square', root * 2 * Math.pow(2, n / 12), next, step * 0.7, 0.06));
+          if (s === 2 || s === 6) ch.forEach(n => play('sine', root * 2 * Math.pow(2, n / 12), next, step * 0.7, 0.06));
           const m = mel[i % 32]; if (m !== null) play('triangle', root * 2 * Math.pow(2, m / 12), next, step * 1.4, 0.22);
           if (s % 2 === 1) { // 踩镲
             const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -188,5 +148,5 @@ export class Sfx {
     setInterval(sched, 60);
   }
   setMusic(on) { this.musicOn = on; }
-  setEnabled(on) { this.enabled = on; if (this.master) this.master.gain.value = on ? 0.8 : 0; }
+  setEnabled(on) { this.enabled = on; if (this.sfx) this.sfx.gain.value = on ? .9 : 0; }
 }
