@@ -34,3 +34,12 @@
 - `src/art/lcd-art.js`：本项目使用 AI 辅助生成的原创海湾插画。
 - `src/art/voice-clips.js`：本项目原创台词，使用 Microsoft Edge 通用中文合成语音 `zh-CN-XiaoxiaoNeural` 合成；不是角色官方配音，没有模仿或克隆特定真人。合成声音不按代码 MIT 许可声称取得专属权利。整个游戏保持免费、非商业用途；分发和后续用途需遵守相应服务条款。
 - 原角色立绘及其 CC BY-NC-SA 4.0 约束不变。新增声音不表示已取得既有角色、名称或商标的官方许可。
+
+## v4.3 真实 Live2D 吉祥物
+
+机台吉祥物改为 Q肥鱼的原生 Cubism MOC3 模型，模型制作 **B站 @氵六青（11272072）**，由 [Alps-Link/deepseek-whale-Desktop-pet](https://github.com/Alps-Link/deepseek-whale-Desktop-pet/blob/84aebd3056a1c10a496f8b526d9671eb0fd55842/README.md) 按 CC BY-NC-SA 4.0 分享。本项目不声称从零绘制或绑定；两张贴图降为 1024px、选取部分动作并加入视线、眨眼、呼吸、触摸及通用合成语音的音量口型驱动。游戏保持非商业，模型不得出售。原 MOC3 与物理绑定未修改，不包含 Cubism `.cmo3` 编辑工程。详见 [模型来源与改动](models/mascot-live2d/SOURCE.md) 和随附原始使用须知。
+
+- Live2D Cubism Core © Live2D Inc.：官方 SDK 的 Redistributable Code，遵循 [专有软件许可副本](licenses/LIVE2D-CORE-LICENSE.txt)，不是 MIT。
+- Cubism Framework：遵循 [Live2D Open Software License 副本](licenses/LIVE2D-FRAMEWORK-LICENSE.txt)。
+- PixiJS 6.5.10：[MIT](licenses/PIXI-MIT.txt)；pixi-live2d-display 0.4.0（Guan）：[MIT](licenses/PIXI-LIVE2D-DISPLAY-MIT.txt)。
+- 运行库与美术的权利分别保留，不因本项目代码的 MIT 而改变。启动页、收藏物与后备立绘仍使用上述 CrossPet 美术。

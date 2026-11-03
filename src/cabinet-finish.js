@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { drawWhale } from './textures.js?v=4.2.0';
+import { drawWhale } from './textures.js?v=4.3.0';
 // Engraved side decks: maritime enamel, pinstripes, milled fasteners and makers' marks.
 // These are decorative meshes only. Nothing changes the Rapier collision surfaces.
 export function finishCabinet(scene) {

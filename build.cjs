@@ -1,9 +1,10 @@
 const fs=require('node:fs'),path=require('node:path'),esbuild=require('esbuild');
-process.chdir(__dirname);fs.mkdirSync('dist',{recursive:true});
+process.chdir(__dirname);require('./bundle-live2d.cjs');fs.mkdirSync('dist',{recursive:true});
 const result=esbuild.buildSync({entryPoints:['src/main.js'],bundle:true,minify:true,format:'esm',target:'es2022',write:false,logLevel:'warning'});
-let html=fs.readFileSync('src/index.html','utf8');
+let html=fs.readFileSync('src/index.html','utf8').replace('<!--RUNTIME_LICENSES-->',require('./license-notices.cjs'));
 for(const [marker,file]of [['ARCADE_STYLE','arcade-ui.css'],['MOBILE_STYLE','mobile-cabinet.css'],['POCKET_STYLE','mobile-stage.css']])html=html.replace(`<!--${marker}-->`,`<style>${fs.readFileSync(path.join('src',file),'utf8')}</style>`);
 for(const file of ['game-feel.css','voyage-ui.css','feel-pass.css','diegetic.css'])if(fs.existsSync(path.join('src',file)))html=html.replace('</head>',`<style>${fs.readFileSync(path.join('src',file),'utf8')}</style>\n</head>`);
+html=html.replace('<!--LIVE2D_CORE-->',()=>'<script>'+fs.readFileSync('src/vendor/live2dcubismcore.min.js','utf8').replace(/<\/script/gi,'<\\/script')+'</script>');
 if(!html.includes('/*BUNDLE*/'))throw Error('入口缺少脚本占位符');
 html=html.replace('/*BUNDLE*/',()=>result.outputFiles[0].text.replace(/<\/script/gi,'<\\/script'));
 fs.writeFileSync('dist/raccoon-coin-pusher.html',html);console.log('离线游戏已生成：dist/raccoon-coin-pusher.html');

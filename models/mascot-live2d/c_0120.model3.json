@@ -1,0 +1,73 @@
+{
+  "Version": 3,
+  "FileReferences": {
+    "Moc": "c_0120.moc3",
+    "Textures": [
+      "c_0120.2048/texture_00.png",
+      "c_0120.2048/texture_01.png"
+    ],
+    "Physics": "c_0120.physics3.json",
+    "DisplayInfo": "c_0120.cdi3.json",
+    "Motions": {
+      "Idling": [
+        {
+          "File": "motions/idle.motion3.json",
+          "FadeInTime": 1.0,
+          "FadeOutTime": 1.0
+        }
+      ],
+      "Touch": [
+        {
+          "File": "motions/Touch_0.motion3.json"
+        },
+        {
+          "File": "motions/Touch_1.motion3.json"
+        },
+        {
+          "File": "motions/Touch_2.motion3.json"
+        }
+      ]
+    },
+    "Expressions": [
+      {
+        "Name": "love_eyes",
+        "File": "expressions/love_eyes.exp3.json"
+      },
+      {
+        "Name": "blush",
+        "File": "expressions/blush.exp3.json"
+      },
+      {
+        "Name": "angry",
+        "File": "expressions/angry.exp3.json"
+      },
+      {
+        "Name": "star_eyes",
+        "File": "expressions/star_eyes.exp3.json"
+      },
+      {
+        "Name": "excited",
+        "File": "expressions/excited.exp3.json"
+      },
+      {
+        "Name": "sad",
+        "File": "expressions/sad.exp3.json"
+      }
+    ]
+  },
+  "Groups": [
+    {
+      "Target": "Parameter",
+      "Name": "EyeBlink",
+      "Ids": [
+        "ParamEyeLOpen",
+        "ParamEyeROpen"
+      ]
+    },
+    {
+      "Target": "Parameter",
+      "Name": "LipSync",
+      "Ids": []
+    }
+  ]
+}

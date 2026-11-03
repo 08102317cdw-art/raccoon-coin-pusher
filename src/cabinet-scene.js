@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=4.2.0';
-import { buildDafeiyu } from './mascot.js?v=4.2.0';
-import { dressCabinet } from './cabinet-details.js?v=4.2.0';
-import { loadCabinetModel } from './cabinet-model.js?v=4.2.0';
-import { finishCabinet } from './cabinet-finish.js?v=4.2.0';
+import { floorTexture, stripeTexture, plateTexture, wallTexture, glowSprite, textTexture } from './textures.js?v=4.3.0';
+import { buildDafeiyu } from './mascot.js?v=4.3.0';
+import { dressCabinet } from './cabinet-details.js?v=4.3.0';
+import { loadCabinetModel } from './cabinet-model.js?v=4.3.0';
+import { finishCabinet } from './cabinet-finish.js?v=4.3.0';
 
 // Cabinet presentation stays separate from run rules and the simulation loop.
 // Factories are invoked at the original initialization points; no timing changes.
@@ -113,6 +113,7 @@ export async function createCabinetAccents({ scene, staticBox, meshBox, HALF_W, 
   staticBox(HALF_W, 0.8, 0.1, 0, TRAY_Y + 0.5, FRONT_Z + 2.75);
   // ================== 吉祥物 ==================
   const mascot = buildDafeiyu(coinFaceMat);
+  await mascot.activateLive2D();
   mascot.root.position.set(-HALF_W - 1.55, 2.73, -1.2); mascot.root.scale.setScalar(1.25); mascot.root.rotation.y = 0.55;
   mascot.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(mascot.root);
